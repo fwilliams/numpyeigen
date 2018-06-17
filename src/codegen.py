@@ -1,23 +1,11 @@
 import itertools
 
-v_types = ['type_f32', 'type_f64']
-f_types = ['type_i8', 'type_i16', 'type_i32', 'type_i64', 'type_u8', 'type_u16', 'type_u32', 'type_u64']
-suffixes = ['_cm', '_rm', '_x']
-
 
 def gen_bind(var_names, vartype_list):
     suffixes = ['_cm', '_rm', '_x']
     all_types = [itertools.product(vartypes, suffixes) for vartypes in vartype_list]
 
-    # for x in all_types:
-    #     print("Begin type list")
-    #     for y in x:
-    #         print(y)
-    #     print()
-
     all_type_combos = itertools.product(*all_types)
-    # for combo in all_type_combos:
-    #     print(combo)
 
     count = 0
 
@@ -79,5 +67,6 @@ def gen_bind(var_names, vartype_list):
     print("}")
 
 
-f_types = ['type_i32', 'type_i64', 'type_u32', 'type_u64']
-gen_bind(["v1", "v2", "v3", "v4", "v5"], [v_types, v_types, v_types, v_types, v_types])
+if __name__ == "__main__":
+    float_types = ['type_f32', 'type_f64']
+    gen_bind(["v1", "v2", "v3", "v4", "v5"], [float_types]*5)
