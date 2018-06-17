@@ -29,16 +29,17 @@ def gen_bind(var_names, vartype_list):
             stride_var_name = var_name + "_strides"
             if suffix != '_x':
                 code_i = "    {0}::Scalar* {1} = ({0}::Scalar*)({2}.data(0));\n" \
-                         "    Eigen::Map<{0}, Eigen::Aligned> {4}({1}, {3}[0], {3}[1]);\n".format(
-                    type_i.capitalize(), data_var_name, var_name, shape_var_name, eigen_var_name)
+                         "    Eigen::Map<{0}, Eigen::Aligned> {4}({1}, {3}[0], {3}[1]);\n".\
+                    format(type_i.capitalize(), data_var_name, var_name, shape_var_name, eigen_var_name)
                 code_i = code_i
                 code += code_i
             else:
-                code_i =  "    {0}::Scalar* {1} = ({0}::Scalar*)({2}.data(0));\n" \
-                          "    Eigen::Map<{0}, Eigen::Aligned, Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>> \n" \
-                          "           {4}({1}, {3}[0], {3}[1],\n" \
-                          "            Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>({5}[0], {5}[1]));\n".format(
-                    type_i.capitalize(), data_var_name, var_name, shape_var_name, eigen_var_name, stride_var_name)
+                code_i = "    {0}::Scalar* {1} = ({0}::Scalar*)({2}.data(0));\n" \
+                         "    Eigen::Map<{0}, Eigen::Aligned, Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>> \n" \
+                         "           {4}({1}, {3}[0], {3}[1],\n" \
+                         "            Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>({5}[0], {5}[1]));\n".\
+                    format(type_i.capitalize(), data_var_name, var_name,
+                           shape_var_name, eigen_var_name, stride_var_name)
                 code_i = code_i
                 code += code_i
 

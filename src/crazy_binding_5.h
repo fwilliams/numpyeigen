@@ -49,7 +49,7 @@ krazier_ass_branching_cot_matrix(py::array v1, py::array v2, py::array v3, py::a
   long int v5_strides[2] = { v5.strides()[0], v5.strides()[1] };
 //  long int v6_strides[2] = { v6.strides()[0], v6.strides()[1] };
 
-  #include "codegen5.txt"
+  #include "codegen5.inc"
 
   //  return L.rows();
 }
