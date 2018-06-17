@@ -7,3 +7,7 @@ _generate/
 *.egg-info
 *.creator.user
 .idea/
+libigl-python-bindings-experiments.config
+libigl-python-bindings-experiments.creator
+libigl-python-bindings-experiments.files
+libigl-python-bindings-experiments.includes
