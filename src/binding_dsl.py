@@ -490,9 +490,14 @@ def write_code_block(out_file, combo):
         type_prefix = combo[group_id][0]
         type_suffix = combo[group_id][1]
         for var_name in group_to_input_varname[group_id]:
+            cpp_type = NUMPY_ARRAY_TYPES_TO_CPP[type_prefix][0]
+            storage_order_enum = storage_order_for_suffix(type_suffix)
+
             out_file.write(INDENT + "struct " + type_struct_name(var_name) + "{\n")
-            out_file.write(indent(2) + "typedef " + NUMPY_ARRAY_TYPES_TO_CPP[type_prefix][0] + " Scalar;")
-            out_file.write(indent(2) + "enum Layout { Order = " + storage_order_for_suffix(type_suffix) + "};\n")
+            out_file.write(indent(2) + "typedef " + cpp_type + " Scalar;\n")
+            out_file.write(indent(2) + "enum Layout { Order = " + storage_order_enum + "};\n")
+            out_file.write(indent(2) + "typedef Eigen::Matrix<" + cpp_type + ", " +
+                           "Eigen::Dynamic, " + "Eigen::Dynamic, " + storage_order_enum + "> Eigen_Type;\n")
             out_file.write(INDENT + "};\n")
     out_file.write(binding_source_code + "\n")
     out_file.write("}\n")
