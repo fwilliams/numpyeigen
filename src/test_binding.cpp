@@ -10,19 +10,21 @@ igl_begin_code()
 
 typedef IGL_PY_TYPE_a::Scalar Scalar_a;
 typedef IGL_PY_TYPE_a::Eigen_Type Matrix_a;
+typedef IGL_PY_TYPE_a::Map_Type Map_a;
 
 typedef IGL_PY_TYPE_b::Scalar Scalar_b;
 typedef IGL_PY_TYPE_b::Eigen_Type Matrix_b;
+typedef IGL_PY_TYPE_a::Map_Type Map_b;
 
 Scalar_a* a_data = (Scalar_a*) a.data();
-int a_shape_0 = a.shape()[0];
-int a_shape_1 = a.shape()[1];
-Eigen::Map<Matrix_a, IGL_PY_TYPE_a::Aligned> A(a_data, a_shape_0, a_shape_1);
+const ssize_t a_shape_0 = a.shape()[0];
+const ssize_t a_shape_1 = a.shape()[1];
+Map_a A(a_data, a_shape_0, a_shape_1);
 
 Scalar_b* b_data = (Scalar_b*) b.data();
-int b_shape_0 = b.shape()[0];
-int b_shape_1 = b.shape()[1];
-Eigen::Map<Matrix_b, IGL_PY_TYPE_b::Aligned> B(b_data, b_shape_0, b_shape_1);
+const ssize_t b_shape_0 = b.shape()[0];
+const ssize_t b_shape_1 = b.shape()[1];
+Map_b B(b_data, b_shape_0, b_shape_1);
 
 Matrix_a C = A + B;
 

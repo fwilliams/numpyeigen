@@ -503,13 +503,16 @@ def write_code_block(out_file, combo):
             cpp_type = NUMPY_ARRAY_TYPES_TO_CPP[type_prefix][0]
             storage_order_enum = storage_order_for_suffix(type_suffix)
             aligned_enum = aligned_enum_for_suffix(type_suffix)
+            struct_name = type_struct_name(var_name)
 
-            out_file.write(INDENT + "struct " + type_struct_name(var_name) + "{\n")
+            out_file.write(INDENT + "struct " + struct_name + " {\n")
             out_file.write(indent(2) + "typedef " + cpp_type + " Scalar;\n")
             out_file.write(indent(2) + "enum Layout { Order = " + storage_order_enum + "};\n")
             out_file.write(indent(2) + "enum Aligned { Aligned = " + aligned_enum + "};\n")
             out_file.write(indent(2) + "typedef Eigen::Matrix<" + cpp_type + ", " +
                            "Eigen::Dynamic, " + "Eigen::Dynamic, " + storage_order_enum + "> Eigen_Type;\n")
+            out_file.write(indent(2) + "typedef Eigen::Map<" + struct_name + "::Eigen_Type, " + struct_name +
+                           "::Aligned> Map_Type;")
             out_file.write(INDENT + "};\n")
     out_file.write(binding_source_code + "\n")
     out_file.write("}\n")
