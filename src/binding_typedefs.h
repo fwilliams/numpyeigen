@@ -1,6 +1,8 @@
 #ifndef BINDING_TYPEDEFS_H
 #define BINDING_TYPEDEFS_H
 
+#include <Eigen/Core>
+
 namespace igl {
 namespace pybind {
 
@@ -120,9 +122,14 @@ enum TypeId {
 };
 
 enum StorageOrder {
-  ColMajor = 0,
-  RowMajor = 1,
-  NoOrder = 2,
+  ColMajor = Eigen::ColMajor,
+  RowMajor = Eigen::RowMajor,
+  NoOrder = Eigen::DontAlign,
+};
+
+enum Alignment {
+  Aligned = Eigen::Aligned,
+  Unaligned = Eigen::Unaligned
 };
 
 const std::string type_to_str(char type_char) {

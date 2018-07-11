@@ -352,6 +352,7 @@ PUBLIC_ID_PREFIX = "IGL_PY_TYPE_"
 PRIVATE_ID_PREFIX = "_IGL_PY_BINDING_"
 PRIVATE_NAMESPACE = "igl::pybind"
 STORAGE_ORDER_ENUM = "StorageOrder"
+ALIGNED_ENUM = "Alignment"
 TYPE_ID_ENUM = "TypeId"
 TYPE_CHAR_ENUM = "NumpyTypeChar"
 INDENT = "  "
@@ -399,6 +400,15 @@ def storage_order_for_suffix(suffix):
         assert False, "major wtf"
 
 
+def aligned_enum_for_suffix(suffix):
+    if suffix == STORAGE_ORDER_SUFFIX_CM or suffix == STORAGE_ORDER_SUFFIX_RM:
+        return PRIVATE_NAMESPACE + "::" + ALIGNED_ENUM + "::" + "Aligned"
+    elif suffix == STORAGE_ORDER_SUFFIX_XM:
+        return PRIVATE_NAMESPACE + "::" + ALIGNED_ENUM + "::" + "Unaligned"
+    else:
+        assert False, "major wtf"
+
+
 def type_char_for_numpy_type(np_type):
     return PRIVATE_NAMESPACE + "::" + TYPE_CHAR_ENUM + "::char_" + NUMPY_ARRAY_TYPES_TO_CPP[np_type][1]
 
@@ -431,7 +441,7 @@ def write_header(out_file):
     for i in range(len(input_variable_order)):
         var_name = input_variable_order[i]
         if var_name in input_varname_to_group:
-            out_file.write("py::array ")
+            out_file.write("pybind11::array ")
             out_file.write(var_name)
         else:
             assert len(input_variable_meta[var_name].name_or_type) == 1
@@ -492,10 +502,12 @@ def write_code_block(out_file, combo):
         for var_name in group_to_input_varname[group_id]:
             cpp_type = NUMPY_ARRAY_TYPES_TO_CPP[type_prefix][0]
             storage_order_enum = storage_order_for_suffix(type_suffix)
+            aligned_enum = aligned_enum_for_suffix(type_suffix)
 
             out_file.write(INDENT + "struct " + type_struct_name(var_name) + "{\n")
             out_file.write(indent(2) + "typedef " + cpp_type + " Scalar;\n")
             out_file.write(indent(2) + "enum Layout { Order = " + storage_order_enum + "};\n")
+            out_file.write(indent(2) + "enum Aligned { Aligned = " + aligned_enum + "};\n")
             out_file.write(indent(2) + "typedef Eigen::Matrix<" + cpp_type + ", " +
                            "Eigen::Dynamic, " + "Eigen::Dynamic, " + storage_order_enum + "> Eigen_Type;\n")
             out_file.write(INDENT + "};\n")
