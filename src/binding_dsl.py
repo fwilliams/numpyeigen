@@ -106,8 +106,8 @@ def parse_matches_statement(line, line_number):
 
 
 def parse_input_statement(line, line_number):
-    global NUMPY_ARRAY_TYPES, MATCHES_TOKEN, INPUT_TOKEN, OUTPUT_TOKEN
-    global input_type_groups, input_varname_to_group, input_variables, binding_source_code
+    global NUMPY_ARRAY_TYPES, MATCHES_TOKEN, INPUT_TOKEN
+    global input_type_groups, input_varname_to_group, group_to_input_varname
 
     line = parse_token(line.strip(), INPUT_TOKEN, line_number=line_number, case_sensitive=False)
     line = parse_token(line.strip(), '(', line_number=line_number)
@@ -190,8 +190,8 @@ def parse_input_statement(line, line_number):
 
 
 def parse_output_statement(line, line_number):
-    global NUMPY_ARRAY_TYPES, MATCHES_TOKEN, INPUT_TOKEN, OUTPUT_TOKEN
-    global input_type_groups, input_varname_to_group, input_variables, binding_source_code
+    global MATCHES_TOKEN, OUTPUT_TOKEN
+    global input_varname_to_group, input_variables, output_variables
 
     # An output token is either a fixed type or a matches()
     line = parse_token(line.strip(), OUTPUT_TOKEN, line_number=line_number, case_sensitive=False)
@@ -222,6 +222,7 @@ def parse_output_statement(line, line_number):
 
 
 def parse_begin_code_statement(line, line_number):
+    global BEGIN_CODE_TOKEN
     line = parse_token(line.strip(), BEGIN_CODE_TOKEN, line_number=line_number, case_sensitive=False)
     line = parse_token(line.strip(), '(', line_number=line_number)
     line = parse_token(line.strip(), ')', line_number=line_number)
@@ -229,6 +230,7 @@ def parse_begin_code_statement(line, line_number):
 
 
 def parse_end_code_statement(line, line_number):
+    global END_CODE_TOKEN
     line = parse_token(line.strip(), END_CODE_TOKEN, line_number=line_number, case_sensitive=False)
     line = parse_token(line.strip(), '(', line_number=line_number)
     line = parse_token(line.strip(), ')', line_number=line_number)
@@ -236,6 +238,8 @@ def parse_end_code_statement(line, line_number):
 
 
 def parse_binding_init_statement(line, line_number):
+    global BINDING_INIT_TOKEN
+
     line = parse_token(line.strip(), BINDING_INIT_TOKEN, line_number=line_number, case_sensitive=False)
     line = parse_token(line.strip(), '(', line_number=line_number)
     binding_name, line = parse_string_token(line.strip(), line_number=line_number)
@@ -246,8 +250,8 @@ def parse_binding_init_statement(line, line_number):
 
 
 def frontend_pass(lines):
-    global NUMPY_ARRAY_TYPES, MATCHES_TOKEN, INPUT_TOKEN, OUTPUT_TOKEN
-    global input_type_groups, input_varname_to_group, input_variables, binding_source_code, bound_function_name
+    global INPUT_TOKEN, OUTPUT_TOKEN, BEGIN_CODE_TOKEN, END_CODE_TOKEN, INCLUDE_TOKEN, BINDING_INIT_TOKEN
+    global binding_source_code, bound_function_name
 
     binding_start_line_number = -1
 
@@ -307,6 +311,9 @@ def frontend_pass(lines):
 
 
 def validate_frontend_output():
+    global MATCHES_TOKEN
+    global input_type_groups, input_variables, output_variables
+
     for var_name in input_variables.keys():
         var_meta: VariableMetadata = input_variables[var_name]
         if var_meta.is_matches:
@@ -341,9 +348,9 @@ if __name__ == "__main__":
     args = arg_parser.parse_args()
 
     with open(args.file, 'r') as f:
-        lines = f.readlines()
+        line_list = f.readlines()
 
-    frontend_pass(lines)
+    frontend_pass(line_list)
     validate_frontend_output()
     backend_pass()
 
