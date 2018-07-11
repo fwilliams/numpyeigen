@@ -20,7 +20,10 @@ typedef Eigen::Matrix<
     Eigen::Dynamic,
     Eigen::Dynamic,
     IGL_PY_TYPE_a::Order> Type_a;
-Eigen::Map<Type_a, Eigen::Aligned> A(a.data(0), a.shape()[0], a.shape[1]);
+Scalar_a* a_data = (Scalar_a*) a.data();
+int a_shape_0 = a.shape()[0];
+int a_shape_1 = a.shape()[1];
+Eigen::Map<Type_a, Eigen::Aligned> A(a_data, a_shape_0, a_shape_1);
 
 typedef IGL_PY_TYPE_b::Scalar Scalar_b;
 typedef Eigen::Matrix<
@@ -28,10 +31,24 @@ typedef Eigen::Matrix<
     Eigen::Dynamic,
     Eigen::Dynamic,
     IGL_PY_TYPE_b::Order> Type_b;
-Eigen::Map<Type_b, Eigen::Aligned> B(b.data(0), b.shape()[0], b.shape[1]);
+Scalar_b* b_data = (Scalar_b*) b.data();
+int b_shape_0 = b.shape()[0];
+int b_shape_1 = b.shape()[1];
+Eigen::Map<Type_b, Eigen::Aligned> B(b_data, b_shape_0, b_shape_1);
 
-return A + B; // TODO: Move constructor back from numpy
+Type_a C = A + B; // TODO: Move constructor back from numpy
 
+cout << C << endl;
+
+//return 1.0;
+/*
+template <typename props, typename Type, typename = enable_if_t<is_eigen_dense_plain<Type>::value>>
+handle eigen_encapsulate(Type *src) {
+    capsule base(src, [](void *o) { delete static_cast<Type *>(o); });
+    return eigen_ref_array<props>(*src, base);
+}
+*/
+return py::detail::eigen_encapsulate<py::detail::EigenProps<Type_a>>(new Type_a(std::move(C)));
 igl_end_code()
 
 

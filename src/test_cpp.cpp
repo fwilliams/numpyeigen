@@ -2,6 +2,15 @@
 
 using namespace std;
 
+int test() {
+  {
+    return 5;
+  }
+  {
+    return 7;
+  }
+}
+
 int main() {
   {
   struct Foo {
@@ -30,5 +39,6 @@ int main() {
   cout << f.a << " " << f.b << " " << Foo::A << endl;
   }
 
+  cout << test() << endl;
   return EXIT_SUCCESS;
 }

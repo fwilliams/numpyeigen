@@ -122,7 +122,7 @@ enum TypeId {
 enum StorageOrder {
   ColMajor = 0,
   RowMajor = 1,
-  NoContig = 2,
+  NoOrder = 2,
 };
 
 int get_type_id(char typechar, StorageOrder so) {
@@ -192,7 +192,7 @@ int get_type_id(char typechar, StorageOrder so) {
       cerr << "Bad Typechar" << endl;
       return -1;
     }
-  case NoContig:
+  case NoOrder:
     switch (typechar) {
     case char_float32:
       return type_f32_x;

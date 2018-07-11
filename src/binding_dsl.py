@@ -1,8 +1,8 @@
 import argparse
 import itertools
 
-NUMPY_ARRAY_TYPES_TO_CPP = {'type_f32': 'std::float32_t',
-                            'type_f64': 'std::float64_t',
+NUMPY_ARRAY_TYPES_TO_CPP = {'type_f32': 'float',
+                            'type_f64': 'double',
                             'type_f128': '__float128',  # TODO: float128 is bad m'kay
                             'type_i8': 'std::int8_t',
                             'type_i16': 'std::int16_t',
@@ -385,11 +385,11 @@ def type_struct_name(var_name):
 
 def storage_order_for_suffix(suffix):
     if suffix == STORAGE_ORDER_SUFFIX_CM:
-        return PRIVATE_NAMESPACE + "::" + TYPE_ID_ENUM + "::" + STORAGE_ORDER_CM
+        return PRIVATE_NAMESPACE + "::" + STORAGE_ORDER_ENUM + "::" + STORAGE_ORDER_CM
     elif suffix == STORAGE_ORDER_SUFFIX_RM:
-        return PRIVATE_NAMESPACE + "::" + TYPE_ID_ENUM + "::" + STORAGE_ORDER_RM
+        return PRIVATE_NAMESPACE + "::" + STORAGE_ORDER_ENUM + "::" + STORAGE_ORDER_RM
     elif suffix == STORAGE_ORDER_SUFFIX_XM:
-        return PRIVATE_NAMESPACE + "::" + TYPE_ID_ENUM + "::" + STORAGE_ORDER_XM
+        return PRIVATE_NAMESPACE + "::" + STORAGE_ORDER_ENUM + "::" + STORAGE_ORDER_XM
     else:
         assert False, "major wtf"
 
@@ -469,7 +469,7 @@ def write_code_block(out_file, combo):
             out_file.write(INDENT + "struct " + type_struct_name(var_name) + "{\n")
             out_file.write(indent(2) + "typedef " + NUMPY_ARRAY_TYPES_TO_CPP[type_prefix] + " Scalar;")
             out_file.write(indent(2) + "enum Layout { Order = " + storage_order_for_suffix(type_suffix) + "};\n")
-            out_file.write(INDENT + "}\n")
+            out_file.write(INDENT + "};\n")
     out_file.write(binding_source_code + "\n")
     out_file.write("}\n")
 
@@ -498,18 +498,18 @@ def backend_pass(out_file):
         write_code_block(out_file, combo)
         out_file.write("}")
         branch_count += 1
+    out_file.write(" else {\n")
+    out_file.write(INDENT + 'throw std::invalid_argument("Invalid Type!!!.");\n')
+    out_file.write("}\n")
     out_file.write("\n")
     out_file.write("});")
     out_file.write("\n")
 
 
-
-import sys
-
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("file", type=str)
-    arg_parser.add_argument("-o", type=str, default="a.out")
+    arg_parser.add_argument("-o", "--output", type=str, default="a.out")
 
     args = arg_parser.parse_args()
 
@@ -518,7 +518,8 @@ if __name__ == "__main__":
 
     frontend_pass(line_list)
     validate_frontend_output()
-    backend_pass(sys.stdout)
+    with open(args.output, 'w+') as outfile:
+        backend_pass(outfile)
 
     # print(input_type_groups)
     # print(input_varname_to_group)
