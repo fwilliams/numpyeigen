@@ -21,11 +21,11 @@ krazier_ass_branching_cot_matrix(py::array v1, py::array v2, py::array v3, py::a
   const char t4 = v4.dtype().type();
   const char t5 = v5.dtype().type();
 //  const char t6 = v6.dtype().type();
-  StorateOrder so1 = (v1.flags() & NPY_ARRAY_F_CONTIGUOUS) ? RowMajor : (v1.flags() & NPY_ARRAY_C_CONTIGUOUS ? ColMajor : NoContig);
-  StorateOrder so2 = (v2.flags() & NPY_ARRAY_F_CONTIGUOUS) ? RowMajor : (v2.flags() & NPY_ARRAY_C_CONTIGUOUS ? ColMajor : NoContig);
-  StorateOrder so3 = (v3.flags() & NPY_ARRAY_F_CONTIGUOUS) ? RowMajor : (v3.flags() & NPY_ARRAY_C_CONTIGUOUS ? ColMajor : NoContig);
-  StorateOrder so4 = (v4.flags() & NPY_ARRAY_F_CONTIGUOUS) ? RowMajor : (v4.flags() & NPY_ARRAY_C_CONTIGUOUS ? ColMajor : NoContig);
-  StorateOrder so5 = (v5.flags() & NPY_ARRAY_F_CONTIGUOUS) ? RowMajor : (v5.flags() & NPY_ARRAY_C_CONTIGUOUS ? ColMajor : NoContig);
+  StorageOrder so1 = (v1.flags() & NPY_ARRAY_F_CONTIGUOUS) ? RowMajor : (v1.flags() & NPY_ARRAY_C_CONTIGUOUS ? ColMajor : NoContig);
+  StorageOrder so2 = (v2.flags() & NPY_ARRAY_F_CONTIGUOUS) ? RowMajor : (v2.flags() & NPY_ARRAY_C_CONTIGUOUS ? ColMajor : NoContig);
+  StorageOrder so3 = (v3.flags() & NPY_ARRAY_F_CONTIGUOUS) ? RowMajor : (v3.flags() & NPY_ARRAY_C_CONTIGUOUS ? ColMajor : NoContig);
+  StorageOrder so4 = (v4.flags() & NPY_ARRAY_F_CONTIGUOUS) ? RowMajor : (v4.flags() & NPY_ARRAY_C_CONTIGUOUS ? ColMajor : NoContig);
+  StorageOrder so5 = (v5.flags() & NPY_ARRAY_F_CONTIGUOUS) ? RowMajor : (v5.flags() & NPY_ARRAY_C_CONTIGUOUS ? ColMajor : NoContig);
 //  StorateOrder so6 = (v6.flags() & NPY_ARRAY_F_CONTIGUOUS) ? RowMajor : (v6.flags() & NPY_ARRAY_C_CONTIGUOUS ? ColMajor : NoContig);
 
   int tid0 = get_type_id(t1, so1);

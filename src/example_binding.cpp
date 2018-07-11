@@ -77,7 +77,7 @@ PYBIND11_MODULE(pyigl_proto, m) {
 
     m.def("type_lookup", [](py::array v) {
       const char t = v.dtype().type();
-      StorateOrder so = (v.flags() & NPY_ARRAY_F_CONTIGUOUS) ? RowMajor : (v.flags() & NPY_ARRAY_C_CONTIGUOUS ? ColMajor : NoContig);
+      StorageOrder so = (v.flags() & NPY_ARRAY_F_CONTIGUOUS) ? RowMajor : (v.flags() & NPY_ARRAY_C_CONTIGUOUS ? ColMajor : NoContig);
 
       return get_type_id(t, so);
     });

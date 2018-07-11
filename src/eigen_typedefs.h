@@ -119,13 +119,13 @@ enum TypeId {
   type_c256_x  = 41,
 };
 
-enum StorateOrder {
+enum StorageOrder {
   ColMajor = 0,
   RowMajor = 1,
   NoContig = 2,
 };
 
-int get_type_id(char typechar, StorateOrder so) {
+int get_type_id(char typechar, StorageOrder so) {
   using namespace  std;
   switch(so) {
   case ColMajor:

@@ -16,8 +16,8 @@ std::tuple<int, int, int> craziest_ass_branching_cot_matrix(py::array v, py::arr
 
   const char t1 = v.dtype().type();
   const char t2 = f.dtype().type();
-  StorateOrder so1 = (v.flags() & NPY_ARRAY_F_CONTIGUOUS) ? RowMajor : (v.flags() & NPY_ARRAY_C_CONTIGUOUS ? ColMajor : NoContig);
-  StorateOrder so2 = (f.flags() & NPY_ARRAY_F_CONTIGUOUS) ? RowMajor : (f.flags() & NPY_ARRAY_C_CONTIGUOUS ? ColMajor : NoContig);
+  StorageOrder so1 = (v.flags() & NPY_ARRAY_F_CONTIGUOUS) ? RowMajor : (v.flags() & NPY_ARRAY_C_CONTIGUOUS ? ColMajor : NoContig);
+  StorageOrder so2 = (f.flags() & NPY_ARRAY_F_CONTIGUOUS) ? RowMajor : (f.flags() & NPY_ARRAY_C_CONTIGUOUS ? ColMajor : NoContig);
   int tid0 = get_type_id(t1, so1);
   int tid1 = get_type_id(t2, so2);
 

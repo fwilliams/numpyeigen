@@ -4,22 +4,33 @@
 
 
 igl_binding("test_binding")
-igl_input("c", "matches(a)")
-igl_input("a", "mat_f32")
+igl_input("b", "matches(a)")
+igl_input("a", "type_f32")
 igl_output("out3", "matches(c)")
-igl_input("b", "mat_i32", "mat_i64")
+igl_input("c", "type_i32", "type_i64")
 igl_input("d", "matches(c)")
-igl_input("e", "int")
-igl_output("out1", "matrixf64")
-igl_output("out2", "matrixf64")
-igl_output("out4", "matches(d)")
+igl_input("e", "matches(d)")
 
 igl_begin_code()
 
-Type_a c = a + b;
-Type_a d = a - b;
+// TODO: Macros for these typedefs
+typedef IGL_PY_TYPE_a::Scalar Scalar_a;
+typedef Eigen::Matrix<
+    Scalar_a,
+    Eigen::Dynamic,
+    Eigen::Dynamic,
+    IGL_PY_TYPE_a::Order> Type_a;
+Eigen::Map<Type_a, Eigen::Aligned> A(a.data(0), a.shape()[0], a.shape[1]);
 
-return (c, d);
+typedef IGL_PY_TYPE_b::Scalar Scalar_b;
+typedef Eigen::Matrix<
+    Scalar_b,
+    Eigen::Dynamic,
+    Eigen::Dynamic,
+    IGL_PY_TYPE_b::Order> Type_b;
+Eigen::Map<Type_b, Eigen::Aligned> B(b.data(0), b.shape()[0], b.shape[1]);
+
+return A + B; // TODO: Move constructor back from numpy
 
 igl_end_code()
 
