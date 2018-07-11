@@ -13,7 +13,8 @@ BINDING_INIT_TOKEN = "igl_binding"
 
 bound_function_name = ""  # The name of the function we are binding
 input_type_groups = []  # Set of allowed types for each group of variables
-input_varname_to_group = {}  # Dictionary mapping variable names to type groups
+input_varname_to_group = {}  # Dictionary mapping input variable names to type groups
+group_to_input_varname = {}  # Dictionary mapping type groups to input variable names TODO: Populate
 input_variables = {}  # Dictionary mapping variable names to types
 output_variables = {}  # Dictionary mapping output variables to types or input variables whose types they match
 binding_source_code = ""  # The source code of the binding
@@ -33,6 +34,9 @@ class VariableMetadata(object):
         self.is_matches = is_matches
         self.name_or_type = name_or_type
         self.line_number = line_number
+
+    def __repr__(self):
+        return str(self.__dict__)
 
 
 def validate_identifier_name(var_name):
@@ -129,7 +133,7 @@ def parse_input_statement(line, line_number):
     if len(var_types) == 0:
         # TODO: Pretty error message
         raise ParseError('%s("%s") got no type arguments' % (INPUT_TOKEN, var_name))
-    elif len(var_types) > 1:
+    elif len(var_types) > 1 or (len(var_types) == 1 and is_numpy_type(var_types[0])):
         # If there are more than one type, then we're binding a numpy array. Check that the types are valid.
         for type_str in var_types:
             if not is_numpy_type(type_str):
@@ -146,7 +150,9 @@ def parse_input_statement(line, line_number):
         else:
             # This is the first time we're seeing this group
             input_type_groups.append(var_types)
-            input_varname_to_group[var_name] = len(input_type_groups) - 1
+            group_id = len(input_type_groups) - 1
+            input_varname_to_group[var_name] = group_id
+            group_to_input_varname[group_id] = var_name
     else:
         assert len(var_types) == 1
 
@@ -157,12 +163,20 @@ def parse_input_statement(line, line_number):
             matches_name = parse_matches_statement(var_types[0], line_number=line_number)
 
             if matches_name in input_varname_to_group:
-                group_idx = input_varname_to_group[matches_name]
-                input_varname_to_group[var_name] = group_idx
+                group_id = input_varname_to_group[matches_name]
+                input_varname_to_group[var_name] = group_id
+                if group_id not in group_to_input_varname:
+                    group_to_input_varname[group_id] = []
+                group_to_input_varname[group_id].append(var_name)
             else:
                 input_type_groups.append([])
-                input_varname_to_group[var_name] = len(input_type_groups) - 1
-                input_varname_to_group[matches_name] = len(input_type_groups) - 1
+                group_id = len(input_type_groups) - 1
+                input_varname_to_group[var_name] = group_id
+                input_varname_to_group[matches_name] = group_id
+                if group_id not in group_to_input_varname:
+                    group_to_input_varname[group_id] = []
+                group_to_input_varname[group_id].append(var_name)
+                group_to_input_varname[group_id].append(matches_name)
         else:
             # TODO: Check that type requested is valid? - I'm not sure if we can really do this though.
             pass
@@ -300,19 +314,22 @@ def validate_frontend_output():
             matches_name = var_meta.name_or_type[0]
             if len(input_type_groups[group_idx]) == 0:
                 raise SemanticError("Input Variable %s (line %d) was declared with type %s but was "
-                                    "unmatched with a type." % (var_name, var_meta.line_number, matches_name))
+                                    "unmatched with a numpy type." % (var_name, var_meta.line_number, matches_name))
 
     for var_name in output_variables.keys():
         var_meta: VariableMetadata = output_variables[var_name]
         if var_meta.is_matches:
             matches_name = var_meta.name_or_type
-            if matches_name not in input_variables:
+            if matches_name not in input_varname_to_group:
                 raise SemanticError("Output variable %s type, %s(%s) must match a valid input variable at line %d" %
                                     (var_name, MATCHES_TOKEN, matches_name, var_meta.line_number))
 
 
 def backend_pass():
     # TODO: Codegen the backend
+    # For each vartype group compute product between type and the three packing orders
+    # Generate all type combos
+    # For each combo generate a branch in the if statement
     pass
 
 
@@ -329,3 +346,7 @@ if __name__ == "__main__":
     frontend_pass(lines)
     validate_frontend_output()
     backend_pass()
+
+    print(input_type_groups)
+    print(input_varname_to_group)
+    print(group_to_input_varname)

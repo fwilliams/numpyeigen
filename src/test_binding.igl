@@ -5,12 +5,14 @@
 
 igl_binding("test_binding")
 igl_input("c", "matches(a)")
-igl_input("a", "mat_f32", "mat_f64")
+igl_input("a", "mat_f32")
 igl_output("out3", "matches(c)")
 igl_input("b", "mat_i32", "mat_i64")
 igl_input("d", "matches(c)")
+igl_input("e", "int")
 igl_output("out1", "matrixf64")
 igl_output("out2", "matrixf64")
+igl_output("out4", "matches(d)")
 
 igl_begin_code()
 
