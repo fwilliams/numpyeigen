@@ -24,6 +24,7 @@ BEGIN_CODE_TOKEN = "igl_begin_code"
 END_CODE_TOKEN = "igl_end_code"
 INCLUDE_TOKEN = "#include"
 BINDING_INIT_TOKEN = "igl_binding"
+COMMENT_TOKEN = "//"
 
 bound_function_name = ""  # The name of the function we are binding
 input_type_groups = []  # Set of allowed types for each group of variables
@@ -277,6 +278,9 @@ def frontend_pass(lines):
         elif lines[line_number].strip().lower().startswith(INCLUDE_TOKEN):
             # You can #include things to make your IDE work but the includes get ignored
             continue
+        elif lines[line_number].strip().lower().startswith(COMMENT_TOKEN):
+            # Ignore commented lines
+            continue
         elif lines[line_number].strip().lower().startswith(BINDING_INIT_TOKEN):
             bound_function_name = parse_binding_init_statement(lines[line_number], line_number=line_number)
             binding_start_line_number = line_number + 1
@@ -304,6 +308,9 @@ def frontend_pass(lines):
             break
         elif len(lines[line_number].strip()) == 0:
             # Ignore newlines and whitespace
+            continue
+        elif lines[line_number].strip().lower().startswith(COMMENT_TOKEN):
+            # Ignore commented lines
             continue
         else:
             raise ParseError("Unexpected tokens at line %d: %s" % (line_number, lines[line_number]))

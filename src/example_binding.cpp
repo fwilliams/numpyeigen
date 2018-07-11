@@ -9,6 +9,7 @@
 #include <tuple>
 
 #include "binding_typedefs.h"
+#include "binding_utils.h"
 
 PYBIND11_MODULE(pyigl_proto, m) {
     m.doc() = R"pbdoc(
