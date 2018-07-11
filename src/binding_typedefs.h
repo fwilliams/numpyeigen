@@ -5,24 +5,24 @@ namespace igl {
 namespace pybind {
 
 enum NumpyTypeChar {
-  char_float16  = 'e',
-  char_float32  = 'f',
-  char_float64  = 'd',
-  char_float128 = 'g',
+  char_f16  = 'e',
+  char_f32  = 'f',
+  char_f64  = 'd',
+  char_f128 = 'g',
 
-  char_int8  = 'b',
-  char_int16 = 'h',
-  char_int32 = 'i',
-  char_int64 = 'l',
+  char_i8  = 'b',
+  char_i16 = 'h',
+  char_i32 = 'i',
+  char_i64 = 'l',
 
-  char_uint8  = 'B',
-  char_uint16 = 'H',
-  char_uint32 = 'I',
-  char_uint64 = 'L',
+  char_u8  = 'B',
+  char_u16 = 'H',
+  char_u32 = 'I',
+  char_u64 = 'L',
 
-  char_complex64  = 'F',
-  char_complex128 = 'D',
-  char_complex256 = 'G',
+  char_c64  = 'F',
+  char_c128 = 'D',
+  char_c256 = 'G',
 
   char_object = 'O',
   char_bytes_ = 'S',
@@ -31,24 +31,24 @@ enum NumpyTypeChar {
 };
 
 enum NumpyTypeNum {
-  num_float16  = 23,
-  num_float32  = 11,
-  num_float64  = 12,
-  num_float128 = 13,
+  num_f16  = 23,
+  num_f32  = 11,
+  num_f64  = 12,
+  num_f128 = 13,
 
-  num_int8  = 1,
-  num_int16 = 3,
-  num_int32 = 5,
-  num_int64 = 7,
+  num_i8  = 1,
+  num_i16 = 3,
+  num_i32 = 5,
+  num_i64 = 7,
 
-  num_uint8  = 2,
-  num_uint16 = 4,
-  num_uint32 = 6,
-  num_uint64 = 8,
+  num_u8  = 2,
+  num_u16 = 4,
+  num_u32 = 6,
+  num_u64 = 8,
 
-  num_complex64  = 14,
-  num_complex128 = 15,
-  num_complex256 = 16,
+  num_c64  = 14,
+  num_c128 = 15,
+  num_c256 = 16,
 
   num_object = 17,
   num_bytes_ = 18,
@@ -125,36 +125,82 @@ enum StorageOrder {
   NoOrder = 2,
 };
 
+const std::string type_to_str(char type_char) {
+  switch(type_char) {
+  case char_f16:
+    return "float16";
+  case char_f32:
+    return "float32";
+  case char_f64:
+    return "float64";
+  case char_f128:
+    return "float128";
+  case char_i8:
+    return "int8";
+  case char_i16:
+    return "int16";
+  case char_i32:
+    return "int32";
+  case char_i64:
+    return "int64";
+  case char_u8:
+    return "uint8";
+  case char_u16:
+    return "uint16";
+  case char_u32:
+    return "uint32";
+  case char_u64:
+    return "uint64";
+
+  case char_c64:
+    return "complex64";
+  case char_c128:
+    return "complex128";
+  case char_c256:
+    return "complex256";
+  case char_object:
+    return "object";
+  case char_bytes_:
+    return "bytes";
+  case char_unicode:
+    return "unicode";
+  case char_void_:
+    return "void";
+  default:
+    assert(false);
+    return "";
+  }
+}
 int get_type_id(char typechar, StorageOrder so) {
   using namespace  std;
   switch(so) {
   case ColMajor:
     switch (typechar) {
-    case char_float32:
+    case char_f32:
       return type_f32_cm;
-    case char_float64:
+    case char_f64:
       return type_f64_cm;
-    case char_int8:
+    case char_i8:
       return type_i8_cm;
-    case char_int16:
+    case char_i16:
       return type_i16_cm;
-    case char_int32:
+    case char_i32:
       return type_i32_cm;
-    case char_int64:
+    case char_i64:
       return type_i64_cm;
-    case char_uint8:
+    case char_u8:
       return type_u8_cm;
-    case char_uint16:
+    case char_u16:
       return type_u16_cm;
-    case char_uint32:
+    case char_u32:
       return type_u32_cm;
-    case char_uint64:
+    case char_u64:
       return type_u64_cm;
-    case char_complex64:
+    case char_c64:
       return type_c64_cm;
-    case char_complex128:
+    case char_c128:
       return type_c128_cm;
-    case char_complex256:
+    case char_c256:
       return type_c256_cm;
     default:
       cerr << "Bad Typechar" << endl;
@@ -162,31 +208,31 @@ int get_type_id(char typechar, StorageOrder so) {
     }
   case RowMajor:
     switch (typechar) {
-    case char_float32:
+    case char_f32:
       return type_f32_rm;
-    case char_float64:
+    case char_f64:
       return type_f64_rm;
-    case char_int8:
+    case char_i8:
       return type_i8_rm;
-    case char_int16:
+    case char_i16:
       return type_i16_rm;
-    case char_int32:
+    case char_i32:
       return type_i32_rm;
-    case char_int64:
+    case char_i64:
       return type_i64_rm;
-    case char_uint8:
+    case char_u8:
       return type_u8_rm;
-    case char_uint16:
+    case char_u16:
       return type_u16_rm;
-    case char_uint32:
+    case char_u32:
       return type_u32_rm;
-    case char_uint64:
+    case char_u64:
       return type_u64_rm;
-    case char_complex64:
+    case char_c64:
       return type_c64_rm;
-    case char_complex128:
+    case char_c128:
       return type_c128_rm;
-    case char_complex256:
+    case char_c256:
       return type_c256_rm;
     default:
       cerr << "Bad Typechar" << endl;
@@ -194,31 +240,31 @@ int get_type_id(char typechar, StorageOrder so) {
     }
   case NoOrder:
     switch (typechar) {
-    case char_float32:
+    case char_f32:
       return type_f32_x;
-    case char_float64:
+    case char_f64:
       return type_f64_x;
-    case char_int8:
+    case char_i8:
       return type_i8_x;
-    case char_int16:
+    case char_i16:
       return type_i16_x;
-    case char_int32:
+    case char_i32:
       return type_i32_x;
-    case char_int64:
+    case char_i64:
       return type_i64_x;
-    case char_uint8:
+    case char_u8:
       return type_u8_x;
-    case char_uint16:
+    case char_u16:
       return type_u16_x;
-    case char_uint32:
+    case char_u32:
       return type_u32_x;
-    case char_uint64:
+    case char_u64:
       return type_u64_x;
-    case char_complex64:
+    case char_c64:
       return type_c64_x;
-    case char_complex128:
+    case char_c128:
       return type_c128_x;
-    case char_complex256:
+    case char_c256:
       return type_c256_x;
     default:
       cerr << "Bad Typechar" << endl;

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <complex>
 
 using namespace std;
 
@@ -16,6 +17,8 @@ int main() {
   struct Foo {
     int a;
     int b;
+    __float128 x;
+    std::complex<__float128> y;
   };
 
   Foo f;

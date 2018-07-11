@@ -1,17 +1,21 @@
 import argparse
 import itertools
 
-NUMPY_ARRAY_TYPES_TO_CPP = {'type_f32': 'float',
-                            'type_f64': 'double',
-                            'type_f128': '__float128',  # TODO: float128 is bad m'kay
-                            'type_i8': 'std::int8_t',
-                            'type_i16': 'std::int16_t',
-                            'type_i32': 'std::int32_t',
-                            'type_i64': 'std::int64_t',
-                            'type_u8': 'std::uint8_t',
-                            'type_u16': 'std::uint16_t',
-                            'type_u32': 'std::uint32_t',
-                            'type_u64': 'std::uint64_t'}
+# TODO: Check that your compiler supports __float128
+NUMPY_ARRAY_TYPES_TO_CPP = {'type_f32': ('float', 'f32', 'float32'),
+                            'type_f64': ('double', 'f64', 'float64'),
+                            'type_f128': ('__float128', 'f128', 'float128'),
+                            'type_i8': ('std::int8_t', 'i8', 'int8'),
+                            'type_i16': ('std::int16_t', 'i16', 'int16'),
+                            'type_i32': ('std::int32_t', 'i32', 'int32'),
+                            'type_i64': ('std::int64_t', 'i64', 'int64'),
+                            'type_u8': ('std::uint8_t', 'u8', 'uint8'),
+                            'type_u16': ('std::uint16_t', 'u16', 'uint16'),
+                            'type_u32': ('std::uint32_t', 'u32', 'uing32'),
+                            'type_u64': ('std::uint64_t', 'u64', 'uint64'),
+                            'type_c64': ('std::complex<float>', 'c64', 'complex64'),
+                            'type_c128': ('std::complex<double>', 'c128', 'complex128'),
+                            'type_c256': ('std::complex<__float128>', 'c256', 'complex256')}
 NUMPY_ARRAY_TYPES = list(NUMPY_ARRAY_TYPES_TO_CPP.keys())
 MATCHES_TOKEN = "matches"
 INPUT_TOKEN = "igl_input"
@@ -349,6 +353,7 @@ PRIVATE_ID_PREFIX = "_IGL_PY_BINDING_"
 PRIVATE_NAMESPACE = "igl::pybind"
 STORAGE_ORDER_ENUM = "StorageOrder"
 TYPE_ID_ENUM = "TypeId"
+TYPE_CHAR_ENUM = "NumpyTypeChar"
 INDENT = "  "
 STORAGE_ORDER_SUFFIXES = ['_cm', '_rm', '_x']
 STORAGE_ORDER_SUFFIX_CM = STORAGE_ORDER_SUFFIXES[0]
@@ -392,6 +397,10 @@ def storage_order_for_suffix(suffix):
         return PRIVATE_NAMESPACE + "::" + STORAGE_ORDER_ENUM + "::" + STORAGE_ORDER_XM
     else:
         assert False, "major wtf"
+
+
+def type_char_for_numpy_type(np_type):
+    return PRIVATE_NAMESPACE + "::" + TYPE_CHAR_ENUM + "::char_" + NUMPY_ARRAY_TYPES_TO_CPP[np_type][1]
 
 
 def write_flags_getter(out_file, var_name):
@@ -441,21 +450,36 @@ def write_header(out_file):
 
     # Ensure the types in each group match
     for group_id in group_to_input_varname.keys():
-        group = group_to_input_varname[group_id]
-        assert len(group) >= 1
-        if len(group) == 1:
-            continue
+        group_var_names = group_to_input_varname[group_id]
+        group_types = input_type_groups[group_id]
+        pretty_group_types = [NUMPY_ARRAY_TYPES_TO_CPP[gt][2] for gt in group_types]
 
         out_str = "if ("
-        for i in range(1, len(group)):
-            out_str += type_id_var(group[0]) + " != " + type_id_var(group[i])
-            next_token = " || " if i < len(group)-1 else ")"
+        for i in range(len(group_types)):
+            type_name = group_types[i]
+            out_str += type_name_var(group_var_names[0]) + " != " + type_char_for_numpy_type(type_name)
+            next_token = " && " if i < len(group_types) - 1 else ") {\n"
             out_str += next_token
-
-        out_str += " {\n"
-        # TODO: Very clear error message here
-        out_str += INDENT + 'throw std::invalid_argument("Argument types in group do not match.");\n'
+        out_str += INDENT + 'throw std::invalid_argument("Invalid type (%s) for argument \'%s\'. ' \
+                            'Expected one of %s.");\n' % (pretty_group_types[0], group_var_names[0], pretty_group_types)
         out_str += "}\n"
+        out_file.write(out_str)
+
+        assert len(group_var_names) >= 1
+        if len(group_var_names) == 1:
+            continue
+
+        for i in range(1, len(group_var_names)):
+            out_str = "if ("
+            out_str += type_id_var(group_var_names[0]) + " != " + type_id_var(group_var_names[i]) + ") {\n"
+            out_str += INDENT + 'std::string err_msg = std::string("Invalid type (") + %s::type_to_str(%s) + ' \
+                                'std::string(") for argument \'%s\'. Expected it to match argument \'%s\' ' \
+                                'which is of type ") + %s::type_to_str(%s) + std::string(".");\n' \
+                       % (PRIVATE_NAMESPACE, type_name_var(group_var_names[i]), group_var_names[i],
+                          group_var_names[0], PRIVATE_NAMESPACE, type_name_var(group_var_names[0]))
+            out_str += INDENT + 'throw std::invalid_argument(err_msg);\n'
+
+            out_str += "}\n"
 
         out_file.write(out_str)
 
@@ -467,7 +491,7 @@ def write_code_block(out_file, combo):
         type_suffix = combo[group_id][1]
         for var_name in group_to_input_varname[group_id]:
             out_file.write(INDENT + "struct " + type_struct_name(var_name) + "{\n")
-            out_file.write(indent(2) + "typedef " + NUMPY_ARRAY_TYPES_TO_CPP[type_prefix] + " Scalar;")
+            out_file.write(indent(2) + "typedef " + NUMPY_ARRAY_TYPES_TO_CPP[type_prefix][0] + " Scalar;")
             out_file.write(indent(2) + "enum Layout { Order = " + storage_order_for_suffix(type_suffix) + "};\n")
             out_file.write(INDENT + "};\n")
     out_file.write(binding_source_code + "\n")
@@ -499,7 +523,8 @@ def backend_pass(out_file):
         out_file.write("}")
         branch_count += 1
     out_file.write(" else {\n")
-    out_file.write(INDENT + 'throw std::invalid_argument("Invalid Type!!!.");\n')
+    out_file.write(INDENT + 'throw std::invalid_argument("This should never happen but clearly it did. '
+                            'File github issue plz.");\n')
     out_file.write("}\n")
     out_file.write("\n")
     out_file.write("});")
@@ -521,6 +546,3 @@ if __name__ == "__main__":
     with open(args.output, 'w+') as outfile:
         backend_pass(outfile)
 
-    # print(input_type_groups)
-    # print(input_varname_to_group)
-    # print(group_to_input_varname)

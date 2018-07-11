@@ -5,7 +5,7 @@
 
 igl_binding("test_binding")
 igl_input("b", "matches(a)")
-igl_input("a", "type_f32")
+igl_input("a", "type_f32", "type_f64")
 igl_output("out3", "matches(c)")
 igl_input("c", "type_i32", "type_i64")
 igl_input("d", "matches(c)")
@@ -36,18 +36,9 @@ int b_shape_0 = b.shape()[0];
 int b_shape_1 = b.shape()[1];
 Eigen::Map<Type_b, Eigen::Aligned> B(b_data, b_shape_0, b_shape_1);
 
-Type_a C = A + B; // TODO: Move constructor back from numpy
+Type_a C = A + B;
 
-cout << C << endl;
-
-//return 1.0;
-/*
-template <typename props, typename Type, typename = enable_if_t<is_eigen_dense_plain<Type>::value>>
-handle eigen_encapsulate(Type *src) {
-    capsule base(src, [](void *o) { delete static_cast<Type *>(o); });
-    return eigen_ref_array<props>(*src, base);
-}
-*/
+// TODO: Check that this is doing a move and not a copy
 return py::detail::eigen_encapsulate<py::detail::EigenProps<Type_a>>(new Type_a(std::move(C)));
 igl_end_code()
 
