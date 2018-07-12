@@ -26,6 +26,7 @@ PYBIND11_MODULE(pyigl_proto, m) {
     )pbdoc";
 
   #include "test_binding.out.cpp"
+  #include "matrix_add.out.cpp"
 
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;

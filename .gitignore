@@ -11,3 +11,7 @@ libigl-python-bindings-experiments.config
 libigl-python-bindings-experiments.creator
 libigl-python-bindings-experiments.files
 libigl-python-bindings-experiments.includes
+pyigl.config
+pyigl.creator
+pyigl.files
+pyigl.includes
