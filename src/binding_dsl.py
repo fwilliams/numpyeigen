@@ -426,8 +426,8 @@ def write_flags_getter(out_file, var_name):
     col_major = PRIVATE_NAMESPACE + "::ColMajor"
     no_order = PRIVATE_NAMESPACE + "::NoOrder"
     out_str = INDENT + "const " + PRIVATE_NAMESPACE + "::" + STORAGE_ORDER_ENUM + " " + storage_order_var_name + " = "
-    out_str += "(" + var_name + ".flags() & NPY_ARRAY_F_CONTIGUOUS) ? " + row_major + " : "
-    out_str += "(" + var_name + ".flags() & NPY_ARRAY_C_CONTIGUOUS ? " + col_major + " : " + no_order + ");\n"
+    out_str += "(" + var_name + ".flags() & NPY_ARRAY_F_CONTIGUOUS) ? " + col_major + " : "
+    out_str += "(" + var_name + ".flags() & NPY_ARRAY_C_CONTIGUOUS ? " + row_major + " : " + no_order + ");\n"
     out_file.write(out_str)
 
 
