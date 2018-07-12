@@ -26,9 +26,15 @@ option(LIBIGL_WITH_XML              "Use XML"            OFF)
 
 find_package(LIBIGL REQUIRED QUIET)
 
+set (SRC_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src)
+set (TEST_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+
 add_subdirectory(pybind11)
 pybind11_add_module(pyigl_proto SHARED src/example_binding.cpp)
 target_link_libraries(pyigl_proto PRIVATE igl::core igl::opengl_glfw)
 configure_file(src/binding_dsl.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 #configure_file(src/benchmark.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 #configure_file(src/codegen.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+
+enable_testing()
+add_subdirectory(tests)
