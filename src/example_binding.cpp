@@ -28,6 +28,19 @@ PYBIND11_MODULE(pyigl_proto, m) {
   #include "test_binding.out.cpp"
   #include "matrix_add.out.cpp"
 
+    m.def("test_return", [](pybind11::array_t<double> a, pybind11::array_t<double> b) {
+      typedef Eigen::Matrix<
+          double,
+          Eigen::Dynamic,
+          Eigen::Dynamic,
+          Eigen::RowMajor> Matrix_Type;
+      Eigen::Map<Matrix_Type, Eigen::Aligned> A((double*)a.data(), a.shape()[0], a.shape()[1]);
+      Eigen::Map<Matrix_Type, Eigen::Aligned> B((double*)a.data(), b.shape()[0], b.shape()[1]);
+
+      Eigen::MatrixXd C = A + B;
+      Eigen::MatrixXd D = A - B;
+      return std::make_tuple(C, D);
+    });
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;
 #else

@@ -29,10 +29,17 @@ find_package(LIBIGL REQUIRED QUIET)
 set (SRC_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set (TEST_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
+configure_file(${SRC_DIRECTORY}/binding_dsl.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+
 add_subdirectory(pybind11)
 pybind11_add_module(pyigl_proto SHARED src/example_binding.cpp)
 target_link_libraries(pyigl_proto PRIVATE igl::core igl::opengl_glfw)
-configure_file(src/binding_dsl.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+target_compile_options(pyigl_proto PRIVATE "-fopenmp")
+add_custom_target(run_binding_generator_src
+  DEPENDS ${SRC_DIRECTORY}/matrix_add.cpp
+  COMMAND python ${SRC_DIRECTORY}/binding_dsl.py ${SRC_DIRECTORY}/matrix_add.cpp -o ${SRC_DIRECTORY}/matrix_add.out.cpp)
+add_dependencies(pyigl_proto run_binding_generator_src)
+
 #configure_file(src/benchmark.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 #configure_file(src/codegen.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 

@@ -63,12 +63,13 @@ Map_b B((Scalar_b*)b.data(), b.shape()[0], b.shape()[1]);
 
 // We compute some return values using the types specified in the input. So, for example,
 // if you pass in matrices of doubles, you get the result as a matrix of doubles
-Matrix_a ret1 = A + B;
+Matrix_a ret_1 = A + B;
 
-// TODO: Check that this is doing a move and not a copy
 // MOVE_TO_NP returns a pybind11::array which takes ownership of the Eigen::Matrix passed as a second argument.
 // The first argument is the type of the Eigen::Matrix
-return MOVE_TO_NP(Matrix_a, ret1);
+pybind11::object rep_1 = MOVE_TO_NP(Matrix_a, ret_1);
+return rep_1;
+//return std::make_tuple(rep_1, rep_1);
 
 igl_end_code()
 
