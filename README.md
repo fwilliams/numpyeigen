@@ -36,9 +36,9 @@ npe_arg("e", "int")                  // e is an int
 // The C++ code for the function starts after this line
 npe_begin_code()
 
-npe::Map_a A((Scalar_a*)a.data(), a.shape()[0], a.shape()[1]);
-npe::Map_b B((Scalar_b*)b.data(), b.shape()[0], b.shape()[1]);
-npe::Map_c C((Scalar_c*)c.data(), c.shape()[0], c.shape()[1]);
+npe::Map_a A((npe::Scalar_a*)a.data(), a.shape()[0], a.shape()[1]);
+npe::Map_b B((npe::Scalar_b*)b.data(), b.shape()[0], b.shape()[1]);
+npe::Map_c C((npe::Scalar_c*)c.data(), c.shape()[0], c.shape()[1]);
 
 npe::Matrix_a ret1 = A + B;
 npe::Matrix_a ret2 = A - C;
