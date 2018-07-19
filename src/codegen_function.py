@@ -1,6 +1,19 @@
 import argparse
 import itertools
 import os
+import sys
+
+
+class TermColors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 
 # TODO: Check that your compiler supports __float128
 NUMPY_ARRAY_TYPES_TO_CPP = {'type_f32': ('float', 'f32', 'float32'),
@@ -295,17 +308,17 @@ def frontend_pass(lines):
     if binding_start_line_number < 0:
         raise ParseError("Invalid binding file. Must begin with %s(<function_name>)." % BINDING_INIT_TOKEN)
 
-    print("Function: %s" % bound_function_name)
+    print(TermColors.OKGREEN + "NumpyEigen Function: " + TermColors.ENDC + bound_function_name)
 
     code_start_line_number = -1
 
     for line_number in range(binding_start_line_number, len(lines)):
         if lines[line_number].strip().lower().startswith(INPUT_TOKEN):
             var_name, var_types = parse_input_statement(lines[line_number], line_number=line_number)
-            print("Input %s: %s" % (var_name, var_types))
+            print(TermColors.OKGREEN + "NumpyEigen Arg: " + TermColors.ENDC + var_name + " - " + str(var_types))
         elif lines[line_number].strip().lower().startswith(OUTPUT_TOKEN):
             var_name, var_type = parse_output_statement(lines[line_number], line_number=line_number)
-            print("Output %s: %s" % (var_name, var_type))
+            print(TermColors.OKGREEN + "NumpyEigen Output: " + TermColors.ENDC + var_name + " - " + var_type)
         elif lines[line_number].strip().lower().startswith(BEGIN_CODE_TOKEN):
             parse_begin_code_statement(lines[line_number], line_number=line_number)
             code_start_line_number = line_number + 1
@@ -584,9 +597,18 @@ if __name__ == "__main__":
     with open(args.file, 'r') as f:
         line_list = f.readlines()
 
-    input_file_name = args.file
-    frontend_pass(line_list)
-    validate_frontend_output()
-    with open(args.output, 'w+') as outfile:
-        backend_pass(outfile)
+    try:
+        input_file_name = args.file
+        frontend_pass(line_list)
+        validate_frontend_output()
+        with open(args.output, 'w+') as outfile:
+            backend_pass(outfile)
+    except SemanticError as e:
+        # TODO: Pretty printer
+        print(TermColors.FAIL + TermColors.BOLD + "NumpyEigen Semantic Error: " +
+              TermColors.ENDC + TermColors.ENDC + str(e), file=sys.stderr)
+    except ParseError as e:
+        # TODO: Pretty printer
+        print(TermColors.FAIL + TermColors.BOLD + "NumpyEigen Syntax Error: " +
+              TermColors.ENDC + TermColors.ENDC + str(e), file=sys.stderr)
 

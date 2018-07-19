@@ -2,6 +2,17 @@ import argparse
 import os
 
 
+class TermColors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
 FUNCTION_NAME_PREFIX = "pybind_output_fun_"
 
 
@@ -34,7 +45,7 @@ if __name__ == "__main__":
 
     args = arg_parser.parse_args()
 
-    print("Generating Module %s" % args.module_name)
+    print(TermColors.OKGREEN + "NumpyEigen Module:" + TermColors.ENDC + args.module_name)
 
     with open(args.output, 'w+') as outfile:
         write_module(outfile, args.module_name, args.files)
