@@ -23,35 +23,23 @@ function(make_module target_name)
     get_filename_component(name ${binding_source} NAME_WE)
 
     set(bound_function_source_filename "${CMAKE_CURRENT_BINARY_DIR}/${name}.out.cpp")
-
-    set(function_generator_target run_function_binding_generator_${target_name}_${name})
-    add_custom_target(${function_generator_target}
-      DEPENDS ${binding_source}
+    add_custom_command(OUTPUT ${bound_function_source_filename}
+      DEPENDS ${make_module_BINDING_SOURCES}
       COMMAND python ${SRC_DIRECTORY}/codegen_function.py ${binding_source} -o ${bound_function_source_filename}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
     list(APPEND function_sources "${bound_function_source_filename}")
-    file(GENERATE OUTPUT ${bound_function_source_filename} CONTENT "")
   endforeach()
 
   set(module_source_filename ${CMAKE_CURRENT_BINARY_DIR}/${target_name}.module.cpp)
-
-  set(module_generator_target run_module_binding_generator_${target_name})
-  add_custom_target(${module_generator_target}
-    DEPENDS ${module_source_filename}
+  add_custom_command(OUTPUT ${module_source_filename}
+    DEPENDS ${make_module_BINDING_SOURCES}
     COMMAND python ${PYBIND22_SRC_DIRECTORY}/codegen_module.py -o ${module_source_filename} -m ${target_name} -f ${make_module_BINDING_SOURCES}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
-  file(GENERATE OUTPUT ${module_source_filename} CONTENT "")
   pybind11_add_module(${target_name} SHARED ${module_source_filename} ${PYBIND22_SRC_DIRECTORY}/binding_typedefs.cpp ${function_sources})
   target_include_directories(${target_name} PRIVATE ${PYBIND22_SRC_DIRECTORY})
-  add_dependencies(${target_name} ${module_generator_target})
 
-  foreach(binding_source ${make_module_BINDING_SOURCES})
-    get_filename_component(name ${binding_source} NAME_WE)
-    set(function_generator_target run_function_binding_generator_${target_name}_${name})
-    add_dependencies(${target_name} ${function_generator_target})
-  endforeach()
   # python ${make_module_BINDING_SOURCE}
 endfunction()
 
