@@ -15,7 +15,7 @@ NumpyEigen only requires the system to have a running Python interpreter with ve
 NumpyEigen uses [pybind11](https://github.com/pybind/pybind11) under the hood which is included as a submodule. Don't forget to `git clone --recursive`!
 
 ## Example
-See the repository [TODO: Example repo]() for a fully running example project.
+See the repository [TODO: Example repo](https://github.com/fwilliams/numpyeigen/issues/9) for a fully running example project.
 
 When compiled, the following code will generate a function `foo(a, b, c, d, e)` callable from Python. `foo` returns a tuple of values computed from its inputs.
 
