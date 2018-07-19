@@ -27,14 +27,14 @@ When compiled, the following code will generate a function `foo(a, b, c, d, e)` 
 npe_function("foo");                  // create a function foo exposed to python
 
 // The arguments to foo are as follows:
-npe_arg("a", "type_f64", "type_f32"); // a is a numpy array with dtype either float or double
-npe_arg("b", "matches(a)");           // b is a numpy array whose type has to match a
-npe_arg("c", "type_i32", "type_i64"); // c is a numpy array whose type is either int32 or int64
-npe_arg("d", "std::string");          // d is a string
-npe_arg("e", "int");                  // e is an int
+npe_arg("a", "type_f64", "type_f32") // a is a numpy array with dtype either float or double
+npe_arg("b", "matches(a)")           // b is a numpy array whose type has to match a
+npe_arg("c", "type_i32", "type_i64") // c is a numpy array whose type is either int32 or int64
+npe_arg("d", "std::string")          // d is a string
+npe_arg("e", "int")                  // e is an int
 
 // The C++ code for the function starts after this line
-npe_begin_code();
+npe_begin_code()
 
 npe::Map_a A((Scalar_a*)a.data(), a.shape()[0], a.shape()[1]);
 npe::Map_b B((Scalar_b*)b.data(), b.shape()[0], b.shape()[1]);
