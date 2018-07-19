@@ -6,10 +6,10 @@
 
 Since type information in Python is only available at runtime, it is not easy to write general bindings which accept multiple NumPy types, have zero copy overhead, and can make use of the fastest numerical kernels in Eigen. NumpyEigen transparently generates bindings which do all of the above, exposing numpy type information at compile time to C++ code. 
 
-### Built-in CMake Support
+#### Built-in CMake Support
 NumpyEigen comes built-in with [CMake](https://cmake.org/) tools to integrate with existing build systems in a single line of code. A set of scripts to integrate with other build systems will be included in the future.
 
-### Minimal Dependencies
+#### Minimal Dependencies
 NumpyEigen only requires the system to have a running Python interpreter with version > 3.0. 
 
 NumpyEigen uses [pybind11](https://github.com/pybind/pybind11) under the hood which is included as a submodule. Don't forget to `git clone --recursive`!
