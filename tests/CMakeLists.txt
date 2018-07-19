@@ -3,7 +3,7 @@ project(cmake_example)
 
 # A module for writing bindings with our framework
 make_module(numpyeigen_test
-  BINDING_SOURCES mutate_matrix.cpp matrix_add.cpp)
+  BINDING_SOURCES mutate_matrix.cpp matrix_add.cpp binding_example.cpp)
 target_link_libraries(numpyeigen_test PRIVATE igl::core)
 
 # A vanilla pybind11 module used to write functions to compare against pyeigen
