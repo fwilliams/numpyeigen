@@ -1,5 +1,3 @@
-add_subdirectory(pybind11)
-
 set(NUMPYEIGEN_SRC_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # Empty list of binding file names

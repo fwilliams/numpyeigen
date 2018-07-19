@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 2.8.12)
-project(cmake_example)
+project(numpyeigen)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/libigl/shared/cmake)
+add_subdirectory(external/pybind11)
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/external/libigl/shared/cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # libigl
@@ -31,6 +33,7 @@ include(numpyeigenTools)
 #set (TEST_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
 enable_testing()
+
 
 add_subdirectory(src)
 add_subdirectory(tests)

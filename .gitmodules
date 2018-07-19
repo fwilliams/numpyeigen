@@ -1,8 +1,8 @@
-[submodule "pybind11"]
-	path = external
-	url = https://github.com/fwilliams/pybind11.git
-	branch = numpy-hacks
 [submodule "libigl"]
 	path = external/libigl
 	url = https://github.com/libigl/libigl.git
-
+	
+[submodule "external/pybind11"]
+	path = external/pybind11
+	url = https://github.com/fwilliams/pybind11.git
+	branch = "numpy-hacks"
