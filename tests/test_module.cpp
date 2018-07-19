@@ -11,6 +11,9 @@
 #include "binding_typedefs.h"
 #include "binding_utils.h"
 
+void output_matrix_add_fun(pybind11::module& m);
+void output_mutate_matrix_fun(pybind11::module& m);
+
 PYBIND11_MODULE(test_module, m) {
     m.doc() = R"pbdoc(
         Test Module
@@ -19,8 +22,8 @@ PYBIND11_MODULE(test_module, m) {
         .. currentmodule:: test_module
     )pbdoc";
 
-  #include "matrix_add.out.cpp"
-  #include "mutate_matrix.out.cpp"
+  output_matrix_add_fun(m);
+  output_mutate_matrix_fun(m);
 
     m.def("mutate_copy", [](pybind11::array_t<float> v) {
       float* v_data = (float*) v.data();

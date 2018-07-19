@@ -11,6 +11,8 @@
 #include "binding_typedefs.h"
 #include "binding_utils.h"
 
+void output_matrix_add_fun(pybind11::module& m);
+
 PYBIND11_MODULE(pyigl_proto, m) {
     m.doc() = R"pbdoc(
         Playground for prototyping libIGL functions
@@ -25,8 +27,9 @@ PYBIND11_MODULE(pyigl_proto, m) {
            cotmatrx
     )pbdoc";
 
-  #include "test_binding.out.cpp"
-  #include "matrix_add.out.cpp"
+//  #include "test_binding.out.cpp"
+    output_matrix_add_fun(m);
+
 
     m.def("test_return", [](pybind11::array_t<double> a, pybind11::array_t<double> b) {
       typedef Eigen::Matrix<

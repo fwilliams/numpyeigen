@@ -440,6 +440,15 @@ def write_type_id_getter(out_file, var_name):
 
 
 def write_header(out_file):
+    out_file.write("#include <pybind11/pybind11.h>\n")
+    out_file.write("#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION\n")
+    out_file.write("#include <numpy/arrayobject.h>\n")
+    out_file.write("#include <pybind11/eigen.h>\n")
+    out_file.write("#include <pybind11/numpy.h>\n")
+    out_file.write("#include \"binding_typedefs.h\"\n")
+    out_file.write("#include \"binding_utils.h\"\n")
+
+    out_file.write("void output_%s_fun(pybind11::module& m) {\n" % bound_function_name)
     out_file.write('m.def(')
     out_file.write('"%s"' % bound_function_name)
     out_file.write(", [](")
@@ -554,7 +563,8 @@ def backend_pass(out_file):
                             'File github issue plz.");\n')
     out_file.write("}\n")
     out_file.write("\n")
-    out_file.write("});")
+    out_file.write("});\n")
+    out_file.write("}\n")
     out_file.write("\n")
 
 

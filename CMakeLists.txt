@@ -26,22 +26,35 @@ option(LIBIGL_WITH_XML              "Use XML"            OFF)
 
 find_package(LIBIGL REQUIRED QUIET)
 
+
 set (SRC_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set (TEST_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
 configure_file(${SRC_DIRECTORY}/binding_dsl.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 
-add_subdirectory(pybind11)
-pybind11_add_module(pyigl_proto SHARED src/example_binding.cpp)
-target_link_libraries(pyigl_proto PRIVATE igl::core igl::opengl_glfw)
-target_compile_options(pyigl_proto PRIVATE "-fopenmp")
-add_custom_target(run_binding_generator_src
-  DEPENDS ${SRC_DIRECTORY}/matrix_add.cpp
-  COMMAND python ${SRC_DIRECTORY}/binding_dsl.py ${SRC_DIRECTORY}/matrix_add.cpp -o ${SRC_DIRECTORY}/matrix_add.out.cpp)
-add_dependencies(pyigl_proto run_binding_generator_src)
+# Empty list of binding file names
+function(bind_function module_name filename)
+  get_filename_component(name ${filename} NAME_WE)
+  get_filename_component(dir ${filename} DIRECTORY)
+  set(generator_target run_binding_generator_${module_name}_${name})
+  add_custom_target(${generator_target}
+    DEPENDS ${filename}
+    COMMAND python ${SRC_DIRECTORY}/binding_dsl.py ${filename} -o ${dir}/${name}.out.cpp)
+  add_dependencies(${module_name} ${generator_target})
+endfunction()
 
-#configure_file(src/benchmark.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
-#configure_file(src/codegen.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+add_subdirectory(pybind11)
+pybind11_add_module(pyigl_proto SHARED src/matrix_add.out.cpp src/binding_typedefs.cpp src/example_binding.cpp)
+target_link_libraries(pyigl_proto PRIVATE igl::core igl::opengl_glfw)
+#target_compile_options(pyigl_proto PRIVATE "-fopenmp-simd")
+#target_compile_options(pyigl_proto PRIVATE "-mavx")
+#target_compile_options(pyigl_proto PRIVATE "-mfma")
+bind_function(pyigl_proto ${SRC_DIRECTORY}/matrix_add.cpp)
+
+#find_package(PythonLibs REQUIRED)
+#target_link_libraries(pyigl_proto PRIVATE ${PYTHON_LIBRARIES})
+#set_target_properties(pyigl_proto PROPERTIES LINK_FLAGS "-Wl,--no-undefined")
+
 
 enable_testing()
 add_subdirectory(tests)
