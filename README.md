@@ -1,5 +1,4 @@
-NumpyEigen - Fast zero-overhead bindings between NumPy and Eigen
------------------------
+# NumpyEigen - Fast zero-overhead bindings between NumPy and Eigen
 
 **NumpyEigen** makes it easy to transparently convert [NumPy](http://www.numpy.org/) arrays to [Eigen](https://www.google.com/search?client=ubuntu&channel=fs&q=eigen&ie=utf-8&oe=utf-8) with zero copy overhead while taking advantage of Eigen's expression template system for maximum performance.
 
