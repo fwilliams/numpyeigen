@@ -1,4 +1,4 @@
-name: libigl-python-binding-experiments
+name: numpyeigen
 channels:
   - defaults
 dependencies:
@@ -65,5 +65,5 @@ dependencies:
   - wheel=0.31.1=py36_0
   - xz=5.2.4=h14c3975_4
   - zlib=1.2.11=ha838bed_2
-prefix: /home/francis/miniconda3/envs/libigl-python-binding-experiments
+prefix: /home/francis/miniconda3/envs/numpyeigen
 
