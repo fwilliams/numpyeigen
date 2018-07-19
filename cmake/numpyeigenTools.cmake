@@ -22,7 +22,7 @@ function(npe_add_module target_name)
 
     set(bound_function_source_filename "${CMAKE_CURRENT_BINARY_DIR}/${name}.out.cpp")
     add_custom_command(OUTPUT ${bound_function_source_filename}
-      DEPENDS ${make_module_BINDING_SOURCES}
+      DEPENDS ${make_module_BINDING_SOURCES} ${NUMPYEIGEN_SRC_DIRECTORY}/codegen_function.py ${NUMPYEIGEN_SRC_DIRECTORY}/codegen_module.py
       COMMAND python ${NUMPYEIGEN_SRC_DIRECTORY}/codegen_function.py ${binding_source} -o ${bound_function_source_filename}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -31,7 +31,7 @@ function(npe_add_module target_name)
 
   set(module_source_filename ${CMAKE_CURRENT_BINARY_DIR}/${target_name}.module.cpp)
   add_custom_command(OUTPUT ${module_source_filename}
-    DEPENDS ${make_module_BINDING_SOURCES}
+    DEPENDS ${make_module_BINDING_SOURCES} ${NUMPYEIGEN_SRC_DIRECTORY}/codegen_function.py ${NUMPYEIGEN_SRC_DIRECTORY}/codegen_module.py
     COMMAND python ${NUMPYEIGEN_SRC_DIRECTORY}/codegen_module.py -o ${module_source_filename} -m ${target_name} -f ${make_module_BINDING_SOURCES}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
