@@ -45,7 +45,7 @@ npe::Matrix_a ret2 = A - C;
 int ret3 = d + std::string("concatenated");
 int ret4 = e + 2;
 
-return std::make_tuple(ret1, ret2, ret3, ret4, ret5);
+return std::make_tuple(NPE_MOVE(ret1), NPE_MOVE(ret2), ret3, ret4);
 
 npe_end_code()
 ```
