@@ -5,7 +5,12 @@ _generate/
 *.so
 *.py[cod]
 *.egg-info
-*.creator.user
+numpyeigen.creator.user
+numpyeigen.includes
+numpyeigen.creator
+numpyeigen.files
+numpyeigen.config
+*.
 .idea/
 libigl-python-bindings-experiments.config
 libigl-python-bindings-experiments.creator
