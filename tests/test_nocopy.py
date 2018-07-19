@@ -5,7 +5,8 @@ import time
 
 sys.path.append(os.getcwd())
 import numpy as np
-import test_module as m
+import numpyeigen_test as npe_test
+import numpyeigen_helpers as npe_helpers
 
 
 class TestSomething(unittest.TestCase):
@@ -15,7 +16,7 @@ class TestSomething(unittest.TestCase):
         expected = np.array(a)
         expected[0, 0] = 2.0
         self.assertEqual(a[0, 0], 1.0)
-        ret = m.mutate_matrix(a)  # Always sets A[0, 0] to 2.0
+        ret = npe_test.mutate_matrix(a)  # Always sets A[0, 0] to 2.0
         self.assertEqual(ret, 200)  # Always returns num_rows + num_cols
         self.assertTrue(np.array_equal(a, expected))
 
@@ -24,7 +25,7 @@ class TestSomething(unittest.TestCase):
         expected = np.array(a)
         expected[0, 0] = 2.0
         self.assertEqual(a[0, 0], 1.0)
-        ret = m.mutate_copy(a)  # Always sets A[0, 0] to 2.0
+        ret = npe_helpers.mutate_copy(a)  # Always sets A[0, 0] to 2.0
         self.assertEqual(ret, 200)  # Always returns num_rows + num_cols
         self.assertFalse(np.array_equal(a, expected))
 
@@ -33,7 +34,7 @@ class TestSomething(unittest.TestCase):
         expected = np.array(a, dtype=np.float32)
         expected[0, 0] = 2.0
         self.assertEqual(a[0, 0], 1.0)
-        ret = m.mutate_copy(a)  # Always sets A[0, 0] to 2.0
+        ret = npe_helpers.mutate_copy(a)  # Always sets A[0, 0] to 2.0
         self.assertEqual(ret, 200)  # Always returns num_rows + num_cols
         self.assertTrue(np.array_equal(a, expected))
 
@@ -45,7 +46,7 @@ class TestSomething(unittest.TestCase):
         a = np.eye(mat_size)
         for i in range(num_iters):
             start_time = time.time()
-            m.mutate_matrix(a)
+            npe_test.mutate_matrix(a)
             end_time = time.time()
             times_nocopy.append(end_time-start_time)
 
@@ -53,7 +54,7 @@ class TestSomething(unittest.TestCase):
         a = np.eye(mat_size, dtype=np.float32)
         for i in range(num_iters):
             start_time = time.time()
-            m.mutate_copy(a)
+            npe_helpers.mutate_copy(a)
             end_time = time.time()
             times_nocopy_pybind.append(end_time-start_time)
 
@@ -61,7 +62,7 @@ class TestSomething(unittest.TestCase):
         a = np.eye(mat_size)
         for i in range(num_iters):
             start_time = time.time()
-            m.mutate_copy(a)
+            npe_helpers.mutate_copy(a)
             end_time = time.time()
             times_copy.append(end_time-start_time)
 
@@ -85,7 +86,4 @@ class TestSomething(unittest.TestCase):
 
 
 if __name__ == '__main__':
-
-    print("I AM A TESTTT")
-    print(os.getcwd())
     unittest.main()

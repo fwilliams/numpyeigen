@@ -5,19 +5,14 @@
 #include <pybind11/numpy.h>
 #include <pybind11/eigen.h>
 
-void output_matrix_add_fun(pybind11::module& m);
-void output_mutate_matrix_fun(pybind11::module& m);
 
-PYBIND11_MODULE(test_module, m) {
+PYBIND11_MODULE(numpyeigen_helpers, m) {
   m.doc() = R"pbdoc(
             Test Module
             -----------------------
 
             .. currentmodule:: test_module
             )pbdoc";
-
-  output_matrix_add_fun(m);
-  output_mutate_matrix_fun(m);
 
   m.def("mutate_copy", [](pybind11::array_t<float> v) {
     float* v_data = (float*) v.data();

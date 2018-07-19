@@ -1,5 +1,6 @@
 import argparse
 import itertools
+import os
 
 # TODO: Check that your compiler supports __float128
 NUMPY_ARRAY_TYPES_TO_CPP = {'type_f32': ('float', 'f32', 'float32'),
@@ -26,6 +27,9 @@ INCLUDE_TOKEN = "#include"
 BINDING_INIT_TOKEN = "igl_binding"
 COMMENT_TOKEN = "//"
 
+# TODO: More than one function per file
+# TODO: Refactor the frontend as a module that can be run on a file
+input_file_name = ""  # The name of the input file. Right now we enforce the one function, one file rule
 bound_function_name = ""  # The name of the function we are binding
 input_type_groups = []  # Set of allowed types for each group of variables
 input_varname_to_group = {}  # Dictionary mapping input variable names to type groups
@@ -448,7 +452,9 @@ def write_header(out_file):
     out_file.write("#include \"binding_typedefs.h\"\n")
     out_file.write("#include \"binding_utils.h\"\n")
 
-    out_file.write("void output_%s_fun(pybind11::module& m) {\n" % bound_function_name)
+    # TODO: Use the function name properly
+    func_name = "pybind_output_fun_" + os.path.basename(input_file_name).replace(".", "_")
+    out_file.write("void %s(pybind11::module& m) {\n" % func_name)
     out_file.write('m.def(')
     out_file.write('"%s"' % bound_function_name)
     out_file.write(", [](")
@@ -578,6 +584,7 @@ if __name__ == "__main__":
     with open(args.file, 'r') as f:
         line_list = f.readlines()
 
+    input_file_name = args.file
     frontend_pass(line_list)
     validate_frontend_output()
     with open(args.output, 'w+') as outfile:

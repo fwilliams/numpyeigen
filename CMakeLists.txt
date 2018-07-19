@@ -3,7 +3,7 @@ project(cmake_example)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/libigl/shared/cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-message("${CMAKE_MODULE_PATH}")
+
 # libigl
 option(LIBIGL_USE_STATIC_LIBRARY "Use libigl as static library" OFF)
 option(LIBIGL_WITH_ANTTWEAKBAR      "Use AntTweakBar"    OFF)
@@ -30,19 +30,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/pybind22Tools.cmake)
 set (SRC_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set (TEST_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
-configure_file(${SRC_DIRECTORY}/binding_dsl.py ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
-
-make_module(pyigl_proto ${SRC_DIRECTORY}/example_binding.cpp
-  BINDING_SOURCES ${SRC_DIRECTORY}/matrix_add.cpp)
-target_link_libraries(pyigl_proto PRIVATE igl::core igl::opengl_glfw)
-target_compile_options(pyigl_proto PRIVATE "-fopenmp-simd")
-target_compile_options(pyigl_proto PRIVATE "-mavx")
-target_compile_options(pyigl_proto PRIVATE "-mfma")
-
-#find_package(PythonLibs REQUIRED)
-#target_link_libraries(pyigl_proto PRIVATE ${PYTHON_LIBRARIES})
-#set_target_properties(pyigl_proto PROPERTIES LINK_FLAGS "-Wl,--no-undefined")
-
-
 enable_testing()
+
+add_subdirectory(src)
 add_subdirectory(tests)
