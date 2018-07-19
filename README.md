@@ -22,7 +22,6 @@ When compiled, the following code will generate a function `foo(a, b, c, d, e)` 
 ```c++
 #include <tuple>
 #include <string>
-#include <npe.h>
 
 npe_function("foo")                  // create a function foo exposed to python
 
