@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 2.8.12)
 project(numpyeigen)
 
 add_subdirectory(external/pybind11)
-
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/external/libigl/shared/cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
