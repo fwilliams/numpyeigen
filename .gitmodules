@@ -1,5 +1,5 @@
 [submodule "pybind11"]
-	path = pybind11
+	path = external
 	url = https://github.com/fwilliams/pybind11.git
 	branch = numpy-hacks
 [submodule "libigl"]
