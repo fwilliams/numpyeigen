@@ -24,7 +24,7 @@ When compiled, the following code will generate a function `foo(a, b, c, d, e)` 
 #include <string>
 #include <npe.h>
 
-npe_function("foo");                  // create a function foo exposed to python
+npe_function("foo")                  // create a function foo exposed to python
 
 // The arguments to foo are as follows:
 npe_arg("a", "type_f64", "type_f32") // a is a numpy array with dtype either float or double
