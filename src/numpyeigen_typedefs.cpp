@@ -3,8 +3,8 @@
 #include <iostream>
 
 
-const std::string npe::detail::type_to_str(char type_char) {
-  using namespace npe::detail;
+const std::string numpyeigen::detail::type_to_str(char type_char) {
+  using namespace numpyeigen::detail;
 
   switch(type_char) {
   case char_f16:
@@ -53,9 +53,9 @@ const std::string npe::detail::type_to_str(char type_char) {
 }
 
 
-int npe::detail::get_type_id(char typechar, npe::detail::StorageOrder so) {
+int numpyeigen::detail::get_type_id(char typechar, numpyeigen::detail::StorageOrder so) {
   using namespace  std;
-  using namespace npe::detail;
+  using namespace numpyeigen::detail;
 
   switch(so) {
   case ColMajor:

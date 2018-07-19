@@ -3,7 +3,7 @@
 
 #include <Eigen/Core>
 
-namespace npe {
+namespace numpyeigen {
 namespace detail {
 
 enum NumpyTypeChar {

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.12)
 project(cmake_example)
 
 # A module for writing bindings with our framework
-make_module(numpyeigen_test
+npe_add_module(numpyeigen_test
   BINDING_SOURCES mutate_matrix.cpp matrix_add.cpp binding_example.cpp)
 target_link_libraries(numpyeigen_test PRIVATE igl::core)
 

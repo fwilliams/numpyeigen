@@ -104,7 +104,7 @@ def parse_string_token(line, line_number):
 def parse_eol_token(line, line_number):
     if len(line.strip()) != 0:
         # TODO: Pretty error message
-        raise ParseError("Expected end-of-line after ')' token on line %d" % line_number)
+        raise ParseError("Expected end-of-line after ')' token on line %d. Got '%s'" % (line_number, line.strip()))
     return line.strip()
 
 
@@ -374,7 +374,8 @@ def validate_frontend_output():
 
 PUBLIC_ID_PREFIX = "NPE_PY_TYPE_"
 PRIVATE_ID_PREFIX = "_NPE_PY_BINDING_"
-PRIVATE_NAMESPACE = "npe::detail"
+PRIVATE_NAMESPACE = "numpyeigen::detail"
+TYPE_STRUCT_PUBLIC_NAME = "npe"
 STORAGE_ORDER_ENUM = "StorageOrder"
 ALIGNED_ENUM = "Alignment"
 TYPE_ID_ENUM = "TypeId"
@@ -531,6 +532,7 @@ def write_header(out_file):
 
 def write_code_block(out_file, combo):
     out_file.write("{\n")
+    out_file.write("struct %s {\n" % TYPE_STRUCT_PUBLIC_NAME)
     for group_id in range(len(combo)):
         type_prefix = combo[group_id][0]
         type_suffix = combo[group_id][1]
@@ -549,6 +551,11 @@ def write_code_block(out_file, combo):
             out_file.write(indent(2) + "typedef Eigen::Map<" + struct_name + "::Eigen_Type, " + struct_name +
                            "::Aligned> Map_Type;")
             out_file.write(INDENT + "};\n")
+            out_file.write("typedef " + struct_name + "::Scalar Scalar_" + var_name + ";\n")
+            out_file.write("typedef " + struct_name + "::Eigen_Type Matrix_" + var_name + ";\n")
+            out_file.write("typedef " + struct_name + "::Map_Type Map_" + var_name + ";\n")
+
+    out_file.write("};\n")
     out_file.write(binding_source_code + "\n")
     out_file.write("}\n")
 

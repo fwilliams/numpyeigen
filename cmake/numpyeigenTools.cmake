@@ -11,7 +11,7 @@ function(bind_function module_name filename)
   add_dependencies(${module_name} ${generator_target})
 endfunction()
 
-function(make_module target_name)
+function(npe_add_module target_name)
   message("Current source dir ${CMAKE_CURRENT_SOURCE_DIR}")
   set(options MODULE SHARED EXCLUDE_FROM_ALL NO_EXTRAS THIN_LTO)
   set(multiValueArgs TARGET_SOURCES BINDING_SOURCES)
