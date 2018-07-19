@@ -3,8 +3,8 @@
 
 #include <Eigen/Core>
 
-namespace igl {
-namespace pybind {
+namespace npe {
+namespace detail {
 
 enum NumpyTypeChar {
   char_f16  = 'e',

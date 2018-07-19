@@ -19,12 +19,12 @@ NUMPY_ARRAY_TYPES_TO_CPP = {'type_f32': ('float', 'f32', 'float32'),
                             'type_c256': ('std::complex<__float128>', 'c256', 'complex256')}
 NUMPY_ARRAY_TYPES = list(NUMPY_ARRAY_TYPES_TO_CPP.keys())
 MATCHES_TOKEN = "matches"
-INPUT_TOKEN = "igl_input"
-OUTPUT_TOKEN = "igl_output"
-BEGIN_CODE_TOKEN = "igl_begin_code"
-END_CODE_TOKEN = "igl_end_code"
+INPUT_TOKEN = "npe_arg"
+OUTPUT_TOKEN = "npe_output"
+BEGIN_CODE_TOKEN = "npe_begin_code"
+END_CODE_TOKEN = "npe_end_code"
 INCLUDE_TOKEN = "#include"
-BINDING_INIT_TOKEN = "igl_binding"
+BINDING_INIT_TOKEN = "npe_function"
 COMMENT_TOKEN = "//"
 
 # TODO: More than one function per file
@@ -359,9 +359,9 @@ def validate_frontend_output():
                                     (var_name, MATCHES_TOKEN, matches_name, var_meta.line_number))
 
 
-PUBLIC_ID_PREFIX = "IGL_PY_TYPE_"
-PRIVATE_ID_PREFIX = "_IGL_PY_BINDING_"
-PRIVATE_NAMESPACE = "igl::pybind"
+PUBLIC_ID_PREFIX = "NPE_PY_TYPE_"
+PRIVATE_ID_PREFIX = "_NPE_PY_BINDING_"
+PRIVATE_NAMESPACE = "npe::detail"
 STORAGE_ORDER_ENUM = "StorageOrder"
 ALIGNED_ENUM = "Alignment"
 TYPE_ID_ENUM = "TypeId"

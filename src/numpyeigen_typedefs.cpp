@@ -3,8 +3,8 @@
 #include <iostream>
 
 
-const std::string igl::pybind::type_to_str(char type_char) {
-  using namespace igl::pybind;
+const std::string npe::detail::type_to_str(char type_char) {
+  using namespace npe::detail;
 
   switch(type_char) {
   case char_f16:
@@ -53,9 +53,9 @@ const std::string igl::pybind::type_to_str(char type_char) {
 }
 
 
-int igl::pybind::get_type_id(char typechar, igl::pybind::StorageOrder so) {
+int npe::detail::get_type_id(char typechar, npe::detail::StorageOrder so) {
   using namespace  std;
-  using namespace igl::pybind;
+  using namespace npe::detail;
 
   switch(so) {
   case ColMajor:
