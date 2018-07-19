@@ -11,4 +11,4 @@ pybind11_add_module(numpyeigen_helpers SHARED pybind11_helper_module.cpp)
 target_link_libraries(numpyeigen_helpers PRIVATE igl::core)
 
 add_test(NAME test_nocopy
-         COMMAND python ${TEST_DIRECTORY}/test_nocopy.py)
+         COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_nocopy.py)

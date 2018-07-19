@@ -449,8 +449,8 @@ def write_header(out_file):
     out_file.write("#include <numpy/arrayobject.h>\n")
     out_file.write("#include <pybind11/eigen.h>\n")
     out_file.write("#include <pybind11/numpy.h>\n")
-    out_file.write("#include \"binding_typedefs.h\"\n")
-    out_file.write("#include \"binding_utils.h\"\n")
+    out_file.write("#include \"numpyeigen_typedefs.h\"\n")
+    out_file.write("#include \"numpyeigen_utils.h\"\n")
 
     # TODO: Use the function name properly
     func_name = "pybind_output_fun_" + os.path.basename(input_file_name).replace(".", "_")

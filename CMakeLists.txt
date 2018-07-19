@@ -25,10 +25,10 @@ option(LIBIGL_WITH_VIEWER           "Use OpenGL viewer"  ON)
 option(LIBIGL_WITH_XML              "Use XML"            OFF)
 
 find_package(LIBIGL REQUIRED QUIET)
-include(${CMAKE_CURRENT_SOURCE_DIR}/pybind22Tools.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/numpyeigenTools.cmake)
 
-set (SRC_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src)
-set (TEST_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+#set (SRC_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src)
+#set (TEST_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
 enable_testing()
 

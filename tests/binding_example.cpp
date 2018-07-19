@@ -1,6 +1,6 @@
 #include <tuple>
 #include <Eigen/Core>
-#include "binding_utils.h"
+#include "numpyeigen_utils.h"
 
 // This defines a function named 'test_binding' which will be exposed to python
 igl_binding("test_binding")

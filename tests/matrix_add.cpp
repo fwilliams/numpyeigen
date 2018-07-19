@@ -1,6 +1,6 @@
 #include <tuple>
 #include <Eigen/Core>
-#include "binding_utils.h"
+#include "numpyeigen_utils.h"
 
 igl_binding("matrix_add")
 igl_input("a", "type_f64")
