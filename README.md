@@ -74,6 +74,7 @@ cd build
 cmake ..
 make
 make test
+```
 
 There's an `tests/environment.yml` file which can be used to generate conda environment with all the right dependencies by running:
 ```
