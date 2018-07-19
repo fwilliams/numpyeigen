@@ -1,0 +1,5 @@
+pybind11/include/
+pybind11/tests
+src
+../libigl/include
+../libigl/external/eigen
