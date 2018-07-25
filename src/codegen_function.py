@@ -33,10 +33,8 @@ NUMPY_ARRAY_TYPES_TO_CPP = {'type_f32': ('float', 'f32', 'float32'),
 NUMPY_ARRAY_TYPES = list(NUMPY_ARRAY_TYPES_TO_CPP.keys())
 MATCHES_TOKEN = "matches"
 INPUT_TOKEN = "npe_arg"
-OUTPUT_TOKEN = "npe_output"
 BEGIN_CODE_TOKEN = "npe_begin_code"
 END_CODE_TOKEN = "npe_end_code"
-INCLUDE_TOKEN = "#include"
 BINDING_INIT_TOKEN = "npe_function"
 COMMENT_TOKEN = "//"
 
@@ -51,6 +49,7 @@ input_variable_order = []  # List of input variables in order
 input_variable_meta = {}  # Dictionary mapping variable names to types
 output_variable_meta = {}  # Dictionary mapping output variables to types or input variables whose types they match
 binding_source_code = ""  # The source code of the binding
+preamble_source_code = ""  # The code that comes before npe_* statements
 
 
 class ParseError(Exception):
@@ -223,38 +222,6 @@ def parse_input_statement(line, line_number):
     return var_name, var_types
 
 
-def parse_output_statement(line, line_number):
-    global MATCHES_TOKEN, OUTPUT_TOKEN
-    global input_varname_to_group, input_variable_meta, output_variable_meta
-
-    # An output token is either a fixed type or a matches()
-    line = parse_token(line.strip(), OUTPUT_TOKEN, line_number=line_number, case_sensitive=False)
-    line = parse_token(line.strip(), '(', line_number=line_number)
-
-    var_name, line = parse_string_token(line.strip(), line_number=line_number)
-    validate_identifier_name(var_name)
-    line = parse_token(line.strip(), ',', line_number=line_number)
-    var_type, line = parse_string_token(line.strip(), line_number=line_number)
-
-    if var_type.startswith(MATCHES_TOKEN):
-        matches_name = parse_matches_statement(var_type.strip(), line_number=line_number)
-        output_variable_meta[var_name] = VariableMetadata(name=var_name,
-                                                          is_matches=True,
-                                                          name_or_type=matches_name,
-                                                          line_number=line_number)
-    else:
-        output_variable_meta[var_name] = VariableMetadata(name=var_name,
-                                                          is_matches=False,
-                                                          name_or_type=var_type,
-                                                          line_number=line_number)
-
-    line = parse_token(line.strip(), ')', line_number=line_number)
-
-    parse_eol_token(line, line_number=line_number)
-
-    return var_name, var_type
-
-
 def parse_begin_code_statement(line, line_number):
     global BEGIN_CODE_TOKEN
     line = parse_token(line.strip(), BEGIN_CODE_TOKEN, line_number=line_number, case_sensitive=False)
@@ -284,26 +251,30 @@ def parse_binding_init_statement(line, line_number):
 
 
 def frontend_pass(lines):
-    global INPUT_TOKEN, OUTPUT_TOKEN, BEGIN_CODE_TOKEN, END_CODE_TOKEN, INCLUDE_TOKEN, BINDING_INIT_TOKEN
-    global binding_source_code, bound_function_name
+    global INPUT_TOKEN, BEGIN_CODE_TOKEN, END_CODE_TOKEN, BINDING_INIT_TOKEN
+    global binding_source_code, bound_function_name, preamble_source_code
 
     binding_start_line_number = -1
 
     for line_number in range(len(lines)):
         if len(lines[line_number].strip()) == 0:
             continue
-        elif lines[line_number].strip().lower().startswith(INCLUDE_TOKEN):
-            # You can #include things to make your IDE work but the includes get ignored
-            continue
-        elif lines[line_number].strip().lower().startswith(COMMENT_TOKEN):
-            # Ignore commented lines
-            continue
+        elif lines[line_number].strip().lower().startswith(INPUT_TOKEN):
+            raise ParseError("Got `%s` statement before `%s` at line %d" %
+                             (INPUT_TOKEN, BINDING_INIT_TOKEN, line_number))
+        elif lines[line_number].strip().lower().startswith(BEGIN_CODE_TOKEN):
+            raise ParseError("Got `%s` statement before `%s` at line %d" %
+                             (BEGIN_CODE_TOKEN, BINDING_INIT_TOKEN, line_number))
+        elif lines[line_number].strip().lower().startswith(END_CODE_TOKEN):
+            raise ParseError("Got `%s` statement before `%s` at line %d" %
+                             (END_CODE_TOKEN, BINDING_INIT_TOKEN, line_number))
         elif lines[line_number].strip().lower().startswith(BINDING_INIT_TOKEN):
             bound_function_name = parse_binding_init_statement(lines[line_number], line_number=line_number)
             binding_start_line_number = line_number + 1
             break
         else:
-            raise ParseError("Unexpected tokens at line %d: %s" % (line_number, lines[line_number]))
+            preamble_source_code += lines[line_number]
+            # raise ParseError("Unexpected tokens at line %d: %s" % (line_number, lines[line_number]))
 
     if binding_start_line_number < 0:
         raise ParseError("Invalid binding file. Must begin with %s(<function_name>)." % BINDING_INIT_TOKEN)
@@ -316,9 +287,6 @@ def frontend_pass(lines):
         if lines[line_number].strip().lower().startswith(INPUT_TOKEN):
             var_name, var_types = parse_input_statement(lines[line_number], line_number=line_number)
             print(TermColors.OKGREEN + "NumpyEigen Arg: " + TermColors.ENDC + var_name + " - " + str(var_types))
-        elif lines[line_number].strip().lower().startswith(OUTPUT_TOKEN):
-            var_name, var_type = parse_output_statement(lines[line_number], line_number=line_number)
-            print(TermColors.OKGREEN + "NumpyEigen Output: " + TermColors.ENDC + var_name + " - " + var_type)
         elif lines[line_number].strip().lower().startswith(BEGIN_CODE_TOKEN):
             parse_begin_code_statement(lines[line_number], line_number=line_number)
             code_start_line_number = line_number + 1
@@ -465,6 +433,7 @@ def write_header(out_file):
     out_file.write("#include <pybind11/numpy.h>\n")
     out_file.write("#include \"numpyeigen_typedefs.h\"\n")
     out_file.write("#include \"numpyeigen_utils.h\"\n")
+    out_file.write(preamble_source_code + "\n")
 
     # TODO: Use the function name properly
     func_name = "pybind_output_fun_" + os.path.basename(input_file_name).replace(".", "_")
@@ -614,8 +583,9 @@ if __name__ == "__main__":
         # TODO: Pretty printer
         print(TermColors.FAIL + TermColors.BOLD + "NumpyEigen Semantic Error: " +
               TermColors.ENDC + TermColors.ENDC + str(e), file=sys.stderr)
+        sys.exit(1)
     except ParseError as e:
         # TODO: Pretty printer
         print(TermColors.FAIL + TermColors.BOLD + "NumpyEigen Syntax Error: " +
               TermColors.ENDC + TermColors.ENDC + str(e), file=sys.stderr)
-
+        sys.exit(1)
