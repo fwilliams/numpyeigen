@@ -10,5 +10,13 @@ target_link_libraries(numpyeigen_test PRIVATE igl::core)
 pybind11_add_module(numpyeigen_helpers SHARED pybind11_helper_module.cpp)
 target_link_libraries(numpyeigen_helpers PRIVATE igl::core)
 
+# A vanilla pybind11 module used to test that we can bind the sparse_array class
+pybind11_add_module(sparse_test SHARED sparse_test_binding.cpp)
+target_link_libraries(sparse_test PRIVATE igl::core)
+target_include_directories(sparse_test PRIVATE ${NPE_SRC_DIR})
+
+
 add_test(NAME test_nocopy
          COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_nocopy.py)
+add_test(NAME sparse_test
+        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_sparse_binding.py)
