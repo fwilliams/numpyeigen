@@ -16,20 +16,39 @@ class TermColors:
 
 
 # TODO: Check that your compiler supports __float128
-NUMPY_ARRAY_TYPES_TO_CPP = {'type_f32': ('float', 'f32', 'float32'),
-                            'type_f64': ('double', 'f64', 'float64'),
-                            'type_f128': ('__float128', 'f128', 'float128'),
-                            'type_i8': ('std::int8_t', 'i8', 'int8'),
-                            'type_i16': ('std::int16_t', 'i16', 'int16'),
-                            'type_i32': ('std::int32_t', 'i32', 'int32'),
-                            'type_i64': ('std::int64_t', 'i64', 'int64'),
-                            'type_u8': ('std::uint8_t', 'u8', 'uint8'),
-                            'type_u16': ('std::uint16_t', 'u16', 'uint16'),
-                            'type_u32': ('std::uint32_t', 'u32', 'uing32'),
-                            'type_u64': ('std::uint64_t', 'u64', 'uint64'),
-                            'type_c64': ('std::complex<float>', 'c64', 'complex64'),
-                            'type_c128': ('std::complex<double>', 'c128', 'complex128'),
-                            'type_c256': ('std::complex<__float128>', 'c256', 'complex256')}
+NUMPY_ARRAY_TYPES_TO_CPP = {
+    # Dense types
+    'type_f32': ('float', 'f32', 'float32'),
+    'type_f64': ('double', 'f64', 'float64'),
+    'type_f128': ('__float128', 'f128', 'float128'),
+    'type_i8': ('std::int8_t', 'i8', 'int8'),
+    'type_i16': ('std::int16_t', 'i16', 'int16'),
+    'type_i32': ('std::int32_t', 'i32', 'int32'),
+    'type_i64': ('std::int64_t', 'i64', 'int64'),
+    'type_u8': ('std::uint8_t', 'u8', 'uint8'),
+    'type_u16': ('std::uint16_t', 'u16', 'uint16'),
+    'type_u32': ('std::uint32_t', 'u32', 'uing32'),
+    'type_u64': ('std::uint64_t', 'u64', 'uint64'),
+    'type_c64': ('std::complex<float>', 'c64', 'complex64'),
+    'type_c128': ('std::complex<double>', 'c128', 'complex128'),
+    'type_c256': ('std::complex<__float128>', 'c256', 'complex256'),
+
+    # Sparse types
+    'sparse_f32': ('float', 'f32', 'float32'),
+    'sparse_f64': ('double', 'f64', 'float64'),
+    'sparse_f128': ('__float128', 'f128', 'float128'),
+    'sparse_i8': ('std::int8_t', 'i8', 'int8'),
+    'sparse_i16': ('std::int16_t', 'i16', 'int16'),
+    'sparse_i32': ('std::int32_t', 'i32', 'int32'),
+    'sparse_i64': ('std::int64_t', 'i64', 'int64'),
+    'sparse_u8': ('std::uint8_t', 'u8', 'uint8'),
+    'sparse_u16': ('std::uint16_t', 'u16', 'uint16'),
+    'sparse_u32': ('std::uint32_t', 'u32', 'uing32'),
+    'sparse_u64': ('std::uint64_t', 'u64', 'uint64'),
+    'sparse_c64': ('std::complex<float>', 'c64', 'complex64'),
+    'sparse_c128': ('std::complex<double>', 'c128', 'complex128'),
+    'sparse_c256': ('std::complex<__float128>', 'c256', 'complex256')}
+
 NUMPY_ARRAY_TYPES = list(NUMPY_ARRAY_TYPES_TO_CPP.keys())
 MATCHES_TOKEN = "matches"
 INPUT_TOKEN = "npe_arg"
@@ -47,7 +66,6 @@ input_varname_to_group = {}  # Dictionary mapping input variable names to type g
 group_to_input_varname = {}  # Dictionary mapping type groups to input variable names
 input_variable_order = []  # List of input variables in order
 input_variable_meta = {}  # Dictionary mapping variable names to types
-output_variable_meta = {}  # Dictionary mapping output variables to types or input variables whose types they match
 binding_source_code = ""  # The source code of the binding
 preamble_source_code = ""  # The code that comes before npe_* statements
 
@@ -66,6 +84,7 @@ class VariableMetadata(object):
         self.is_matches = is_matches
         self.name_or_type = name_or_type
         self.line_number = line_number
+        self.is_sparse = False
 
     def __repr__(self):
         return str(self.__dict__)
@@ -166,7 +185,7 @@ def parse_input_statement(line, line_number):
         # TODO: Pretty error message
         raise ParseError('%s("%s") got no type arguments' % (INPUT_TOKEN, var_name))
     elif len(var_types) > 1 or (len(var_types) == 1 and is_numpy_type(var_types[0])):
-        # If there are more than one type, then we're binding a numpy array. Check that the types are valid.
+        # We're binding a scipy dense or array. Check that the types are valid.
         for type_str in var_types:
             if not is_numpy_type(type_str):
                 # TODO: Pretty error message
@@ -320,24 +339,25 @@ def frontend_pass(lines):
 
 def validate_frontend_output():
     global MATCHES_TOKEN
-    global input_type_groups, input_variable_meta, output_variable_meta
+    global input_type_groups, input_variable_meta
 
     for var_name in input_variable_meta.keys():
         var_meta: VariableMetadata = input_variable_meta[var_name]
+        is_sparse = is_sparse_type(var_meta.name_or_type[0])
+        for type_name in var_meta.name_or_type:
+            if is_sparse_type(type_name) != is_sparse:
+                raise SemanticError("Input Variable %s (line %d) has a mix of sparse and dense types."
+                                    % (var_name, var_meta.line_number))
+        input_variable_meta[var_name].is_sparse = is_sparse
+
+    for var_name in input_variable_meta.keys():
         if var_meta.is_matches:
             group_idx = input_varname_to_group[var_name]
             matches_name = var_meta.name_or_type[0]
             if len(input_type_groups[group_idx]) == 0:
                 raise SemanticError("Input Variable %s (line %d) was declared with type %s but was "
                                     "unmatched with a numpy type." % (var_name, var_meta.line_number, matches_name))
-
-    for var_name in output_variable_meta.keys():
-        var_meta: VariableMetadata = output_variable_meta[var_name]
-        if var_meta.is_matches:
-            matches_name = var_meta.name_or_type
-            if matches_name not in input_varname_to_group:
-                raise SemanticError("Output variable %s type, %s(%s) must match a valid input variable at line %d" %
-                                    (var_name, MATCHES_TOKEN, matches_name, var_meta.line_number))
+            input_variable_meta[var_name].is_sparse = is_sparse_type(input_type_groups[group_idx][0])
 
 
 PUBLIC_ID_PREFIX = "NPE_PY_TYPE_"
@@ -382,6 +402,10 @@ def type_struct_name(var_name):
     return PUBLIC_ID_PREFIX + var_name
 
 
+def is_sparse_type(type_name):
+    return type_name.startswith("sparse_")
+
+
 def storage_order_for_suffix(suffix):
     if suffix == STORAGE_ORDER_SUFFIX_CM:
         return PRIVATE_NAMESPACE + "::" + STORAGE_ORDER_ENUM + "::" + STORAGE_ORDER_CM
@@ -421,7 +445,8 @@ def write_type_id_getter(out_file, var_name):
     out_str = INDENT + "const int " + type_id_var(var_name) + " = "
     type_name = type_name_var(var_name)
     storate_order_name = storage_order_var(var_name)
-    out_str += PRIVATE_NAMESPACE + "::get_type_id(" + type_name + ", " + storate_order_name + ");\n"
+    is_sparse = PRIVATE_NAMESPACE + "::is_sparse<decltype(" + var_name + ")>::value"
+    out_str += PRIVATE_NAMESPACE + "::get_type_id(" + is_sparse + ", " + type_name + ", " + storate_order_name + ");\n"
     out_file.write(out_str)
 
 
@@ -433,6 +458,8 @@ def write_header(out_file):
     out_file.write("#include <pybind11/numpy.h>\n")
     out_file.write("#include \"numpyeigen_typedefs.h\"\n")
     out_file.write("#include \"numpyeigen_utils.h\"\n")
+    out_file.write("#include \"sparse_array.h\"\n")
+    out_file.write("#include <Eigen/Sparse>\n")
     out_file.write(preamble_source_code + "\n")
 
     # TODO: Use the function name properly
@@ -446,7 +473,11 @@ def write_header(out_file):
     for i in range(len(input_variable_order)):
         var_name = input_variable_order[i]
         if var_name in input_varname_to_group:
-            out_file.write("pybind11::array ")
+            print(var_name, "is_sparse:", input_variable_meta[var_name].is_sparse)
+            if input_variable_meta[var_name].is_sparse:
+                out_file.write("npe::sparse_array ")
+            else:
+                out_file.write("pybind11::array ")
             out_file.write(var_name)
         else:
             assert len(input_variable_meta[var_name].name_or_type) == 1
@@ -515,10 +546,16 @@ def write_code_block(out_file, combo):
             out_file.write(indent(2) + "typedef " + cpp_type + " Scalar;\n")
             out_file.write(indent(2) + "enum Layout { Order = " + storage_order_enum + "};\n")
             out_file.write(indent(2) + "enum Aligned { Aligned = " + aligned_enum + "};\n")
-            out_file.write(indent(2) + "typedef Eigen::Matrix<" + cpp_type + ", " +
-                           "Eigen::Dynamic, " + "Eigen::Dynamic, " + storage_order_enum + "> Eigen_Type;\n")
-            out_file.write(indent(2) + "typedef Eigen::Map<" + struct_name + "::Eigen_Type, " + struct_name +
-                           "::Aligned> Map_Type;")
+            if is_sparse_type(combo[group_id][0]):
+                out_file.write(indent(2) + "typedef Eigen::SparseMatrix<" + cpp_type + ", " +
+                               storage_order_enum + ", int> Eigen_Type;\n")
+                out_file.write(indent(2) + "typedef Eigen::MappedSparseMatrix<" + cpp_type + ", " +
+                               storage_order_enum + ", int> Map_Type;\n")
+            else:
+                out_file.write(indent(2) + "typedef Eigen::Matrix<" + cpp_type + ", " +
+                               "Eigen::Dynamic, " + "Eigen::Dynamic, " + storage_order_enum + "> Eigen_Type;\n")
+                out_file.write(indent(2) + "typedef Eigen::Map<" + struct_name + "::Eigen_Type, " + struct_name +
+                               "::Aligned> Map_Type;\n")
             out_file.write(INDENT + "};\n")
             out_file.write("typedef " + struct_name + "::Scalar Scalar_" + var_name + ";\n")
             out_file.write("typedef " + struct_name + "::Eigen_Type Matrix_" + var_name + ";\n")
@@ -541,12 +578,20 @@ def backend_pass(out_file):
         if_or_elseif = "if " if branch_count == 0 else " else if "
         out_str = if_or_elseif + "("
 
+        skip = False
         for group_id in range(len(combo)):
+            # Sparse types only have column (csc) and row (csr) matrix types so don't output a branch for unaligned
+            if is_sparse_type(combo[group_id][0]) and combo[group_id][1] == STORAGE_ORDER_SUFFIX_XM:
+                skip = True
+                break
             repr_var = group_to_input_varname[group_id][0]
             typename = combo[group_id][0] + combo[group_id][1]
             out_str += type_id_var(repr_var) + " == " + PRIVATE_NAMESPACE + "::" + TYPE_ID_ENUM + "::" + typename
             next_token = " && " if group_id < len(combo)-1 else ")"
             out_str += next_token
+
+        if skip:
+            continue
 
         out_str += " {\n"
         out_file.write(out_str)

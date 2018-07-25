@@ -3,17 +3,13 @@ project(cmake_example)
 
 # A module for writing bindings with our framework
 npe_add_module(numpyeigen_test
-  BINDING_SOURCES mutate_matrix.cpp matrix_add.cpp binding_example.cpp)
+  BINDING_SOURCES mutate_matrix.cpp matrix_add.cpp binding_example.cpp sparse_matrix_add.cpp)
 target_link_libraries(numpyeigen_test PRIVATE igl::core)
 
 # A vanilla pybind11 module used to write functions to compare against pyeigen
 pybind11_add_module(numpyeigen_helpers SHARED pybind11_helper_module.cpp)
 target_link_libraries(numpyeigen_helpers PRIVATE igl::core)
-
-# A vanilla pybind11 module used to test that we can bind the sparse_array class
-pybind11_add_module(sparse_test SHARED sparse_test_binding.cpp)
-target_link_libraries(sparse_test PRIVATE igl::core)
-target_include_directories(sparse_test PRIVATE ${NPE_SRC_DIR})
+target_include_directories(numpyeigen_helpers PRIVATE ${NPE_SRC_DIR})
 
 
 add_test(NAME test_nocopy

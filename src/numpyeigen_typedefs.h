@@ -3,8 +3,20 @@
 
 #include <Eigen/Core>
 
+#include <sparse_array.h>
+
 namespace numpyeigen {
 namespace detail {
+
+template <typename T>
+struct is_sparse {
+  static const bool value = false;
+};
+
+template <>
+struct is_sparse<npe::sparse_array> {
+  static const bool value = true;
+};
 
 enum NumpyTypeChar {
   char_f16  = 'e',
@@ -59,6 +71,9 @@ enum NumpyTypeNum {
 };
 
 enum TypeId {
+  /*
+   * Dense Types
+   */
   // Row major floats
   type_f32_rm  = 0,
   type_f64_rm  = 1,
@@ -119,6 +134,71 @@ enum TypeId {
   type_c64_x   = 39,
   type_c128_x  = 40,
   type_c256_x  = 41,
+
+
+  /*
+   * Sparse Types
+   */
+  // Row major floats
+  sparse_f32_rm  = 42,
+  sparse_f64_rm  = 43,
+  sparse_f128_rm = 44,
+  // Column major floats
+  sparse_f32_cm  = 45,
+  sparse_f64_cm  = 46,
+  sparse_f128_cm = 47,
+  // Non contiguous floats
+  sparse_f32_x   = 48,
+  sparse_f64_x   = 49,
+  sparse_f128_x  = 50,
+
+
+  // Row major signed ints
+  sparse_i8_rm   = 51,
+  sparse_i16_rm  = 52,
+  sparse_i32_rm  = 53,
+  sparse_i64_rm  = 54,
+  // Column major signed ints
+  sparse_i8_cm   = 55,
+  sparse_i16_cm  = 56,
+  sparse_i32_cm  = 57,
+  sparse_i64_cm  = 58,
+  // Non contiguous signed ints
+  sparse_i8_x    = 59,
+  sparse_i16_x   = 60,
+  sparse_i32_x   = 61,
+  sparse_i64_x   = 62,
+
+
+  // Row Major unsigned ints
+  sparse_u8_rm   = 63,
+  sparse_u16_rm  = 64,
+  sparse_u32_rm  = 65,
+  sparse_u64_rm  = 66,
+  // Column major unsigned ints
+  sparse_u8_cm   = 67,
+  sparse_u16_cm  = 68,
+  sparse_u32_cm  = 69,
+  sparse_u64_cm  = 70,
+  // Non contiguous unsigned ints
+  sparse_u8_x    = 71,
+  sparse_u16_x   = 72,
+  sparse_u32_x   = 73,
+  sparse_u64_x   = 74,
+
+
+  // Row Major complex floats
+  sparse_c64_rm  = 75,
+  sparse_c128_rm = 76,
+  sparse_c256_rm = 77,
+  // Column major complex floats
+  sparse_c64_cm  = 78,
+  sparse_c128_cm = 79,
+  sparse_c256_cm = 80,
+  // Non contiguous complex floats
+  sparse_c64_x   = 81,
+  sparse_c128_x  = 82,
+  sparse_c256_x  = 83,
 };
 
 enum StorageOrder {
@@ -133,7 +213,7 @@ enum Alignment {
 };
 
 const std::string type_to_str(char type_char);
-int get_type_id(char typechar, StorageOrder so);
+int get_type_id(bool is_sparse, char typechar, StorageOrder so);
 
 } // namespace pybind
 } // namespace igl

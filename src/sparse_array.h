@@ -1,12 +1,15 @@
 #ifndef NPE_SPARSE_ARRAY_H
 #define NPE_SPARSE_ARRAY_H
-
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
 #include <iostream>
 #include <tuple>
 #include <pybind11/eigen.h>
+#include <numpy/arrayobject.h>
+
+#include <Eigen/Core>
 
 namespace npe {
 
@@ -51,12 +54,41 @@ struct sparse_array : pybind11::object {
   bool col_major() const {
     return !row_major();
   }
+
+  int flags() const {
+    return _flags;
+  }
+
+  int nnz() const {
+    return this->attr("nnz").cast<int>();
+  }
+
+  template <typename T>
+  Eigen::MappedSparseMatrix<typename T::Scalar, T::Options, typename T::StorageIndex> as_eigen() {
+    std::pair<ssize_t, ssize_t> shape = this->shape();
+    pybind11::array data = this->data();
+    pybind11::array indices = this->indices();
+    pybind11::array indptr = this->indptr();
+
+    // TODO: Use Eigen::Map in post 3.3
+    typedef Eigen::MappedSparseMatrix<typename T::Scalar, T::Options, typename T::StorageIndex> RetMap;
+    return RetMap(shape.first, shape.second, this->nnz(),
+                  (typename T::StorageIndex*) indices.data(),
+                  (typename T::StorageIndex*) indptr.data(),
+                  (typename T::Scalar*)data.data());
+  }
+
+private:
+  friend class pybind11::detail::type_caster<npe::sparse_array>;
+  int _flags = 0;
 };
 
 }
 
 namespace pybind11 {
 namespace detail {
+
+
 template <>
 struct type_caster<npe::sparse_array> {
 public:
@@ -69,7 +101,7 @@ public:
    */
   bool load(handle src, bool) {
     if (!src) {
-        return false;
+      return false;
     }
 
     // TODO: attribute lookups are kind of slow and I would like to avoid them so lets cache the results
@@ -84,8 +116,9 @@ public:
       }
 
       value = pybind11::reinterpret_borrow<npe::sparse_array>(src);
+      value._flags |= (value.col_major() ? NPY_ARRAY_F_CONTIGUOUS : NPY_ARRAY_C_CONTIGUOUS);
 
-    } catch (pybind11::cast_error e) {
+    } catch (pybind11::cast_error) {
       return false;
     }
 
