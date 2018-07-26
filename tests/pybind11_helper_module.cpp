@@ -22,12 +22,12 @@ PYBIND11_MODULE(numpyeigen_helpers, m) {
   });
 
   m.def("sparse_return", [](npe::sparse_array sp) {
-    std::string fmt = sp.getformat();
-
-    std::cout << sp.indices().shape()[0] << " " << sp.data().shape()[0] << " " << fmt << std::endl;
-    std::cout << sp.data().dtype().type() << std::endl;
-
     return sp;
+  });
+
+  m.def("sparse_mutate_copy", [](Eigen::SparseMatrix<double>& mat) {
+    mat.coeffRef(0, 0) = 2.0;
+    return std::make_tuple(mat.rows(), mat.cols());
   });
 #ifdef VERSION_INFO
   m.attr("__version__") = VERSION_INFO;

@@ -38,6 +38,14 @@ class TestSomething(unittest.TestCase):
         self.assertEqual(ret, 200)  # Always returns num_rows + num_cols
         self.assertTrue(np.array_equal(a, expected))
 
+        a = np.eye(100, dtype=np.float64)
+        expected = np.array(a, dtype=np.float64)
+        expected[0, 0] = 2.0
+        self.assertEqual(a[0, 0], 1.0)
+        ret = npe_helpers.mutate_copy(a)  # Always sets A[0, 0] to 2.0
+        self.assertEqual(ret, 200)  # Always returns num_rows + num_cols
+        self.assertFalse(np.array_equal(a, expected))
+
     def test_timing_for_copy_vs_no_copy(self):
         mat_size = 10000
         num_iters = 10

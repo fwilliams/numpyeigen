@@ -1,9 +1,17 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(cmake_example)
 
+#SET(CMAKE_CXX_FLAGS  "-o0 -g" )
+
 # A module for writing bindings with our framework
 npe_add_module(numpyeigen_test
-  BINDING_SOURCES mutate_matrix.cpp matrix_add.cpp binding_example.cpp sparse_matrix_add.cpp)
+  BINDING_SOURCES
+    mutate_matrix.cpp
+    matrix_add.cpp
+    binding_example.cpp
+    sparse_matrix_add.cpp
+    sparse_matrix_passthru.cpp
+    mutate_sparse_matrix.cpp)
 target_link_libraries(numpyeigen_test PRIVATE igl::core)
 
 # A vanilla pybind11 module used to write functions to compare against pyeigen
@@ -13,6 +21,6 @@ target_include_directories(numpyeigen_helpers PRIVATE ${NPE_SRC_DIR})
 
 
 add_test(NAME test_nocopy
-         COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_nocopy.py)
+         COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_dense_binding.py)
 add_test(NAME sparse_test
         COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_sparse_binding.py)

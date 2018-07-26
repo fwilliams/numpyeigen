@@ -73,9 +73,9 @@ struct sparse_array : pybind11::object {
     // TODO: Use Eigen::Map in post 3.3
     typedef Eigen::MappedSparseMatrix<typename T::Scalar, T::Options, typename T::StorageIndex> RetMap;
     return RetMap(shape.first, shape.second, this->nnz(),
-                  (typename T::StorageIndex*) indices.data(),
                   (typename T::StorageIndex*) indptr.data(),
-                  (typename T::Scalar*)data.data());
+                  (typename T::StorageIndex*) indices.data(),
+                  (typename T::Scalar*) data.data());
   }
 
 private:
@@ -137,6 +137,130 @@ public:
   }
 
 };
+
+
+// Casts an Eigen Sparse type to scipy csr_matrix or csc_matrix.
+// If given a base, the numpy array references the src data, otherwise it'll make a copy.
+// writeable lets you turn off the writeable flag for the array.
+template <typename Type, typename = enable_if_t<is_eigen_sparse<Type>::value>>
+handle eigen_sparse_array_cast(Type* src, handle parent = none(), bool writable = true) {
+  bool rowMajor = Type::Flags | Eigen::RowMajor;
+
+  array data = array(src->nonZeros(), src->valuePtr(), parent);
+  data.flags() &= ~detail::npy_api::NPY_ARRAY_OWNDATA_;
+
+  array indptr = array((rowMajor ? src->rows() : src->cols()) + 1, src->outerIndexPtr(), parent);
+  indptr.flags() &= ~detail::npy_api::NPY_ARRAY_OWNDATA_;
+
+  array indices = array(src->nonZeros(), src->innerIndexPtr(), parent);
+  indices.flags() &= ~detail::npy_api::NPY_ARRAY_OWNDATA_;
+
+  object sparse_module = module::import("scipy.sparse");
+  object matrix_type = sparse_module.attr(
+      rowMajor ? "csr_matrix" : "csc_matrix");
+
+  if (!writable) {
+    indices.flags() &= ~detail::npy_api::NPY_ARRAY_WRITEABLE_;
+    indptr.flags() &= ~detail::npy_api::NPY_ARRAY_WRITEABLE_;
+    data.flags() &= ~detail::npy_api::NPY_ARRAY_WRITEABLE_;
+  }
+  return matrix_type(std::make_tuple(data, indices, indptr),
+                     std::make_pair(src->rows(), src->cols()), "copy"_a=false).release();
+}
+
+template <typename Type, typename = enable_if_t<is_eigen_sparse<Type>::value>>
+handle eigen_encapsulate_sparse(Type* src) {
+  capsule capsule_base(src, [](void *o) {
+    delete static_cast<Type *>(o);
+  });
+  return eigen_sparse_array_cast(src, capsule_base);
+}
+
+//template<typename Type>
+//struct type_caster<Type, enable_if_t<is_eigen_sparse<Type>::value>> {
+//  using Scalar = typename Type::Scalar;
+//  using props = EigenProps<Type>;
+
+//  Eigen::MappedSparseMatrix<typename Type::Scalar, Type::Options, typename Type::StorageIndex> map_value;
+
+//private:
+//  // Cast implementation
+//  template <typename CType>
+//  static handle cast_impl(CType *src, return_value_policy policy, handle parent) {
+//      switch (policy) {
+//          case return_value_policy::take_ownership:
+//          case return_value_policy::automatic:
+//              return eigen_encapsulate_sparse(src);
+//          case return_value_policy::move:
+//              std::cerr << "Encapsulate move!" << std::endl;
+//              return eigen_encapsulate_sparse(new CType(std::move(*src)));
+//          case return_value_policy::copy:
+//              return eigen_sparse_array_cast(src);
+//          case return_value_policy::reference:
+//          case return_value_policy::automatic_reference:
+//              return eigen_sparse_array_cast(src, none() /* parent */, !std::is_const<CType>::value);
+//          case return_value_policy::reference_internal:
+//              return eigen_sparse_array_cast(src, none() /* parent */, !std::is_const<CType>::value);
+//          default:
+//              throw cast_error("unhandled return_value_policy: should not happen!");
+//      };
+//  }
+
+//public:
+
+//  bool load(handle src, bool convert) {
+//    // TODO Maybe always return false
+//    if (!src) {
+//      return false;
+//    }
+
+//    npe::sparse_array arr = src.cast<npe::sparse_array>();
+//    if (!arr()) {
+//      return false;
+//    }
+//    map_value = arr.as_eigen<Type>();
+//    return true;
+//  }
+
+//  // Normal returned non-reference, non-const value:
+//  static handle cast(Type &&src, return_value_policy /* policy */, handle parent) {
+//      return cast_impl(&src, return_value_policy::move, parent);
+//  }
+//  // If you return a non-reference const, we mark the numpy array readonly:
+//  static handle cast(const Type &&src, return_value_policy /* policy */, handle parent) {
+//      return cast_impl(&src, return_value_policy::move, parent);
+//  }
+//  // lvalue reference return; default (automatic) becomes copy
+//  static handle cast(Type &src, return_value_policy policy, handle parent) {
+//      if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
+//          policy = return_value_policy::copy;
+//      return cast_impl(&src, policy, parent);
+//  }
+//  // const lvalue reference return; default (automatic) becomes copy
+//  static handle cast(const Type &src, return_value_policy policy, handle parent) {
+//      if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
+//          policy = return_value_policy::copy;
+//      return cast(&src, policy, parent);
+//  }
+//  // non-const pointer return
+//  static handle cast(Type *src, return_value_policy policy, handle parent) {
+//      return cast_impl(src, policy, parent);
+//  }
+//  // const pointer return
+//  static handle cast(const Type *src, return_value_policy policy, handle parent) {
+//      return cast_impl(src, policy, parent);
+//  }
+
+//  static PYBIND11_DESCR name() { return props::descriptor(); }
+
+//  operator Type*() { return &value; }
+//  operator Type&() { return value; }
+//  operator Type&&() && { return std::move(value); }
+//  template <typename T> using cast_op_type = movable_cast_op_type<T>;
+
+//private:
+//  Type value;
+//};
 
 }
 }
