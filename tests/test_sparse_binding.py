@@ -95,5 +95,6 @@ class TestSparseMatrixWrapper(unittest.TestCase):
 
         self.assertLess(median_nocopy, median_copy)
 
+
 if __name__ == '__main__':
     unittest.main()
