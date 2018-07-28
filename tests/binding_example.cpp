@@ -54,7 +54,7 @@ npe::Matrix_c ret2 = C + D + E * f;
 // MOVE_TO_NP returns a pybind11::array which takes ownership of the Eigen::Matrix passed as a second argument.
 // The first argument is the type of the Eigen::Matrix
 // return std::make_tuple(NPE_MOVE(npe::Matrix_a, ret1), NPE_MOVE(npe::Matrix_c, ret2));
-return std::make_tuple(NPE_MOVE(ret1), NPE_MOVE(ret2));
+return std::make_tuple(NPE_MOVE_DENSE(ret1), NPE_MOVE_DENSE(ret2));
 npe_end_code()
 
 

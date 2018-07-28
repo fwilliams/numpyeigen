@@ -17,7 +17,7 @@ class TestSomething(unittest.TestCase):
         expected[0, 0] = 2.0
         self.assertEqual(a[0, 0], 1.0)
         ret = npe_test.mutate_matrix(a)  # Always sets A[0, 0] to 2.0
-        self.assertEqual(ret, 200)  # Always returns num_rows + num_cols
+        self.assertTrue(np.array_equal(ret, a))
         self.assertTrue(np.array_equal(a, expected))
 
     def test_pybind_does_a_copy_if_type_mismatch(self):
@@ -26,7 +26,7 @@ class TestSomething(unittest.TestCase):
         expected[0, 0] = 2.0
         self.assertEqual(a[0, 0], 1.0)
         ret = npe_helpers.mutate_copy(a)  # Always sets A[0, 0] to 2.0
-        self.assertEqual(ret, 200)  # Always returns num_rows + num_cols
+        self.assertFalse(np.array_equal(ret, a))
         self.assertFalse(np.array_equal(a, expected))
 
     def test_pybind_does_not_make_a_copy_if_type_mismatch(self):
@@ -35,7 +35,6 @@ class TestSomething(unittest.TestCase):
         expected[0, 0] = 2.0
         self.assertEqual(a[0, 0], 1.0)
         ret = npe_helpers.mutate_copy(a)  # Always sets A[0, 0] to 2.0
-        self.assertEqual(ret, 200)  # Always returns num_rows + num_cols
         self.assertTrue(np.array_equal(a, expected))
 
         a = np.eye(100, dtype=np.float64)
@@ -43,7 +42,6 @@ class TestSomething(unittest.TestCase):
         expected[0, 0] = 2.0
         self.assertEqual(a[0, 0], 1.0)
         ret = npe_helpers.mutate_copy(a)  # Always sets A[0, 0] to 2.0
-        self.assertEqual(ret, 200)  # Always returns num_rows + num_cols
         self.assertFalse(np.array_equal(a, expected))
 
     def test_timing_for_copy_vs_no_copy(self):
@@ -91,6 +89,41 @@ class TestSomething(unittest.TestCase):
         # print("  mean:", np.mean(times_nocopy_pybind))
         # print("  std:", np.std(times_nocopy_pybind))
         # print("  med:", np.median(times_nocopy_pybind))
+
+    def test_return_does_not_copy(self):
+        mat_size = 10000
+        num_iters = 10
+
+        times_nocopy = []
+        a = np.eye(mat_size)
+        for i in range(num_iters):
+            start_time = time.time()
+            npe_test.mutate_matrix(a)
+            end_time = time.time()
+            times_nocopy.append(end_time-start_time)
+
+        times_copy = []
+        a = np.eye(mat_size)
+        for i in range(num_iters):
+            start_time = time.time()
+            npe_helpers.return_dense_copy(a)
+            end_time = time.time()
+            times_copy.append(end_time-start_time)
+
+        median_nocopy = np.median(times_nocopy)
+        median_copy = np.median(times_copy)
+
+        print("COPY:")
+        print("  mean:", np.mean(times_copy))
+        print("  std:", np.std(times_copy))
+        print("  med:", np.median(times_copy))
+
+        print("NOCOPY pybind22:")
+        print("  mean:", np.mean(times_nocopy))
+        print("  std:", np.std(times_nocopy))
+        print("  med:", np.median(times_nocopy))
+
+        self.assertLess(median_nocopy*1e3, median_copy)
 
 
 if __name__ == '__main__':

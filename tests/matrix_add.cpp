@@ -14,7 +14,7 @@ npe::Map_b B((npe::Scalar_b*)b.data(), b.shape()[0], b.shape()[1]);
 
 npe::Matrix_a ret1 = A + B;
 
-return NPE_MOVE(ret1);
+return NPE_MOVE_DENSE(ret1);
 
 npe_end_code()
 

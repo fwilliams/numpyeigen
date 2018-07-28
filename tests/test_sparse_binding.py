@@ -95,6 +95,39 @@ class TestSparseMatrixWrapper(unittest.TestCase):
 
         self.assertLess(median_nocopy, median_copy)
 
+    def test_return_does_not_copy(self):
+        mat_size = 10000000
+        num_iters = 10
+
+        times_nocopy = []
+        a = sp.diags([np.ones(mat_size)], [0], format="csr")
+        for i in range(num_iters):
+            start_time = time.time()
+            npe_test.mutate_sparse_matrix(a)
+            end_time = time.time()
+            times_nocopy.append(end_time-start_time)
+
+        times_copy = []
+        for i in range(num_iters):
+            start_time = time.time()
+            npe_help.return_sparse_copy(mat_size)
+            end_time = time.time()
+            times_copy.append(end_time-start_time)
+
+        median_nocopy = np.median(times_nocopy)
+        median_copy = np.median(times_copy)
+
+        print("COPY:")
+        print("  mean:", np.mean(times_copy))
+        print("  std:", np.std(times_copy))
+        print("  med:", np.median(times_copy))
+
+        print("NOCOPY pybind22:")
+        print("  mean:", np.mean(times_nocopy))
+        print("  std:", np.std(times_nocopy))
+        print("  med:", np.median(times_nocopy))
+
+        self.assertLess(median_nocopy*1e3, median_copy)
 
 if __name__ == '__main__':
     unittest.main()

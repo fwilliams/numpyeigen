@@ -3,11 +3,18 @@
 
 #include <pybind11/eigen.h>
 #include <sparse_array.h>
+#include <dense_array.h>
 #include <type_traits>
 
-#define NPE_MOVE(eig_var) \
+// TODO: These macros suck and let's make one general template function to make these work
+#define NPE_MOVE_DENSE(eig_var) \
   pybind11::reinterpret_steal<pybind11::object>( \
   pybind11::detail::eigen_encapsulate<pybind11::detail::EigenProps<decltype(eig_var)>>( \
+  new decltype(eig_var)(std::move(eig_var))))
+
+#define NPE_MOVE_DENSE_MAP(eig_var) \
+  pybind11::reinterpret_steal<pybind11::object>( \
+  pybind11::detail::eigen_encapsulate_dense_map<pybind11::detail::EigenProps<decltype(eig_var)>>( \
   new decltype(eig_var)(std::move(eig_var))))
 
 #define NPE_MOVE_SPARSE(eig_var) \

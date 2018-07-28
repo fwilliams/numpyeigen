@@ -6,6 +6,7 @@
 #include <pybind11/eigen.h>
 
 #include <sparse_array.h>
+#include <numpyeigen_typedefs.h>
 
 PYBIND11_MODULE(numpyeigen_helpers, m) {
   m.doc() = R"pbdoc(
@@ -18,7 +19,7 @@ PYBIND11_MODULE(numpyeigen_helpers, m) {
   m.def("mutate_copy", [](pybind11::array_t<float> v) {
     float* v_data = (float*) v.data();
     v_data[0] = 2.0;
-    return v.shape()[0] + v.shape()[1];
+    return v;
   });
 
   m.def("sparse_return", [](npe::sparse_array sp) {
@@ -29,6 +30,17 @@ PYBIND11_MODULE(numpyeigen_helpers, m) {
     mat.coeffRef(0, 0) = 2.0;
     return std::make_tuple(mat.rows(), mat.cols());
   });
+
+  m.def("return_dense_copy", [](pybind11::array_t<float> arr){
+    return arr;
+  }, pybind11::return_value_policy::copy);
+
+  m.def("return_sparse_copy", [](int size) {
+    Eigen::SparseMatrix<double> ret(size, size);
+    ret.setIdentity();
+    return ret;
+  }, pybind11::return_value_policy::copy);
+
 #ifdef VERSION_INFO
   m.attr("__version__") = VERSION_INFO;
 #else
