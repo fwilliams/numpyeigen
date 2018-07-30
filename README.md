@@ -14,20 +14,20 @@ multiple NumPy or SciPy types, have zero copy overhead, and can make use of the 
 NumpyEigen transparently generates bindings which do all of the above, exposing numpy type information at compile 
 time to C++ code. 
 
-#### Zero copy overhead 
+### Zero copy overhead 
 Bindings written with NumpyEigen have zero copy overhead from Python to C++ and vice versa for any NumPy dense array or 
 SciPy CSR or CSC sparse matrix.
 
-#### Binding Function Overloading
+### Binding Function Overloading
 NumpyEigen allows type overloading of binding input arguments. The type of the argument is made available at compile 
 time to the C++ code. This type information is in turn used to drive Eigen's expression template system to choose 
 the fastest numerical algorithm for a given input type.
 
-#### Build System Support
+### Build System Support
 NumpyEigen comes built-in with [CMake](https://cmake.org/) tools to integrate with existing build systems in a
  single line of code. A set of scripts to integrate with other build systems will be included in the future.
 
-#### Minimal Dependencies
+### Minimal Dependencies
 NumpyEigen only requires the system to have a running Python interpreter with version > 3.0. 
 
 NumpyEigen uses [pybind11](https://github.com/pybind/pybind11) under the hood which is included as a submodule. 
