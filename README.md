@@ -57,18 +57,20 @@ npe_arg("e", "int")                      // e is an int
 // The C++ code for the function starts after this line
 npe_begin_code()
 
+// npe::Map_* are Eigen::Map<T> types wrapping the input variables and making them available to Eigen
 npe::Map_a A = a.as_eigen<npe::Map_a>(a);
 npe::Map_b B = b.as_eigen<npe::Map_b>(b);
 npe::Map_c C = c.as_eigen<npe::Map_c>(c);
 npe::Map_f F = f.as_eigen<npe::Map_f>(f);
 
+// npe::Matrix_* are Eigen::Matrix<T> or Eigen::SparseMatrix<T> types 
 npe::Matrix_a ret1 = A + B;
 npe::Matrix_a ret2 = A - C;
 int ret3 = d + std::string("concatenated");
 int ret4 = e + 2;
-
 npe::Matrix_f ret5 = F * 1.5;
 
+// npe::move() wraps an Eigen type in a NumPy or SciPy type with zero copy overhead
 return std::make_tuple(npe::move(ret1), npe::move(ret2), ret3, ret4, npe::move(ret5));
 
 npe_end_code()
