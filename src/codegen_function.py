@@ -601,34 +601,51 @@ def backend_pass(out_file):
 
     branch_count = 0
 
-    for combo in group_combos:
-        if_or_elseif = "if " if branch_count == 0 else " else if "
-        out_str = if_or_elseif + "("
+    has_numpy_types = False
+    for var_name, var_meta in input_variable_meta.items():
+        if is_numpy_type(var_meta.name_or_type[0]) or var_meta.is_matches:
+            has_numpy_types = True
+            break
 
-        skip = False
-        for group_id in range(len(combo)):
-            # Sparse types only have column (csc) and row (csr) matrix types so don't output a branch for unaligned
-            if is_sparse_type(combo[group_id][0]) and combo[group_id][1] == STORAGE_ORDER_SUFFIX_XM:
-                skip = True
-                break
-            repr_var = group_to_input_varname[group_id][0]
-            typename = combo[group_id][0] + combo[group_id][1]
-            out_str += type_id_var(repr_var) + " == " + PRIVATE_NAMESPACE + "::" + TYPE_ID_ENUM + "::" + typename
-            next_token = " && " if group_id < len(combo)-1 else ")"
-            out_str += next_token
+    if has_numpy_types:
+        for combo in group_combos:
+            if_or_elseif = "if " if branch_count == 0 else " else if "
+            out_str = if_or_elseif + "("
 
-        if skip:
-            continue
+            skip = False
+            for group_id in range(len(combo)):
+                # Sparse types only have column (csc) and row (csr) matrix types so don't output a branch for unaligned
+                if is_sparse_type(combo[group_id][0]) and combo[group_id][1] == STORAGE_ORDER_SUFFIX_XM:
+                    skip = True
+                    break
+                repr_var = group_to_input_varname[group_id][0]
+                typename = combo[group_id][0] + combo[group_id][1]
+                out_str += type_id_var(repr_var) + " == " + PRIVATE_NAMESPACE + "::" + TYPE_ID_ENUM + "::" + typename
+                next_token = " && " if group_id < len(combo)-1 else ")"
+                out_str += next_token
 
-        out_str += " {\n"
-        out_file.write(out_str)
-        write_code_block(out_file, combo)
-        out_file.write("}")
-        branch_count += 1
-    out_file.write(" else {\n")
-    out_file.write(INDENT + 'throw std::invalid_argument("This should never happen but clearly it did. '
-                            'File github issue plz.");\n')
-    out_file.write("}\n")
+            if skip:
+                continue
+
+            out_str += " {\n"
+            out_file.write(out_str)
+            write_code_block(out_file, combo)
+            out_file.write("}")
+            branch_count += 1
+        out_file.write(" else {\n")
+        out_file.write(INDENT + 'throw std::invalid_argument("This should never happen but clearly it did. '
+                                'File github issue plz.");\n')
+        out_file.write("}\n")
+    else:
+        group_combos = list(group_combos)
+        assert len(group_combos) == 1, "THIS SHOULD NEVER HAPPEN, GITHUB ISSUE"
+        for combo in group_combos:
+            out_file.write("{\n")
+            out_file.write(binding_source_code + "\n")
+            out_file.write("}\n")
+
+
+
     out_file.write("\n")
     out_file.write("}")
 
