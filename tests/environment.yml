@@ -53,6 +53,7 @@ dependencies:
   - pytz=2018.4=py36_0
   - qt=5.9.5=h7e424d6_0
   - readline=7.0=ha6073c6_4
+  - scipy=1.1.0=py36hc49cb51_0
   - setuptools=39.2.0=py36_0
   - simplegeneric=0.8.1=py36_2
   - sip=4.19.8=py36hf484d3e_0
