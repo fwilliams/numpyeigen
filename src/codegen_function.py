@@ -2,6 +2,7 @@ import argparse
 import itertools
 import os
 import sys
+import re
 
 
 class TermColors:
@@ -51,7 +52,8 @@ NUMPY_ARRAY_TYPES_TO_CPP = {
 
 NUMPY_ARRAY_TYPES = list(NUMPY_ARRAY_TYPES_TO_CPP.keys())
 MATCHES_TOKEN = "matches"
-INPUT_TOKEN = "npe_arg"
+ARG_TOKEN = "npe_arg"
+DEFAULT_ARG_TOKEN = "npe_default_arg"
 BEGIN_CODE_TOKEN = "npe_begin_code"
 END_CODE_TOKEN = "npe_end_code"
 BINDING_INIT_TOKEN = "npe_function"
@@ -79,12 +81,13 @@ class SemanticError(Exception):
 
 
 class VariableMetadata(object):
-    def __init__(self, name, is_matches, name_or_type, line_number):
+    def __init__(self, name, is_matches, name_or_type, line_number, default_value):
         self.name = name
         self.is_matches = is_matches
         self.name_or_type = name_or_type
         self.line_number = line_number
         self.is_sparse = False
+        self.default_value = default_value
 
     def __repr__(self):
         return str(self.__dict__)
@@ -114,8 +117,19 @@ def parse_string_token(line, line_number):
     if not line.startswith('"'):
         # TODO: Pretty error message
         raise ParseError("Invalid string token at line %d" % line_number)
-    idx = line.find('"', 1)
-    str_token = line[1:idx]
+
+    # Handle escaped strings
+    str_token = ""
+    while True:
+        idx = line.find('"', 1)
+        if idx < 0:
+            raise ParseError("Invalid string token at line %d" % line_number)
+        if line[idx-1] == "\\":  # escaped
+            str_token += line[1:idx-1] + line[idx]
+            line = line[idx:]
+        else:
+            str_token += line[1:idx]
+            break
     return str_token, line[idx+1:]
 
 
@@ -156,11 +170,13 @@ def parse_matches_statement(line, line_number):
     return line[:-1]
 
 
-def parse_input_statement(line, line_number):
-    global NUMPY_ARRAY_TYPES, MATCHES_TOKEN, INPUT_TOKEN
+def parse_arg_statement(line, line_number, is_default):
+    global NUMPY_ARRAY_TYPES, MATCHES_TOKEN, ARG_TOKEN
     global input_type_groups, input_varname_to_group, group_to_input_varname
 
-    line = parse_token(line.strip(), INPUT_TOKEN, line_number=line_number, case_sensitive=False)
+    stmt_token = DEFAULT_ARG_TOKEN if is_default else ARG_TOKEN
+
+    line = parse_token(line.strip(), stmt_token, line_number=line_number, case_sensitive=False)
     line = parse_token(line.strip(), '(', line_number=line_number)
 
     var_name, line = parse_string_token(line.strip(), line_number=line_number)
@@ -179,11 +195,13 @@ def parse_input_statement(line, line_number):
                 raise ParseError("Expected end-of-line after ')' token on line %d" % line_number)
             break
 
+    var_value = var_types.pop() if is_default else None
+
     is_matches = False
 
     if len(var_types) == 0:
         # TODO: Pretty error message
-        raise ParseError('%s("%s") got no type arguments' % (INPUT_TOKEN, var_name))
+        raise ParseError('%s("%s") got no type arguments' % (stmt_token, var_name))
     elif len(var_types) > 1 or (len(var_types) == 1 and is_numpy_type(var_types[0])):
         # We're binding a scipy dense or array. Check that the types are valid.
         for type_str in var_types:
@@ -191,7 +209,7 @@ def parse_input_statement(line, line_number):
                 # TODO: Pretty error message
                 raise ParseError("Got invalid type, `%s` in %s() at line %d. "
                                  "If multiple types are specified, "
-                                 "they must be one of %s" % (type_str, INPUT_TOKEN, line_number, NUMPY_ARRAY_TYPES))
+                                 "they must be one of %s" % (type_str, stmt_token, line_number, NUMPY_ARRAY_TYPES))
 
         if var_name in input_varname_to_group:
             # There was a matches() done before the group was created, fix the data structure
@@ -236,9 +254,10 @@ def parse_input_statement(line, line_number):
     input_variable_meta[var_name] = VariableMetadata(name=var_name,
                                                      is_matches=is_matches,
                                                      name_or_type=var_types,
-                                                     line_number=line_number)
+                                                     line_number=line_number,
+                                                     default_value=var_value)
 
-    return var_name, var_types
+    return var_name, var_types, var_value
 
 
 def parse_begin_code_statement(line, line_number):
@@ -270,7 +289,7 @@ def parse_binding_init_statement(line, line_number):
 
 
 def frontend_pass(lines):
-    global INPUT_TOKEN, BEGIN_CODE_TOKEN, END_CODE_TOKEN, BINDING_INIT_TOKEN
+    global ARG_TOKEN, BEGIN_CODE_TOKEN, END_CODE_TOKEN, BINDING_INIT_TOKEN
     global binding_source_code, bound_function_name, preamble_source_code
 
     binding_start_line_number = -1
@@ -278,9 +297,12 @@ def frontend_pass(lines):
     for line_number in range(len(lines)):
         if len(lines[line_number].strip()) == 0:
             continue
-        elif lines[line_number].strip().lower().startswith(INPUT_TOKEN):
+        elif lines[line_number].strip().lower().startswith(ARG_TOKEN):
             raise ParseError("Got `%s` statement before `%s` at line %d" %
-                             (INPUT_TOKEN, BINDING_INIT_TOKEN, line_number))
+                             (ARG_TOKEN, BINDING_INIT_TOKEN, line_number))
+        elif lines[line_number].strip().lower().startswith(DEFAULT_ARG_TOKEN):
+            raise ParseError("Got `%s` statement before `%s` at line %d" %
+                             (DEFAULT_ARG_TOKEN, BINDING_INIT_TOKEN, line_number))
         elif lines[line_number].strip().lower().startswith(BEGIN_CODE_TOKEN):
             raise ParseError("Got `%s` statement before `%s` at line %d" %
                              (BEGIN_CODE_TOKEN, BINDING_INIT_TOKEN, line_number))
@@ -303,9 +325,14 @@ def frontend_pass(lines):
     code_start_line_number = -1
 
     for line_number in range(binding_start_line_number, len(lines)):
-        if lines[line_number].strip().lower().startswith(INPUT_TOKEN):
-            var_name, var_types = parse_input_statement(lines[line_number], line_number=line_number)
+        if lines[line_number].strip().lower().startswith(ARG_TOKEN):
+            var_name, var_types, _ = parse_arg_statement(lines[line_number], line_number=line_number, is_default=False)
             print(TermColors.OKGREEN + "NumpyEigen Arg: " + TermColors.ENDC + var_name + " - " + str(var_types))
+        elif lines[line_number].strip().lower().startswith(DEFAULT_ARG_TOKEN):
+            var_name, var_types, var_value = \
+                parse_arg_statement(lines[line_number], line_number=line_number, is_default=True)
+            print(TermColors.OKGREEN + "NumpyEigen Default Arg: " + TermColors.ENDC + var_name + " - " +
+                  str(var_types) + " - " + str(var_value))
         elif lines[line_number].strip().lower().startswith(BEGIN_CODE_TOKEN):
             parse_begin_code_statement(lines[line_number], line_number=line_number)
             code_start_line_number = line_number + 1
@@ -473,7 +500,7 @@ def write_header(out_file):
     for i in range(len(input_variable_order)):
         var_name = input_variable_order[i]
         if var_name in input_varname_to_group:
-            print(var_name, "is_sparse:", input_variable_meta[var_name].is_sparse)
+            # print(var_name, "is_sparse:", input_variable_meta[var_name].is_sparse)
             if input_variable_meta[var_name].is_sparse:
                 out_file.write("npe::sparse_array ")
             else:
@@ -603,7 +630,15 @@ def backend_pass(out_file):
                             'File github issue plz.");\n')
     out_file.write("}\n")
     out_file.write("\n")
-    out_file.write("});\n")
+    out_file.write("}")
+
+    arg_list = ""
+    for arg_name, arg_meta in input_variable_meta.items():
+        arg_list += ", pybind11::arg(\"" + arg_name + "\")"
+        arg_list += "=" + arg_meta.default_value if arg_meta.default_value else ""
+
+    out_file.write(arg_list)
+    out_file.write(");\n")
     out_file.write("}\n")
     out_file.write("\n")
 

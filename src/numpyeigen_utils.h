@@ -22,6 +22,7 @@
   pybind11::detail::eigen_encapsulate_sparse<decltype(eig_var)>( \
   new decltype(eig_var)(std::move(eig_var))))
 
+
 //namespace npe {
 //template <typename T> using is_eigen_dense_mutable_map =
 //  pybind11::detail::all_of<

@@ -11,7 +11,8 @@ npe_add_module(numpyeigen_test
     binding_example.cpp
     sparse_matrix_add.cpp
     sparse_matrix_passthru.cpp
-    mutate_sparse_matrix.cpp)
+    mutate_sparse_matrix.cpp
+    default_arg.cpp)
 target_link_libraries(numpyeigen_test PRIVATE igl::core)
 
 # A vanilla pybind11 module used to write functions to compare against pyeigen
@@ -24,3 +25,5 @@ add_test(NAME test_nocopy
          COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_dense_binding.py)
 add_test(NAME sparse_test
         COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_sparse_binding.py)
+add_test(NAME default_arg_test
+        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_default_arguments.py)

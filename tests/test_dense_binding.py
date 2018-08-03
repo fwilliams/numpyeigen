@@ -9,7 +9,7 @@ import numpyeigen_test as npe_test
 import numpyeigen_helpers as npe_helpers
 
 
-class TestSomething(unittest.TestCase):
+class TestDenseBindings(unittest.TestCase):
 
     def test_no_copy(self):
         a = np.eye(100)
