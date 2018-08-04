@@ -9,7 +9,7 @@ import numpyeigen_test as npe_test
 import numpyeigen_helpers as npe_helpers
 
 
-class TestDefaultArguments(unittest.TestCase):
+class TestNpeCallInterface(unittest.TestCase):
 
     def test_default_arguments(self):
         a = np.eye(10)
@@ -45,6 +45,10 @@ class TestDefaultArguments(unittest.TestCase):
         self.assertEqual(def_nparr.shape, (7, 7))
         self.assertTrue(np.array_equal(ret, a))
         self.assertTrue(np.array_equal(a, expected))
+
+    def test_passing_no_numpy_arguments(self):
+        ret = npe_test.no_numpy("abc")
+        self.assertEqual(ret, "abc")
 
 
 if __name__ == '__main__':

@@ -404,6 +404,19 @@ STORAGE_ORDER_RM = "RowMajor"
 STORAGE_ORDER_XM = "NoOrder"
 
 
+def has_numpy_types():
+    """
+    Returns true if any of the arguments are numpy or scipy types
+    :return: true if any of the input arguments are numpy or scipy types
+    """
+    has = False
+    for var_name, var_meta in input_variable_meta.items():
+        if is_numpy_type(var_meta.name_or_type[0]) or var_meta.is_matches:
+            has = True
+            break
+    return has
+
+
 def indent(n: int):
     ret = ""
     for _ in range(n):
@@ -595,11 +608,14 @@ def write_code_block(out_file, combo):
                 out_file.write(indent(2) + "typedef Eigen::Map<" + eigen_type + ", " +
                                aligned_enum + "> Map_" + var_name + ";\n")
 
-    call_str = "return callit<"
+    call_str = "return callit"
+    template_str = "<"
     for var_name, var_meta in input_variable_meta.items():
         if var_name in input_varname_to_group:
-                call_str += "Map_" + var_name + ", Matrix_" + var_name + ","
-    call_str = call_str[:-1] + ">("
+            template_str += "Map_" + var_name + ", Matrix_" + var_name + ","
+    template_str = template_str[:-1] + ">("
+
+    call_str = call_str + template_str if has_numpy_types() else call_str + "("
 
     for var_name, var_meta in input_variable_meta.items():
         if var_name in input_varname_to_group:
@@ -624,7 +640,8 @@ def write_code_function_definition(out_file):
             template_str += "typename Type_%s," % arg_name
             template_str += "typename Matrix_%s," % arg_name
     template_str = template_str[:-1] + ">\n"
-    out_file.write(template_str)
+    if has_numpy_types():
+        out_file.write(template_str)
     out_file.write("static auto callit(")
 
     argument_str = ""
@@ -648,13 +665,7 @@ def backend_pass(out_file):
 
     branch_count = 0
 
-    has_numpy_types = False
-    for var_name, var_meta in input_variable_meta.items():
-        if is_numpy_type(var_meta.name_or_type[0]) or var_meta.is_matches:
-            has_numpy_types = True
-            break
-
-    if has_numpy_types:
+    if has_numpy_types():
         for combo in group_combos:
             if_or_elseif = "if " if branch_count == 0 else " else if "
             out_str = if_or_elseif + "("
@@ -687,7 +698,7 @@ def backend_pass(out_file):
         group_combos = list(group_combos)
         assert len(group_combos) == 1, "This should never happen but clearly it did. " \
                                        "File a github issue at https://github.com/fwilliams/numpyeigen"
-        for combo in group_combos:
+        for _ in group_combos:
             out_file.write("{\n")
             out_file.write(binding_source_code + "\n")
             out_file.write("}\n")
