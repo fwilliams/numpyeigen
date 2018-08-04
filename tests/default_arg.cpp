@@ -1,7 +1,7 @@
 
 #include <iostream>
 #include <tuple>
-#include <numpyeigen_utils.h>
+#include <npe_utils.h>
 
 npe_function("default_arg")
 npe_arg("a", "dense_f64")

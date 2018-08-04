@@ -1,6 +1,6 @@
 #include <tuple>
 #include <Eigen/Core>
-#include "numpyeigen_utils.h"
+#include <npe_utils.h>
 
 npe_function("matrix_add")
 npe_arg("a", "dense_f64", "dense_f32")

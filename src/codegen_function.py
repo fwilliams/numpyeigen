@@ -388,7 +388,7 @@ def validate_frontend_output():
 
 PUBLIC_ID_PREFIX = "NPE_PY_TYPE_"
 PRIVATE_ID_PREFIX = "_NPE_PY_BINDING_"
-PRIVATE_NAMESPACE = "numpyeigen::detail"
+PRIVATE_NAMESPACE = "npe::detail"
 TYPE_STRUCT_PUBLIC_NAME = "npe"
 STORAGE_ORDER_ENUM = "StorageOrder"
 ALIGNED_ENUM = "Alignment"
@@ -482,8 +482,8 @@ def write_header(out_file):
     out_file.write("#include <numpy/arrayobject.h>\n")
     out_file.write("#include <pybind11/eigen.h>\n")
     out_file.write("#include <pybind11/numpy.h>\n")
-    out_file.write("#include \"numpyeigen_typedefs.h\"\n")
-    out_file.write("#include \"numpyeigen_utils.h\"\n")
+    out_file.write("#include \"npe_typedefs.h\"\n")
+    out_file.write("#include \"npe_utils.h\"\n")
     out_file.write("#include \"sparse_array.h\"\n")
     out_file.write("#include <Eigen/Sparse>\n")
     out_file.write(preamble_source_code + "\n")

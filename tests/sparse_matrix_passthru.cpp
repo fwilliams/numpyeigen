@@ -2,7 +2,7 @@
 #include <Eigen/Core>
 #include <iostream>
 
-#include "numpyeigen_utils.h"
+#include "npe_utils.h"
 
 npe_function("sparse_matrix_passthru")
 npe_arg("a", "sparse_f64", "sparse_f32")

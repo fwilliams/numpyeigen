@@ -6,7 +6,7 @@
 #include <pybind11/eigen.h>
 
 #include <sparse_array.h>
-#include <numpyeigen_typedefs.h>
+#include <npe_typedefs.h>
 
 PYBIND11_MODULE(numpyeigen_helpers, m) {
   m.doc() = R"pbdoc(

@@ -1,6 +1,6 @@
 
 #include <iostream>
-#include <numpyeigen_utils.h>
+#include <npe_utils.h>
 
 npe_function("mutate_matrix")
 npe_arg("a", "dense_f64")

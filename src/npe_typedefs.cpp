@@ -1,10 +1,10 @@
-#include "numpyeigen_typedefs.h"
+#include "npe_typedefs.h"
 
 #include <iostream>
 
 
-const std::string numpyeigen::detail::type_to_str(char type_char) {
-  using namespace numpyeigen::detail;
+const std::string npe::detail::type_to_str(char type_char) {
+  using namespace npe::detail;
 
   switch(type_char) {
   case char_f16:
@@ -53,9 +53,9 @@ const std::string numpyeigen::detail::type_to_str(char type_char) {
 }
 
 
-int numpyeigen::detail::get_type_id(bool is_sparse, char typechar, numpyeigen::detail::StorageOrder so) {
+int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::StorageOrder so) {
   using namespace  std;
-  using namespace numpyeigen::detail;
+  using namespace npe::detail;
 
   if (!is_sparse) {
     switch(so) {

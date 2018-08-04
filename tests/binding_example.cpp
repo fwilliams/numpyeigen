@@ -1,6 +1,6 @@
 #include <tuple>
 #include <Eigen/Core>
-#include "numpyeigen_utils.h"
+#include "npe_utils.h"
 
 // This defines a function named 'test_binding' which will be exposed to python
 npe_function("test_binding")

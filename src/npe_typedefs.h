@@ -5,7 +5,7 @@
 
 #include <sparse_array.h>
 
-namespace numpyeigen {
+namespace npe {
 namespace detail {
 
 template <typename T>

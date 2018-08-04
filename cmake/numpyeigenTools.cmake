@@ -31,7 +31,7 @@ function(npe_add_module target_name)
     COMMAND python ${NPE_SRC_DIR}/codegen_module.py -o ${module_source_filename} -m ${target_name} -f ${make_module_BINDING_SOURCES}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
-  pybind11_add_module(${target_name} SHARED ${module_source_filename} ${NPE_SRC_DIR}/numpyeigen_typedefs.cpp ${function_sources})
+  pybind11_add_module(${target_name} SHARED ${module_source_filename} ${NPE_SRC_DIR}/npe_typedefs.cpp ${function_sources})
   target_include_directories(${target_name} PRIVATE ${NPE_SRC_DIR} ${PYTHON_INCLUDE_DIR} ${NP_INCLUDE_DIR})
 
   # python ${make_module_BINDING_SOURCE}
