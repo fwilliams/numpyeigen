@@ -18,7 +18,7 @@ function(npe_add_module target_name)
 
     set(bound_function_source_filename "${CMAKE_CURRENT_BINARY_DIR}/${name}.out.cpp")
     add_custom_command(OUTPUT ${bound_function_source_filename}
-      DEPENDS ${make_module_BINDING_SOURCES} ${NPE_SRC_DIR}/codegen_function.py ${NPE_SRC_DIR}/codegen_module.py
+      DEPENDS ${binding_source} ${NPE_SRC_DIR}/codegen_function.py ${NPE_SRC_DIR}/codegen_module.py
       COMMAND python ${NPE_SRC_DIR}/codegen_function.py ${binding_source} -o ${bound_function_source_filename}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 

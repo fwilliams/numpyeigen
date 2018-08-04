@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(cmake_example)
 
+# This is a hack because pybind11 produces a million warnings
 SET(CMAKE_CXX_FLAGS  "-Wno-deprecated-declarations" )
 
 # A module for writing bindings with our framework
