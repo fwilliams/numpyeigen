@@ -9,11 +9,8 @@ npe_default_arg("b", "std::string", "std::string(\"abc\")")
 npe_default_arg("c", "type_f64", "type_f32", "pybind11::array_t<double>()")
 npe_begin_code()
 
-std::cout << "mutate_matrix()" << std::endl;
+a(0, 0) = 2.0;
 
-npe::Map_a A((npe::Scalar_a*)a.data(), a.shape()[0], a.shape()[1]);
-A(0, 0) = 2.0;
-
-return std::make_tuple(b + std::string("def"), c, NPE_MOVE_DENSE_MAP(A));
+return std::make_tuple(b + std::string("def"), NPE_MOVE_DENSE_MAP(c), NPE_MOVE_DENSE_MAP(a));
 
 npe_end_code()

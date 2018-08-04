@@ -489,6 +489,8 @@ def write_header(out_file):
     out_file.write("#include <Eigen/Sparse>\n")
     out_file.write(preamble_source_code + "\n")
 
+    write_code_function_definition(out_file)
+
     # TODO: Use the function name properly
     func_name = "pybind_output_fun_" + os.path.basename(input_file_name).replace(".", "_")
     out_file.write("void %s(pybind11::module& m) {\n" % func_name)
@@ -517,7 +519,20 @@ def write_header(out_file):
 
     # Declare variables used to determine the type at runtime
     for var_name in input_varname_to_group.keys():
-        out_file.write(INDENT + "const char %s = %s.dtype().type();\n" % (type_name_var(var_name), var_name))
+        out_file.write(indent(1) + "const char %s = %s.dtype().type();\n" % (type_name_var(var_name), var_name))
+        out_file.write(indent(1) + "ssize_t %s_shape_0 = 0;\n" % var_name)
+        out_file.write(indent(1) + "ssize_t %s_shape_1 = 0;\n" % var_name)
+        out_file.write(indent(1) + "if (%s.ndim() == 1) {\n" % var_name)
+        out_file.write(indent(2) + "%s_shape_0 = %s.shape()[0];\n" % (var_name, var_name))
+        out_file.write(indent(2) + "%s_shape_1 = %s.shape()[0] == 0 ? 0 : 1;\n" % (var_name, var_name))
+        out_file.write(indent(1) + "} else if (%s.ndim() == 2) {\n" % var_name)
+        out_file.write(indent(2) + "%s_shape_0 = %s.shape()[0];\n" % (var_name, var_name))
+        out_file.write(indent(2) + "%s_shape_1 = %s.shape()[1];\n" % (var_name, var_name))
+        out_file.write(indent(1) + "} else if (%s.ndim() > 2) {\n" % var_name)
+        out_file.write(indent(2) + "  throw std::invalid_argument(\"Argument " + var_name +
+                       " has invalid number of dimensions. Must be 1 or 2.\");\n")
+        out_file.write(indent(1) + "}\n")
+
         write_flags_getter(out_file, var_name)
         write_type_id_getter(out_file, var_name)
 
@@ -559,7 +574,6 @@ def write_header(out_file):
 
 def write_code_block(out_file, combo):
     out_file.write("{\n")
-    out_file.write("struct %s {\n" % TYPE_STRUCT_PUBLIC_NAME)
     for group_id in range(len(combo)):
         type_prefix = combo[group_id][0]
         type_suffix = combo[group_id][1]
@@ -567,29 +581,63 @@ def write_code_block(out_file, combo):
             cpp_type = NUMPY_ARRAY_TYPES_TO_CPP[type_prefix][0]
             storage_order_enum = storage_order_for_suffix(type_suffix)
             aligned_enum = aligned_enum_for_suffix(type_suffix)
-            struct_name = type_struct_name(var_name)
 
-            out_file.write(INDENT + "struct " + struct_name + " {\n")
-            out_file.write(indent(2) + "typedef " + cpp_type + " Scalar;\n")
-            out_file.write(indent(2) + "enum Layout { Order = " + storage_order_enum + "};\n")
-            out_file.write(indent(2) + "enum Aligned { Aligned = " + aligned_enum + "};\n")
+            out_file.write(indent(2) + "typedef " + cpp_type + " Scalar_" + var_name + ";\n")
             if is_sparse_type(combo[group_id][0]):
-                out_file.write(indent(2) + "typedef Eigen::SparseMatrix<" + cpp_type + ", " +
-                               storage_order_enum + ", int> Eigen_Type;\n")
+                eigen_type = "Eigen::SparseMatrix<" + cpp_type + ", " + \
+                               storage_order_enum + ", int>"
+                out_file.write("typedef " + eigen_type + " Matrix_%s" % var_name + ";\n")
                 out_file.write(indent(2) + "typedef Eigen::MappedSparseMatrix<" + cpp_type + ", " +
-                               storage_order_enum + ", int> Map_Type;\n")
+                               storage_order_enum + ", int> Map_" + var_name + ";\n")
             else:
-                out_file.write(indent(2) + "typedef Eigen::Matrix<" + cpp_type + ", " +
-                               "Eigen::Dynamic, " + "Eigen::Dynamic, " + storage_order_enum + "> Eigen_Type;\n")
-                out_file.write(indent(2) + "typedef Eigen::Map<" + struct_name + "::Eigen_Type, " + struct_name +
-                               "::Aligned> Map_Type;\n")
-            out_file.write(INDENT + "};\n")
-            out_file.write("typedef " + struct_name + "::Scalar Scalar_" + var_name + ";\n")
-            out_file.write("typedef " + struct_name + "::Eigen_Type Matrix_" + var_name + ";\n")
-            out_file.write("typedef " + struct_name + "::Map_Type Map_" + var_name + ";\n")
+                eigen_type = "Eigen::Matrix<" + cpp_type + ", " + "Eigen::Dynamic, " + "Eigen::Dynamic, " + \
+                             storage_order_enum + ">"
+                out_file.write("typedef " + eigen_type + " Matrix_%s" % var_name + ";\n")
+                out_file.write(indent(2) + "typedef Eigen::Map<" + eigen_type + ", " +
+                               aligned_enum + "> Map_" + var_name + ";\n")
 
-    out_file.write("};\n")
-    out_file.write(binding_source_code + "\n")
+    call_str = "return callit<"
+    for var_name, var_meta in input_variable_meta.items():
+        if var_name in input_varname_to_group:
+                call_str += "Map_" + var_name + ", Matrix_" + var_name + ","
+    call_str = call_str[:-1] + ">("
+
+    for var_name, var_meta in input_variable_meta.items():
+        if var_name in input_varname_to_group:
+            if not var_meta.is_sparse:
+                call_str += "Map_" + var_name + "((Scalar_" + var_name + "*) " + var_name + ".data(), " + \
+                    var_name + "_shape_0, " + var_name + "_shape_1),"
+            else:
+                call_str += var_name + ".as_eigen<Matrix_" + var_name + ">(),"
+        else:
+            call_str += var_name + ","
+
+    call_str = call_str[:-1] + ");\n"
+    out_file.write(call_str)
+    # out_file.write(binding_source_code + "\n")
+    out_file.write("}\n")
+
+
+def write_code_function_definition(out_file):
+    template_str = "template <"
+    for arg_name, arg_meta in input_variable_meta.items():
+        if arg_name in input_varname_to_group:
+            template_str += "typename Type_%s," % arg_name
+            template_str += "typename Matrix_%s," % arg_name
+    template_str = template_str[:-1] + ">\n"
+    out_file.write(template_str)
+    out_file.write("static auto callit(")
+
+    argument_str = ""
+    for arg_name, arg_meta in input_variable_meta.items():
+        if arg_name in input_varname_to_group:
+            argument_str += "Type_%s %s," % (arg_name, arg_name)
+        else:
+            arg_meta: VariableMetadata = arg_meta
+            argument_str += arg_meta.name_or_type[0] + " " + arg_name + ","
+    argument_str = argument_str[:-1] + ") {\n"
+    out_file.write(argument_str)
+    out_file.write(binding_source_code)
     out_file.write("}\n")
 
 
@@ -634,17 +682,16 @@ def backend_pass(out_file):
             branch_count += 1
         out_file.write(" else {\n")
         out_file.write(INDENT + 'throw std::invalid_argument("This should never happen but clearly it did. '
-                                'File github issue plz.");\n')
+                                'File a github issue at https://github.com/fwilliams/numpyeigen");\n')
         out_file.write("}\n")
     else:
         group_combos = list(group_combos)
-        assert len(group_combos) == 1, "THIS SHOULD NEVER HAPPEN, GITHUB ISSUE"
+        assert len(group_combos) == 1, "This should never happen but clearly it did. " \
+                                       "File a github issue at https://github.com/fwilliams/numpyeigen"
         for combo in group_combos:
             out_file.write("{\n")
             out_file.write(binding_source_code + "\n")
             out_file.write("}\n")
-
-
 
     out_file.write("\n")
     out_file.write("}")

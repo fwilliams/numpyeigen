@@ -9,14 +9,10 @@ npe_arg("a", "sparse_f64", "sparse_f32")
 npe_arg("b", "matches(a)")
 npe_begin_code()
 
-using namespace std;
+// This addition should have no effect which is what we test.
+Matrix_a ret1 = a + b;
 
-npe::Map_a A = a.as_eigen<npe::Matrix_a>();
-npe::Map_b B = b.as_eigen<npe::Matrix_b>();
-
-npe::Matrix_a ret1 = A + B;
-
-return NPE_MOVE_SPARSE(A);
+return NPE_MOVE_SPARSE(a);
 
 npe_end_code()
 

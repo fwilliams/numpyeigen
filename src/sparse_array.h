@@ -39,8 +39,13 @@ struct sparse_array : pybind11::object {
     return pybind11::reinterpret_borrow<pybind11::array>(atr);
   }
 
-  std::pair<ssize_t, ssize_t> shape() const {
-    return this->attr("shape").cast<std::pair<ssize_t, ssize_t>>();
+  std::array<ssize_t, 2> shape() const {
+    auto sz = this->attr("shape").cast<std::pair<ssize_t, ssize_t>>();
+    return {{sz.first, sz.second}};
+  }
+
+  constexpr ssize_t ndim() const {
+    return 2;
   }
 
   std::string getformat() const {
@@ -65,14 +70,14 @@ struct sparse_array : pybind11::object {
 
   template <typename T>
   Eigen::MappedSparseMatrix<typename T::Scalar, T::Options, typename T::StorageIndex> as_eigen() {
-    std::pair<ssize_t, ssize_t> shape = this->shape();
+    auto shape = this->shape();
     pybind11::array data = this->data();
     pybind11::array indices = this->indices();
     pybind11::array indptr = this->indptr();
 
     // TODO: Use Eigen::Map in post 3.3
     typedef Eigen::MappedSparseMatrix<typename T::Scalar, T::Options, typename T::StorageIndex> RetMap;
-    return RetMap(shape.first, shape.second, this->nnz(),
+    return RetMap(shape[0], shape[1], this->nnz(),
                   (typename T::StorageIndex*) indptr.data(),
                   (typename T::StorageIndex*) indices.data(),
                   (typename T::Scalar*) data.data());

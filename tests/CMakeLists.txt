@@ -3,6 +3,7 @@ project(cmake_example)
 
 # This is a hack because pybind11 produces a million warnings
 SET(CMAKE_CXX_FLAGS  "-Wno-deprecated-declarations" )
+set(CMAKE_CXX_STANDARD 14)
 
 # A module for writing bindings with our framework
 npe_add_module(numpyeigen_test
@@ -14,6 +15,7 @@ npe_add_module(numpyeigen_test
     sparse_matrix_passthru.cpp
     mutate_sparse_matrix.cpp
     default_arg.cpp)
+
 target_link_libraries(numpyeigen_test PRIVATE igl::core)
 
 # A vanilla pybind11 module used to write functions to compare against pyeigen
@@ -28,9 +30,11 @@ target_link_libraries(numpyeigen_helpers PRIVATE igl::core)
 target_include_directories(numpyeigen_helpers PRIVATE ${NPE_SRC_DIR} ${PYTHON_INCLUDE_DIR} ${NP_INCLUDE_DIR})
 
 
-add_test(NAME test_nocopy
+add_test(NAME test_dense_bindings
          COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_dense_binding.py)
-add_test(NAME sparse_test
+add_test(NAME test_sparse_bindings
         COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_sparse_binding.py)
-add_test(NAME default_arg_test
+add_test(NAME test_default_args
         COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_default_arguments.py)
+add_test(NAME test_1d_arrays
+        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_1d_arrays.py)

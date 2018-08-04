@@ -17,7 +17,11 @@ find_path(LIBIGL_INCLUDE_DIR igl/readOBJ.h
         ${CMAKE_SOURCE_DIR}/../..
         ${CMAKE_SOURCE_DIR}/..
         ${CMAKE_SOURCE_DIR}
+<<<<<<< Updated upstream
         ${CMAKE_SOURCE_DIR}/external/libigl
+=======
+        ${CMAKE_SOURCE_DIR}/external
+>>>>>>> Stashed changes
         ${CMAKE_SOURCE_DIR}/libigl
         ${CMAKE_SOURCE_DIR}/../libigl
         ${CMAKE_SOURCE_DIR}/../../libigl
