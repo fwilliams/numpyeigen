@@ -1,6 +1,13 @@
 set(NPE_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 function(npe_add_module target_name)
+  execute_process(COMMAND python -c "import numpy as np;import sys;sys.stdout.write(np.get_include())"
+    OUTPUT_VARIABLE NP_INCLUDE_DIR)
+  execute_process(
+    COMMAND
+      python -c "from sysconfig import get_paths;import sys;sys.stdout.write(get_paths()['include'])"
+    OUTPUT_VARIABLE PYTHON_INCLUDE_DIR)
+
   message("Current source dir ${CMAKE_CURRENT_SOURCE_DIR}")
   set(options MODULE SHARED EXCLUDE_FROM_ALL NO_EXTRAS THIN_LTO)
   set(multiValueArgs TARGET_SOURCES BINDING_SOURCES)
@@ -25,7 +32,7 @@ function(npe_add_module target_name)
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
   pybind11_add_module(${target_name} SHARED ${module_source_filename} ${NPE_SRC_DIR}/numpyeigen_typedefs.cpp ${function_sources})
-  target_include_directories(${target_name} PRIVATE ${NPE_SRC_DIR})
+  target_include_directories(${target_name} PRIVATE ${NPE_SRC_DIR} ${PYTHON_INCLUDE_DIR} ${NP_INCLUDE_DIR})
 
   # python ${make_module_BINDING_SOURCE}
 endfunction()
