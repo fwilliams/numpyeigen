@@ -3,7 +3,7 @@
 #include "numpyeigen_utils.h"
 
 npe_function("matrix_add")
-npe_arg("a", "type_f64", "type_f32")
+npe_arg("a", "dense_f64", "dense_f32")
 npe_arg("b", "matches(a)")
 npe_begin_code()
 

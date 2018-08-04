@@ -6,17 +6,17 @@
 npe_function("test_binding")
 
 // This says test binding takes as input a dense Eigen matrix, 'a', which can have scalar
-// type type_f32 (float) or type_f64 (double).
+// type dense_f32 (float) or dense_f64 (double).
 // The variable 'a' has type Eigen::Map with scalar matching one of the input types. This means
 // the corresponding Python function takes a numpy array whose dtype is float32 or float64
-npe_arg("a", "type_f32", "type_f64")
+npe_arg("a", "dense_f32", "dense_f64")
 
 // This is another input variable, 'b'. It's type is a matches() statement. In this case, the matches() says that the
 // type of 'b' must match the type of 'a'. matches() statements can only match to numpy overloaded variables.
 npe_arg("b", "matches(a)")
 
 // Here is another variable 'c' and two variables whose types have to match it.
-npe_arg("c", "type_i32", "type_i64")
+npe_arg("c", "dense_i32", "dense_i64")
 npe_arg("d", "matches(c)")
 npe_arg("e", "matches(d)")
 

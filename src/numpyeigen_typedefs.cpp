@@ -62,31 +62,31 @@ int numpyeigen::detail::get_type_id(bool is_sparse, char typechar, numpyeigen::d
     case ColMajor:
       switch (typechar) {
       case char_f32:
-        return type_f32_cm;
+        return dense_f32_cm;
       case char_f64:
-        return type_f64_cm;
+        return dense_f64_cm;
       case char_i8:
-        return type_i8_cm;
+        return dense_i8_cm;
       case char_i16:
-        return type_i16_cm;
+        return dense_i16_cm;
       case char_i32:
-        return type_i32_cm;
+        return dense_i32_cm;
       case char_i64:
-        return type_i64_cm;
+        return dense_i64_cm;
       case char_u8:
-        return type_u8_cm;
+        return dense_u8_cm;
       case char_u16:
-        return type_u16_cm;
+        return dense_u16_cm;
       case char_u32:
-        return type_u32_cm;
+        return dense_u32_cm;
       case char_u64:
-        return type_u64_cm;
+        return dense_u64_cm;
       case char_c64:
-        return type_c64_cm;
+        return dense_c64_cm;
       case char_c128:
-        return type_c128_cm;
+        return dense_c128_cm;
       case char_c256:
-        return type_c256_cm;
+        return dense_c256_cm;
       default:
         cerr << "Bad Typechar" << endl;
         return -1;
@@ -94,31 +94,31 @@ int numpyeigen::detail::get_type_id(bool is_sparse, char typechar, numpyeigen::d
     case RowMajor:
       switch (typechar) {
       case char_f32:
-        return type_f32_rm;
+        return dense_f32_rm;
       case char_f64:
-        return type_f64_rm;
+        return dense_f64_rm;
       case char_i8:
-        return type_i8_rm;
+        return dense_i8_rm;
       case char_i16:
-        return type_i16_rm;
+        return dense_i16_rm;
       case char_i32:
-        return type_i32_rm;
+        return dense_i32_rm;
       case char_i64:
-        return type_i64_rm;
+        return dense_i64_rm;
       case char_u8:
-        return type_u8_rm;
+        return dense_u8_rm;
       case char_u16:
-        return type_u16_rm;
+        return dense_u16_rm;
       case char_u32:
-        return type_u32_rm;
+        return dense_u32_rm;
       case char_u64:
-        return type_u64_rm;
+        return dense_u64_rm;
       case char_c64:
-        return type_c64_rm;
+        return dense_c64_rm;
       case char_c128:
-        return type_c128_rm;
+        return dense_c128_rm;
       case char_c256:
-        return type_c256_rm;
+        return dense_c256_rm;
       default:
         cerr << "Bad Typechar" << endl;
         return -1;
@@ -126,31 +126,31 @@ int numpyeigen::detail::get_type_id(bool is_sparse, char typechar, numpyeigen::d
     case NoOrder:
       switch (typechar) {
       case char_f32:
-        return type_f32_x;
+        return dense_f32_x;
       case char_f64:
-        return type_f64_x;
+        return dense_f64_x;
       case char_i8:
-        return type_i8_x;
+        return dense_i8_x;
       case char_i16:
-        return type_i16_x;
+        return dense_i16_x;
       case char_i32:
-        return type_i32_x;
+        return dense_i32_x;
       case char_i64:
-        return type_i64_x;
+        return dense_i64_x;
       case char_u8:
-        return type_u8_x;
+        return dense_u8_x;
       case char_u16:
-        return type_u16_x;
+        return dense_u16_x;
       case char_u32:
-        return type_u32_x;
+        return dense_u32_x;
       case char_u64:
-        return type_u64_x;
+        return dense_u64_x;
       case char_c64:
-        return type_c64_x;
+        return dense_c64_x;
       case char_c128:
-        return type_c128_x;
+        return dense_c128_x;
       case char_c256:
-        return type_c256_x;
+        return dense_c256_x;
       default:
         cerr << "Bad Typechar" << endl;
         return -1;

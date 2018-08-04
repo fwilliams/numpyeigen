@@ -61,7 +61,7 @@ class TestSparseMatrixWrapper(unittest.TestCase):
             self.assertEqual(bdata[0], 2.0)
 
     def test_timing_for_copy_vs_no_copy(self):
-        mat_size = 10000
+        mat_size = 10000000
         num_iters = 10
 
         times_nocopy = []
@@ -81,8 +81,8 @@ class TestSparseMatrixWrapper(unittest.TestCase):
 
         median_nocopy = np.median(times_nocopy)
         median_copy = np.median(times_copy)
-        print(median_copy, median_nocopy)
 
+        print("test_timing_for_copy_vs_no_copy")
         print("COPY:")
         print("  mean:", np.mean(times_copy))
         print("  std:", np.std(times_copy))
@@ -93,7 +93,7 @@ class TestSparseMatrixWrapper(unittest.TestCase):
         print("  std:", np.std(times_nocopy))
         print("  med:", np.median(times_nocopy))
 
-        self.assertLess(median_nocopy, median_copy)
+        self.assertLess(median_nocopy*1e-3, median_copy)
 
     def test_return_does_not_copy(self):
         mat_size = 10000000
@@ -117,6 +117,7 @@ class TestSparseMatrixWrapper(unittest.TestCase):
         median_nocopy = np.median(times_nocopy)
         median_copy = np.median(times_copy)
 
+        print("test_return_does_not_copy")
         print("COPY:")
         print("  mean:", np.mean(times_copy))
         print("  std:", np.std(times_copy))

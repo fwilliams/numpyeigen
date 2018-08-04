@@ -2,7 +2,6 @@ import argparse
 import itertools
 import os
 import sys
-import re
 
 
 class TermColors:
@@ -19,20 +18,20 @@ class TermColors:
 # TODO: Check that your compiler supports __float128
 NUMPY_ARRAY_TYPES_TO_CPP = {
     # Dense types
-    'type_f32': ('float', 'f32', 'float32'),
-    'type_f64': ('double', 'f64', 'float64'),
-    'type_f128': ('__float128', 'f128', 'float128'),
-    'type_i8': ('std::int8_t', 'i8', 'int8'),
-    'type_i16': ('std::int16_t', 'i16', 'int16'),
-    'type_i32': ('std::int32_t', 'i32', 'int32'),
-    'type_i64': ('std::int64_t', 'i64', 'int64'),
-    'type_u8': ('std::uint8_t', 'u8', 'uint8'),
-    'type_u16': ('std::uint16_t', 'u16', 'uint16'),
-    'type_u32': ('std::uint32_t', 'u32', 'uing32'),
-    'type_u64': ('std::uint64_t', 'u64', 'uint64'),
-    'type_c64': ('std::complex<float>', 'c64', 'complex64'),
-    'type_c128': ('std::complex<double>', 'c128', 'complex128'),
-    'type_c256': ('std::complex<__float128>', 'c256', 'complex256'),
+    'dense_f32': ('float', 'f32', 'float32'),
+    'dense_f64': ('double', 'f64', 'float64'),
+    'dense_f128': ('__float128', 'f128', 'float128'),
+    'dense_i8': ('std::int8_t', 'i8', 'int8'),
+    'dense_i16': ('std::int16_t', 'i16', 'int16'),
+    'dense_i32': ('std::int32_t', 'i32', 'int32'),
+    'dense_i64': ('std::int64_t', 'i64', 'int64'),
+    'dense_u8': ('std::uint8_t', 'u8', 'uint8'),
+    'dense_u16': ('std::uint16_t', 'u16', 'uint16'),
+    'dense_u32': ('std::uint32_t', 'u32', 'uing32'),
+    'dense_u64': ('std::uint64_t', 'u64', 'uint64'),
+    'dense_c64': ('std::complex<float>', 'c64', 'complex64'),
+    'dense_c128': ('std::complex<double>', 'c128', 'complex128'),
+    'dense_c256': ('std::complex<__float128>', 'c256', 'complex256'),
 
     # Sparse types
     'sparse_f32': ('float', 'f32', 'float32'),
