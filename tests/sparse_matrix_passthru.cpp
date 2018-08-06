@@ -10,7 +10,7 @@ npe_arg("b", "matches(a)")
 npe_begin_code()
 
 // This addition should have no effect which is what we test.
-Matrix_a ret1 = a + b;
+npe_Matrix_a ret1 = a + b;
 
 return NPE_MOVE_SPARSE(a);
 
