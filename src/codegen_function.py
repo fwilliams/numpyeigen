@@ -275,6 +275,14 @@ def parse_end_code_statement(line, line_number):
     parse_eol_token(line.strip(), line_number=line_number)
 
 
+def parse_identifier(line, line_number):
+    pass
+
+
+def parse_type_expression(line, line_number):
+    pass
+
+
 def parse_binding_init_statement(line, line_number):
     global BINDING_INIT_TOKEN
 
