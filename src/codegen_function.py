@@ -386,7 +386,6 @@ def validate_frontend_output():
             input_variable_meta[var_name].is_sparse = is_sparse_type(input_type_groups[group_idx][0])
 
 
-PUBLIC_ID_PREFIX = "NPE_PY_TYPE_"
 PRIVATE_ID_PREFIX = "_NPE_PY_BINDING_"
 PRIVATE_NAMESPACE = "npe::detail"
 TYPE_STRUCT_PUBLIC_NAME = "npe"
@@ -402,6 +401,9 @@ STORAGE_ORDER_SUFFIX_XM = STORAGE_ORDER_SUFFIXES[2]
 STORAGE_ORDER_CM = "ColMajor"
 STORAGE_ORDER_RM = "RowMajor"
 STORAGE_ORDER_XM = "NoOrder"
+MAP_TYPE_PREFIX = "npe_Map_"
+MATRIX_TYPE_PREFIX = "npe_Matrix_"
+SCALAR_TYPE_PREFIX = "npe_Scalar_"
 
 
 def has_numpy_types():
@@ -435,10 +437,6 @@ def storage_order_var(var_name):
 
 def type_id_var(var_name):
     return PRIVATE_ID_PREFIX + var_name + "_t_id"
-
-
-def type_struct_name(var_name):
-    return PUBLIC_ID_PREFIX + var_name
 
 
 def is_sparse_type(type_name):
@@ -495,9 +493,9 @@ def write_header(out_file):
     out_file.write("#include <numpy/arrayobject.h>\n")
     out_file.write("#include <pybind11/eigen.h>\n")
     out_file.write("#include <pybind11/numpy.h>\n")
-    out_file.write("#include \"npe_typedefs.h\"\n")
-    out_file.write("#include \"npe_utils.h\"\n")
-    out_file.write("#include \"sparse_array.h\"\n")
+    out_file.write("#include <npe_typedefs.h>\n")
+    out_file.write("#include <npe_utils.h>\n")
+    out_file.write("#include <sparse_array.h>\n")
     out_file.write("#include <Eigen/Sparse>\n")
     out_file.write(preamble_source_code + "\n")
 
@@ -612,7 +610,7 @@ def write_code_block(out_file, combo):
     template_str = "<"
     for var_name, var_meta in input_variable_meta.items():
         if var_name in input_varname_to_group:
-            template_str += "Map_" + var_name + ", Matrix_" + var_name + ","
+            template_str += "Map_" + var_name + ", Matrix_" + var_name + ", Scalar_" + var_name + ","
     template_str = template_str[:-1] + ">("
 
     call_str = call_str + template_str if has_numpy_types() else call_str + "("
@@ -637,8 +635,9 @@ def write_code_function_definition(out_file):
     template_str = "template <"
     for arg_name, arg_meta in input_variable_meta.items():
         if arg_name in input_varname_to_group:
-            template_str += "typename Type_%s," % arg_name
-            template_str += "typename Matrix_%s," % arg_name
+            template_str += "typename " + MAP_TYPE_PREFIX + arg_name + ","
+            template_str += "typename " + MATRIX_TYPE_PREFIX + arg_name + ","
+            template_str += "typename " + SCALAR_TYPE_PREFIX + arg_name + ","
     template_str = template_str[:-1] + ">\n"
     if has_numpy_types():
         out_file.write(template_str)
@@ -647,7 +646,7 @@ def write_code_function_definition(out_file):
     argument_str = ""
     for arg_name, arg_meta in input_variable_meta.items():
         if arg_name in input_varname_to_group:
-            argument_str += "Type_%s %s," % (arg_name, arg_name)
+            argument_str += "%s%s %s," % (MAP_TYPE_PREFIX, arg_name, arg_name)
         else:
             arg_meta: VariableMetadata = arg_meta
             argument_str += arg_meta.name_or_type[0] + " " + arg_name + ","

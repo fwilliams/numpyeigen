@@ -9,7 +9,7 @@ npe_arg("a", "sparse_f64", "sparse_f32")
 npe_arg("b", "matches(a)")
 npe_begin_code()
 
-Matrix_a ret1 = a + b;
+npe_Matrix_a ret1 = a + b;
 
 return NPE_MOVE_SPARSE(ret1);
 

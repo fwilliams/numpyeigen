@@ -29,8 +29,8 @@ npe_begin_code()
 
 // We compute some return values using the types specified in the input. So, for example,
 // if you pass in matrices of doubles, you get the result as a matrix of doubles
-Matrix_a ret1 = a + b;
-Matrix_c ret2 = c + d + e * f;
+npe_Matrix_a ret1 = a + b;
+npe_Matrix_c ret2 = c + d + e * f;
 
 // MOVE_TO_NP returns a pybind11::array which takes ownership of the Eigen::Matrix passed as a second argument.
 // The first argument is the type of the Eigen::Matrix
