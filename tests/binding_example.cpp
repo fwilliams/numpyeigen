@@ -1,27 +1,27 @@
 #include <tuple>
 #include <Eigen/Core>
-#include "npe_utils.h"
+#include <npe.h>
 
 // This defines a function named 'test_binding' which will be exposed to python
-npe_function("test_binding")
+npe_function(test_binding)
 
 // This says test binding takes as input a dense Eigen matrix, 'a', which can have scalar
 // type dense_f32 (float) or dense_f64 (double).
 // The variable 'a' has type Eigen::Map with scalar matching one of the input types. This means
 // the corresponding Python function takes a numpy array whose dtype is float32 or float64
-npe_arg("a", "dense_f32", "dense_f64")
+npe_arg(a, dense_f32, dense_f64)
 
 // This is another input variable, 'b'. It's type is a matches() statement. In this case, the matches() says that the
 // type of 'b' must match the type of 'a'. matches() statements can only match to numpy overloaded variables.
-npe_arg("b", "matches(a)")
+npe_arg(b, matches(a))
 
 // Here is another variable 'c' and two variables whose types have to match it.
-npe_arg("c", "dense_i32", "dense_i64")
-npe_arg("d", "matches(c)")
-npe_arg("e", "matches(d)")
+npe_arg(c, dense_i32, dense_i64)
+npe_arg(d, matches(c))
+npe_arg(e, matches(d))
 
 // This is a non-numpy overloaded input parameter of type int.
-npe_arg("f", "int")
+npe_arg(f, int)
 
 // After this directive is the actual source code of the bound function
 npe_begin_code()

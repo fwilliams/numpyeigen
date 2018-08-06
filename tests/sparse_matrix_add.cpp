@@ -2,11 +2,11 @@
 #include <Eigen/Core>
 #include <iostream>
 
-#include "npe_utils.h"
+#include <npe.h>
 
-npe_function("sparse_matrix_add")
-npe_arg("a", "sparse_f64", "sparse_f32")
-npe_arg("b", "matches(a)")
+npe_function(sparse_matrix_add)
+npe_arg(a, sparse_f64, sparse_f32)
+npe_arg(b, matches(a))
 npe_begin_code()
 
 npe_Matrix_a ret1 = a + b;

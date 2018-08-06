@@ -2,10 +2,11 @@
 #define NPE_H
 
 #include <npe_utils.h>
+#include <npe_typedefs.h>
 
 // We define a bunch of stuff to make your ide work with npe_* syntax and produce valid types.
 // When we actually generate the bindings all of this is gone
-#ifndef NPE_FOR_REAL
+#ifndef __NPE_FOR_REAL__
 #define __NPE_GET_FIRST(arg, ...) arg
 #define __NPE_MATRIX_TYPE(arg, ...) npe_Matrix_##arg
 #define __NPE_MAP_TYPE(arg, ...) npe_Map_##arg
@@ -30,6 +31,6 @@ typedef Eigen::Map<matrix_dense_f64, Eigen::Aligned> dense_f64;
   npe::detail::__NPE_GET_FIRST(__VA_ARGS__) name;
 #define npe_begin_code()
 #define npe_end_code() }
-#endif // NPE_NOT_FOR_REAL
+#endif // __NPE_FOR_REAL__
 
 #endif // NPE_H
