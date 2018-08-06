@@ -35,8 +35,8 @@ dependencies:
   - mkl_fft=1.0.1=py36h3010b51_0
   - mkl_random=1.0.1=py36h629b387_0
   - ncurses=6.1=hf484d3e_0
-  - numpy=1.14.5=py36hcd700cb_0
-  - numpy-base=1.14.5=py36hdbf6ddf_0
+  - numpy=1.14.5=py36h1b885b7_4
+  - numpy-base=1.14.5=py36hdbf6ddf_4
   - openssl=1.0.2o=h20670df_0
   - parso=0.2.1=py36_0
   - pcre=8.42=h439df22_0
@@ -66,5 +66,4 @@ dependencies:
   - wheel=0.31.1=py36_0
   - xz=5.2.4=h14c3975_4
   - zlib=1.2.11=ha838bed_2
-prefix: /home/francis/miniconda3/envs/numpyeigen
 
