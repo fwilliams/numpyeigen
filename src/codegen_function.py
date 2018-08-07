@@ -135,7 +135,9 @@ def tokenize_npe_line(stmt_token, line, line_number):
 
         tokens = parsed_string.split(SPLIT_TOKEN)
 
-        if tokens[-1].strip() == "%s()" % stmt_token:
+        if tokens[-1].strip().startswith("%s()" % stmt_token) and tokens[-1].strip() != "%s()" % stmt_token:
+            raise ParseError("Extra tokens after `%s` statement on line %d" % (stmt_token, line_number))
+        elif tokens[-1].strip() == "%s()" % stmt_token:
             exited_before_max_iters = True
             tokens.pop()
             break
@@ -334,6 +336,18 @@ def parse_binding_init_statement(line, line_number):
     return binding_name
 
 
+def parse_stmt_call(token, line, line_number, throw=True):
+    try:
+        line = parse_token(line.strip(), token, line_number)
+        parse_token(line.strip(), '(', line_number)
+    except ParseError:
+        if throw:
+            raise ParseError("Got invalid token at line %d. Expected `%s`" % (line_number, token))
+        else:
+            return False
+    return True
+
+
 def frontend_pass(lines):
     global ARG_TOKEN, BEGIN_CODE_TOKEN, END_CODE_TOKEN, BINDING_INIT_TOKEN
     global binding_source_code, bound_function_name, preamble_source_code
@@ -343,19 +357,19 @@ def frontend_pass(lines):
     for line_number in range(len(lines)):
         if len(lines[line_number].strip()) == 0:
             continue
-        elif lines[line_number].strip().lower().startswith(ARG_TOKEN):
+        elif parse_stmt_call(ARG_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             raise ParseError("Got `%s` statement before `%s` at line %d" %
                              (ARG_TOKEN, BINDING_INIT_TOKEN, line_number+1))
-        elif lines[line_number].strip().lower().startswith(DEFAULT_ARG_TOKEN):
+        elif parse_stmt_call(DEFAULT_ARG_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             raise ParseError("Got `%s` statement before `%s` at line %d" %
                              (DEFAULT_ARG_TOKEN, BINDING_INIT_TOKEN, line_number+1))
-        elif lines[line_number].strip().lower().startswith(BEGIN_CODE_TOKEN):
+        elif parse_stmt_call(BEGIN_CODE_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             raise ParseError("Got `%s` statement before `%s` at line %d" %
                              (BEGIN_CODE_TOKEN, BINDING_INIT_TOKEN, line_number+1))
-        elif lines[line_number].strip().lower().startswith(END_CODE_TOKEN):
+        elif parse_stmt_call(END_CODE_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             raise ParseError("Got `%s` statement before `%s` at line %d" %
                              (END_CODE_TOKEN, BINDING_INIT_TOKEN, line_number+1))
-        elif lines[line_number].strip().lower().startswith(BINDING_INIT_TOKEN):
+        elif parse_stmt_call(BINDING_INIT_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             bound_function_name = parse_binding_init_statement(lines[line_number], line_number=line_number+1)
             binding_start_line_number = line_number + 1
             break
@@ -371,15 +385,15 @@ def frontend_pass(lines):
     code_start_line_number = -1
 
     for line_number in range(binding_start_line_number, len(lines)):
-        if lines[line_number].strip().lower().startswith(ARG_TOKEN):
+        if parse_stmt_call(ARG_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             var_name, var_types, _ = parse_arg_statement(lines[line_number], line_number=line_number+1, is_default=False)
             print(TermColors.OKGREEN + "NumpyEigen Arg: " + TermColors.ENDC + var_name + " - " + str(var_types))
-        elif lines[line_number].strip().lower().startswith(DEFAULT_ARG_TOKEN):
+        elif parse_stmt_call(DEFAULT_ARG_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             var_name, var_types, var_value = \
                 parse_arg_statement(lines[line_number], line_number=line_number+1, is_default=True)
             print(TermColors.OKGREEN + "NumpyEigen Default Arg: " + TermColors.ENDC + var_name + " - " +
                   str(var_types) + " - " + str(var_value))
-        elif lines[line_number].strip().lower().startswith(BEGIN_CODE_TOKEN):
+        elif parse_stmt_call(BEGIN_CODE_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             parse_begin_code_statement(lines[line_number], line_number=line_number+1)
             code_start_line_number = line_number + 1
             break
@@ -397,7 +411,8 @@ def frontend_pass(lines):
 
     reached_end_token = False
     for line_number in range(code_start_line_number, len(lines)):
-        if lines[line_number].lower().startswith(END_CODE_TOKEN):
+        # if lines[line_number].lower().startswith(END_CODE_TOKEN):
+        if parse_stmt_call(END_CODE_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             parse_end_code_statement(lines[line_number], line_number=line_number+1)
             reached_end_token = True
         elif not reached_end_token:
