@@ -44,7 +44,7 @@ When compiled, the following code will generate a function `foo(a, b, c, d, e, f
 #include <tuple>
 #include <string>
 
-npe_function("foo")                  // create a function foo exposed to python
+npe_function(foo)                  // create a function named foo exposed to python
 
 // The arguments to foo are as follows:
 // Each of these are transparently converted to appropriate Eigen::Map types
