@@ -1,3 +1,4 @@
+from __future__ import print_function
 import argparse
 import itertools
 import os
@@ -29,7 +30,7 @@ NUMPY_ARRAY_TYPES_TO_CPP = {
     'dense_i64': ('std::int64_t', 'i64', 'int64'),
     'dense_u8': ('std::uint8_t', 'u8', 'uint8'),
     'dense_u16': ('std::uint16_t', 'u16', 'uint16'),
-    'dense_u32': ('std::uint32_t', 'u32', 'uing32'),
+    'dense_u32': ('std::uint32_t', 'u32', 'uint32'),
     'dense_u64': ('std::uint64_t', 'u64', 'uint64'),
     'dense_c64': ('std::complex<float>', 'c64', 'complex64'),
     'dense_c128': ('std::complex<double>', 'c128', 'complex128'),
@@ -45,19 +46,21 @@ NUMPY_ARRAY_TYPES_TO_CPP = {
     'sparse_i64': ('std::int64_t', 'i64', 'int64'),
     'sparse_u8': ('std::uint8_t', 'u8', 'uint8'),
     'sparse_u16': ('std::uint16_t', 'u16', 'uint16'),
-    'sparse_u32': ('std::uint32_t', 'u32', 'uing32'),
+    'sparse_u32': ('std::uint32_t', 'u32', 'uint32'),
     'sparse_u64': ('std::uint64_t', 'u64', 'uint64'),
     'sparse_c64': ('std::complex<float>', 'c64', 'complex64'),
     'sparse_c128': ('std::complex<double>', 'c128', 'complex128'),
     'sparse_c256': ('std::complex<__float128>', 'c256', 'complex256')}
 
 NUMPY_ARRAY_TYPES = list(NUMPY_ARRAY_TYPES_TO_CPP.keys())
+NUMPY_SCALAR_TYPES = list(set([v[2] for v in NUMPY_ARRAY_TYPES_TO_CPP.values()]))
 MATCHES_TOKEN = "npe_matches"
 ARG_TOKEN = "npe_arg"
 DEFAULT_ARG_TOKEN = "npe_default_arg"
 BEGIN_CODE_TOKEN = "npe_begin_code"
 END_CODE_TOKEN = "npe_end_code"
 BINDING_INIT_TOKEN = "npe_function"
+DTYPE_TOKEN = "npe_dtype"
 COMMENT_TOKEN = "//"
 
 CPP_COMMAND = None  # Name of the command to run for the C preprocessor. Set at input.
@@ -70,9 +73,16 @@ input_type_groups = []  # Set of allowed types for each group of variables
 input_varname_to_group = {}  # Dictionary mapping input variable names to type groups
 group_to_input_varname = {}  # Dictionary mapping type groups to input variable names
 input_variable_order = []  # List of input variables in order
+input_dtypes = {}  # Map of dtype variables. The keys are the names, and the values are a list of tuples
 input_variable_meta = {}  # Dictionary mapping variable names to types
 binding_source_code = ""  # The source code of the binding
 preamble_source_code = ""  # The code that comes before npe_* statements
+
+LOG_DEBUG = 3
+LOG_INFO = 1
+LOG_INFO_VERBOSE = 2
+LOG_ERROR = 0
+verbosity_level = 1  # Integer representing the level of verbosity 0 = only log errors, 1 = normal, 2 = verbose
 
 
 class ParseError(Exception):
@@ -94,6 +104,11 @@ class VariableMetadata(object):
 
     def __repr__(self):
         return str(self.__dict__)
+
+
+def log(log_level, logstr, end='\n'):
+    if log_level <= verbosity_level:
+        print(logstr, end=end)
 
 
 def run_cpp(input_str):
@@ -307,6 +322,32 @@ def parse_arg_statement(line, line_number, is_default):
     return var_name, var_types, var_value
 
 
+def parse_dtype_statement(line, line_number):
+    global DTYPE_TOKEN
+
+    tokens = tokenize_npe_line(DTYPE_TOKEN, line, line_number)
+
+    if len(tokens) < 2:
+        raise ParseError("Got too few arguments for `%s` statement at line %d." % (DTYPE_TOKEN, line_number))
+
+    name = tokens[0]
+    validate_identifier_name(name)
+
+    types = tokens[1:]
+
+    for type in types:
+        if not type in NUMPY_SCALAR_TYPES:
+            raise ParseError("%s statement got invalid dtype, `%s`. Expected one of %s." %
+                             (DTYPE_TOKEN, type, NUMPY_SCALAR_TYPES))
+
+    if name not in input_dtypes:
+        input_dtypes[name] = []
+
+    input_dtypes[name].append(types)
+
+    return name, types
+
+
 def parse_begin_code_statement(line, line_number):
     global BEGIN_CODE_TOKEN
     line = parse_token(line.strip(), BEGIN_CODE_TOKEN, line_number=line_number, case_sensitive=False)
@@ -369,6 +410,9 @@ def frontend_pass(lines):
         elif parse_stmt_call(END_CODE_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             raise ParseError("Got `%s` statement before `%s` at line %d" %
                              (END_CODE_TOKEN, BINDING_INIT_TOKEN, line_number+1))
+        elif parse_stmt_call(DTYPE_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
+            raise ParseError("Got `%s` statement before `%s` at line %d" %
+                             (DTYPE_TOKEN, BINDING_INIT_TOKEN, line_number+1))
         elif parse_stmt_call(BINDING_INIT_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             bound_function_name = parse_binding_init_statement(lines[line_number], line_number=line_number+1)
             binding_start_line_number = line_number + 1
@@ -380,19 +424,26 @@ def frontend_pass(lines):
     if binding_start_line_number < 0:
         raise ParseError("Invalid binding file. Must begin with %s(<function_name>)." % BINDING_INIT_TOKEN)
 
-    print(TermColors.OKGREEN + "NumpyEigen Function: " + TermColors.ENDC + bound_function_name)
+    log(LOG_INFO, TermColors.OKGREEN + "NumpyEigen Function: " + TermColors.ENDC + bound_function_name)
 
     code_start_line_number = -1
 
     for line_number in range(binding_start_line_number, len(lines)):
         if parse_stmt_call(ARG_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             var_name, var_types, _ = parse_arg_statement(lines[line_number], line_number=line_number+1, is_default=False)
-            print(TermColors.OKGREEN + "NumpyEigen Arg: " + TermColors.ENDC + var_name + " - " + str(var_types))
+            log(LOG_INFO_VERBOSE,
+                TermColors.OKGREEN + "NumpyEigen Arg: " + TermColors.ENDC + var_name + " - " + str(var_types))
         elif parse_stmt_call(DEFAULT_ARG_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             var_name, var_types, var_value = \
                 parse_arg_statement(lines[line_number], line_number=line_number+1, is_default=True)
-            print(TermColors.OKGREEN + "NumpyEigen Default Arg: " + TermColors.ENDC + var_name + " - " +
-                  str(var_types) + " - " + str(var_value))
+            log(LOG_INFO_VERBOSE,
+                TermColors.OKGREEN + "NumpyEigen Default Arg: " + TermColors.ENDC + var_name + " - " +
+                str(var_types) + " - " + str(var_value))
+        elif parse_stmt_call(DTYPE_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
+            dtype_name, dtype_types = parse_dtype_statement(lines[line_number], line_number=line_number+1)
+            log(LOG_INFO_VERBOSE,
+                TermColors.OKGREEN + "NumpyEigen DType: " + TermColors.ENDC + dtype_name + " - " +
+                str(dtype_types))
         elif parse_stmt_call(BEGIN_CODE_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             parse_begin_code_statement(lines[line_number], line_number=line_number+1)
             code_start_line_number = line_number + 1
@@ -430,7 +481,7 @@ def validate_frontend_output():
     global input_type_groups, input_variable_meta
 
     for var_name in input_variable_meta.keys():
-        var_meta: VariableMetadata = input_variable_meta[var_name]
+        var_meta = input_variable_meta[var_name]
         is_sparse = is_sparse_type(var_meta.name_or_type[0])
         for type_name in var_meta.name_or_type:
             if is_sparse_type(type_name) != is_sparse:
@@ -482,7 +533,7 @@ def has_numpy_types():
     return has
 
 
-def indent(n: int):
+def indent(n):
     ret = ""
     for _ in range(n):
         ret += INDENT
@@ -704,7 +755,7 @@ def write_code_function_definition(out_file):
         if arg_name in input_varname_to_group:
             argument_str += "%s%s %s," % (MAP_TYPE_PREFIX, arg_name, arg_name)
         else:
-            arg_meta: VariableMetadata = arg_meta
+            arg_meta = arg_meta
             argument_str += arg_meta.name_or_type[0] + " " + arg_name + ","
     argument_str = argument_str[:-1] + ") {\n"
     out_file.write(argument_str)
@@ -777,10 +828,14 @@ if __name__ == "__main__":
     arg_parser.add_argument("file", type=str)
     arg_parser.add_argument("cpp_cmd", type=str)
     arg_parser.add_argument("-o", "--output", type=str, default="a.out")
+    arg_parser.add_argument("-v", "--verbosity-level", type=int, default=1, help="How verbose is the output. "
+                                                                                 "< 0 = silent, 0 = only errors, "
+                                                                                 "1 = normal, 2 = verbose, > 3 = debug")
 
     args = arg_parser.parse_args()
 
     CPP_COMMAND = args.cpp_cmd
+    verbosity_level = args.verbosity_level
 
     with open(args.file, 'r') as f:
         line_list = f.readlines()
@@ -793,11 +848,11 @@ if __name__ == "__main__":
             backend_pass(outfile)
     except SemanticError as e:
         # TODO: Pretty printer
-        print(TermColors.FAIL + TermColors.BOLD + "NumpyEigen Semantic Error: " +
+        log(LOG_ERROR, TermColors.FAIL + TermColors.BOLD + "NumpyEigen Semantic Error: " +
               TermColors.ENDC + TermColors.ENDC + str(e), file=sys.stderr)
         sys.exit(1)
     except ParseError as e:
         # TODO: Pretty printer
-        print(TermColors.FAIL + TermColors.BOLD + "NumpyEigen Syntax Error: " +
+        log(LOG_ERROR, TermColors.FAIL + TermColors.BOLD + "NumpyEigen Syntax Error: " +
               TermColors.ENDC + TermColors.ENDC + str(e), file=sys.stderr)
         sys.exit(1)
