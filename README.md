@@ -28,7 +28,7 @@ NumpyEigen comes built-in with [CMake](https://cmake.org/) tools to integrate wi
  single line of code. A set of scripts to integrate with other build systems will be included in the future.
 
 ### Minimal Dependencies
-NumpyEigen only requires the system to have a running Python interpreter with version > 3.0. 
+NumpyEigen only requires the system to have a valid C++ compiler and a running Python interpreter with version > 3.0. 
 
 NumpyEigen uses [pybind11](https://github.com/pybind/pybind11) under the hood which is included as a submodule. 
 Don't forget to `git clone --recursive`!
@@ -47,28 +47,23 @@ When compiled, the following code will generate a function `foo(a, b, c, d, e, f
 npe_function("foo")                  // create a function foo exposed to python
 
 // The arguments to foo are as follows:
-npe_arg("a", "type_f64", "type_f32")     // a is a numpy array with dtype either float or double
-npe_arg("b", "matches(a)")               // b is a numpy array whose type has to match a
-npe_arg("c", "type_i32", "type_i64")     // c is a numpy array whose type is either int32 or int64
-npe_arg("d", "std::string")              // d is a string
-npe_arg("f", "sparse_f32", "sparse_f64") // f is a sparse matrix whose data is either float32 or float64
-npe_arg("e", "int")                      // e is an int
+// Each of these are transparently converted to appropriate Eigen::Map types
+npe_arg(a, type_f64, type_f32)       // a is a numpy array with dtype either float or double
+npe_arg(b, matches(a))               // b is a numpy array whose type has to match a
+npe_arg(c, type_i32, type_i64)       // c is a numpy array whose type is either int32 or int64
+npe_arg(d, std::string)              // d is a string
+npe_arg(f, sparse_f32, sparse_f64)   // f is a sparse matrix whose data is either float32 or float64
+npe_arg(e, int)                      // e is an int
 
 // The C++ code for the function starts after this line
 npe_begin_code()
 
-// npe::Map_* are Eigen::Map<T> types wrapping the input variables and making them available to Eigen
-npe::Map_a A = a.as_eigen<npe::Map_a>(a);
-npe::Map_b B = b.as_eigen<npe::Map_b>(b);
-npe::Map_c C = c.as_eigen<npe::Map_c>(c);
-npe::Map_f F = f.as_eigen<npe::Map_f>(f);
-
-// npe::Matrix_* are Eigen::Matrix<T> or Eigen::SparseMatrix<T> types 
-npe::Matrix_a ret1 = A + B;
-npe::Matrix_a ret2 = A - C;
+// npe_Matrix_* are Eigen::Matrix<T> or Eigen::SparseMatrix<T> types corresponding to the inputs
+npe_Matrix_a ret1 = a + b;
+npe_Matrix_aret2 = a - c;
 int ret3 = d + std::string("concatenated");
 int ret4 = e + 2;
-npe::Matrix_f ret5 = F * 1.5;
+npe_Matrix_f ret5 = f * 1.5;
 
 // npe::move() wraps an Eigen type in a NumPy or SciPy type with zero copy overhead
 return std::make_tuple(npe::move(ret1), npe::move(ret2), ret3, ret4, npe::move(ret5));
