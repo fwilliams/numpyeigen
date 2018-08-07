@@ -5,7 +5,7 @@
 #include <pybind11/numpy.h>
 #include <pybind11/eigen.h>
 
-#include <sparse_array.h>
+#include <npe_sparse_array.h>
 #include <npe_typedefs.h>
 
 PYBIND11_MODULE(numpyeigen_helpers, m) {

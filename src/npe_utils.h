@@ -2,8 +2,8 @@
 #define BINDING_UTILS_H
 
 #include <pybind11/eigen.h>
-#include <sparse_array.h>
-#include <dense_array.h>
+#include <npe_sparse_array.h>
+#include <npe_dense_array.h>
 #include <type_traits>
 
 // TODO: These macros suck and let's make one general template function to make these work

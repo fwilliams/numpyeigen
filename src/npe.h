@@ -1,8 +1,18 @@
 #ifndef NPE_H
 #define NPE_H
 
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <numpy/arrayobject.h>
+
+#include <pybind11/pybind11.h>
+#include <pybind11/eigen.h>
+#include <pybind11/numpy.h>
+
 #include <npe_utils.h>
 #include <npe_typedefs.h>
+#include <npe_sparse_array.h>
+
+#include <Eigen/Sparse>
 #include <Eigen/Core>
 
 // We define a bunch of stuff to make your ide work with npe_* syntax and produce valid types.

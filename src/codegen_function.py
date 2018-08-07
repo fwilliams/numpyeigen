@@ -552,14 +552,7 @@ def write_type_id_getter(out_file, var_name):
 
 def write_header(out_file):
     out_file.write("#define " + FOR_REAL_DEFINE + "\n")
-    out_file.write("#include <pybind11/pybind11.h>\n")
-    out_file.write("#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION\n")
-    out_file.write("#include <numpy/arrayobject.h>\n")
-    out_file.write("#include <pybind11/eigen.h>\n")
-    out_file.write("#include <pybind11/numpy.h>\n")
     out_file.write("#include <npe.h>\n")
-    out_file.write("#include <sparse_array.h>\n")
-    out_file.write("#include <Eigen/Sparse>\n")
     out_file.write(preamble_source_code + "\n")
 
     write_code_function_definition(out_file)

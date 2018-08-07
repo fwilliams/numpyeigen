@@ -3,7 +3,7 @@
 
 #include <Eigen/Core>
 
-#include <sparse_array.h>
+#include <npe_sparse_array.h>
 
 namespace npe {
 namespace detail {
