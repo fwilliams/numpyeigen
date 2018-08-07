@@ -13,6 +13,12 @@ function(npe_add_module target_name)
     set(C_PREPROCESSOR_CMD "cpp")
   endif()
 
+  execute_process(COMMAND  python -c "import sys;print(\"%d.%d\" % (sys.version_info.major,  sys.version_info.minor))"
+    OUTPUT_VARIABLE PY_VERSION)
+  if (PY_VERSION VERSION_LESS 3)
+    error("NumpyEigen requires Python version > 3.0. Got ${PY_VERSION}.")
+  endif()
+
   execute_process(COMMAND python -c "import numpy as np;import sys;sys.stdout.write(np.get_include())"
     OUTPUT_VARIABLE NP_INCLUDE_DIR)
   execute_process(
