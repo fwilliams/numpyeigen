@@ -1,6 +1,11 @@
 set(NPE_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 function(npe_add_module target_name)
+  find_program(CPP_PROGRAM, cpp)
+  if (NOT ${CPP_PROGRAM})
+    error("Could not find C preprocessor binary `cpp`. This is required to generate bindings!")
+  endif()
+
   execute_process(COMMAND python -c "import numpy as np;import sys;sys.stdout.write(np.get_include())"
     OUTPUT_VARIABLE NP_INCLUDE_DIR)
   execute_process(

@@ -94,26 +94,54 @@ class VariableMetadata(object):
         return str(self.__dict__)
 
 
+def which(program):
+    """
+    This is basically UNIX which
+    :param program: The name of the program to look for
+    :return: The name of the program or none if not found
+    """
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    return None
+
+
+def run_cpp(input_str):
+    with tempfile.NamedTemporaryFile(mode="w+") as tmpf:
+        tmpf.write(input_str)
+        tmpf.flush()
+        p = subprocess.Popen("cpp %s" % tmpf.name, shell=True, stdout=subprocess.PIPE)
+        output, err = p.communicate()
+
+        return output.decode('utf-8'), err
+
+
 def tokenize_npe_line(stmt_token, line, line_number):
     MAX_ITERS = 64
-
     SPLIT_TOKEN = "__NPE_SPLIT_NL__"
     cpp_str = "#define %s(arg, ...) arg %s %s(__VA_ARGS__)" % (stmt_token, SPLIT_TOKEN, stmt_token)
 
     tokenized = cpp_str + "\n" + line + "\n"
 
     exited_before_max_iters = False
+
     for i in range(MAX_ITERS):
-        tmpf = tempfile.NamedTemporaryFile(mode="w+")
-        tmpf.write(tokenized)
-        tmpf.flush()
-        p = subprocess.Popen("cpp %s" % tmpf.name, shell=True, stdout=subprocess.PIPE)
-        (output, err) = p.communicate()
+        output, err = run_cpp(tokenized)
 
         if err:
             raise ParseError("Invalid code at line %d:\n%s" % (line_number, line))
 
-        output = output.decode('utf-8').split('\n')
+        output = output.split('\n')
 
         tokenized = ""
         for out_line in output:
@@ -132,8 +160,6 @@ def tokenize_npe_line(stmt_token, line, line_number):
             break
 
         tokenized = cpp_str + "\n" + tokenized
-
-        tmpf.close()
 
     if not exited_before_max_iters:
         raise ParseError("Reached token parser maximum recursion depth (%d) at line %d" % (MAX_ITERS, line_number))
@@ -763,6 +789,9 @@ if __name__ == "__main__":
     arg_parser.add_argument("-o", "--output", type=str, default="a.out")
 
     args = arg_parser.parse_args()
+
+    if not which("cpp"):
+        raise ParseError("Could not find C preprocessor binary `cpp`. This is required to generate bindings!")
 
     with open(args.file, 'r') as f:
         line_list = f.readlines()
