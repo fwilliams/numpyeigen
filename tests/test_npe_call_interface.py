@@ -1,12 +1,10 @@
-import unittest
-import sys
 import os
-import time
+import sys
+import unittest
 
 sys.path.append(os.getcwd())
 import numpy as np
 import numpyeigen_test as npe_test
-import numpyeigen_helpers as npe_helpers
 
 
 class TestNpeCallInterface(unittest.TestCase):

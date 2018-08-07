@@ -1,9 +1,9 @@
 #include <iostream>
 #include <Eigen/Core>
-#include <npe_utils.h>
+#include <npe.h>
 
-npe_function("mutate_matrix")
-npe_arg("a", "dense_f64", "dense_f32")
+npe_function(mutate_matrix)
+npe_arg(a, dense_f64, dense_f32)
 npe_begin_code()
 
 std::cout << "mutate_matrix()" << std::endl;

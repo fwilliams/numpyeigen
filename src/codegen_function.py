@@ -2,6 +2,8 @@ import argparse
 import itertools
 import os
 import sys
+import tempfile
+import subprocess
 
 
 class TermColors:
@@ -58,6 +60,8 @@ END_CODE_TOKEN = "npe_end_code"
 BINDING_INIT_TOKEN = "npe_function"
 COMMENT_TOKEN = "//"
 
+CPP_COMMAND = None  # Name of the command to run for the C preprocessor. Set at input.
+
 # TODO: More than one function per file
 # TODO: Refactor the frontend as a module that can be run on a file
 input_file_name = ""  # The name of the input file. Right now we enforce the one function, one file rule
@@ -90,6 +94,60 @@ class VariableMetadata(object):
 
     def __repr__(self):
         return str(self.__dict__)
+
+
+def run_cpp(input_str):
+    tmpf = tempfile.NamedTemporaryFile(mode="w+")
+    tmpf.write(input_str)
+    tmpf.flush()
+    cmd = CPP_COMMAND + " -w " + tmpf.name
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, err = p.communicate()
+    tmpf.close()
+    return output.decode('utf-8'), err
+
+
+def tokenize_npe_line(stmt_token, line, line_number):
+    MAX_ITERS = 64
+    SPLIT_TOKEN = "__NPE_SPLIT_NL__"
+    cpp_str = "#define %s(arg, ...) arg %s %s(__VA_ARGS__)" % (stmt_token, SPLIT_TOKEN, stmt_token)
+
+    cpp_input_str = cpp_str + "\n" + line + "\n"
+
+    exited_before_max_iters = False
+
+    for i in range(MAX_ITERS):
+        output, err = run_cpp(cpp_input_str)
+
+        if err:
+            raise ParseError("Invalid code at line %d:\n%s" % (line_number, line))
+
+        output = output.split('\n')
+
+        parsed_string = ""
+        for out_line in output:
+            if str(out_line).strip().startswith("#"):
+                continue
+            elif not out_line.strip():
+                continue
+            else:
+                parsed_string += str(out_line) + "\n"
+
+        tokens = parsed_string.split(SPLIT_TOKEN)
+
+        if tokens[-1].strip() == "%s()" % stmt_token:
+            exited_before_max_iters = True
+            tokens.pop()
+            break
+
+        cpp_input_str = cpp_str + "\n" + parsed_string
+
+    if not exited_before_max_iters:
+        raise ParseError("Reached token parser maximum recursion depth (%d) at line %d" % (MAX_ITERS, line_number))
+
+    tokens = [s.strip() for s in tokens]
+
+    return tokens
 
 
 def validate_identifier_name(var_name):
@@ -175,24 +233,12 @@ def parse_arg_statement(line, line_number, is_default):
 
     stmt_token = DEFAULT_ARG_TOKEN if is_default else ARG_TOKEN
 
-    line = parse_token(line.strip(), stmt_token, line_number=line_number, case_sensitive=False)
-    line = parse_token(line.strip(), '(', line_number=line_number)
+    tokens = tokenize_npe_line(stmt_token, line.strip(), line_number)
 
-    var_name, line = parse_string_token(line.strip(), line_number=line_number)
+    var_name = tokens[0]
+    var_types = tokens[1:]
+
     validate_identifier_name(var_name)
-    line = parse_token(line.strip(), ',', line_number=line_number)
-
-    var_types = []
-
-    while True:
-        type_str, line = parse_string_token(line.strip(), line_number=line_number)
-        var_types.append(type_str)
-        token, line = parse_one_of_tokens(line.strip(), [')', ','], line_number=line_number)
-        if token == ')':
-            if line.strip() != "":
-                # TODO: Pretty error message
-                raise ParseError("Expected end-of-line after ')' token on line %d" % line_number)
-            break
 
     var_value = var_types.pop() if is_default else None
 
@@ -278,12 +324,13 @@ def parse_end_code_statement(line, line_number):
 def parse_binding_init_statement(line, line_number):
     global BINDING_INIT_TOKEN
 
-    line = parse_token(line.strip(), BINDING_INIT_TOKEN, line_number=line_number, case_sensitive=False)
-    line = parse_token(line.strip(), '(', line_number=line_number)
-    binding_name, line = parse_string_token(line.strip(), line_number=line_number)
+    tokens = tokenize_npe_line(BINDING_INIT_TOKEN, line, line_number)
+    if len(tokens) > 1:
+        raise ParseError(BINDING_INIT_TOKEN + " got extra tokens, %s, at line %d. "
+                                              "Expected only the name of the function." % (tokens[1, :], line_number))
+    binding_name = tokens[0]
     validate_identifier_name(binding_name)
-    line = parse_token(line.strip(), ')', line_number=line_number)
-    parse_eol_token(line.strip(), line_number=line_number)
+
     return binding_name
 
 
@@ -298,18 +345,18 @@ def frontend_pass(lines):
             continue
         elif lines[line_number].strip().lower().startswith(ARG_TOKEN):
             raise ParseError("Got `%s` statement before `%s` at line %d" %
-                             (ARG_TOKEN, BINDING_INIT_TOKEN, line_number))
+                             (ARG_TOKEN, BINDING_INIT_TOKEN, line_number+1))
         elif lines[line_number].strip().lower().startswith(DEFAULT_ARG_TOKEN):
             raise ParseError("Got `%s` statement before `%s` at line %d" %
-                             (DEFAULT_ARG_TOKEN, BINDING_INIT_TOKEN, line_number))
+                             (DEFAULT_ARG_TOKEN, BINDING_INIT_TOKEN, line_number+1))
         elif lines[line_number].strip().lower().startswith(BEGIN_CODE_TOKEN):
             raise ParseError("Got `%s` statement before `%s` at line %d" %
-                             (BEGIN_CODE_TOKEN, BINDING_INIT_TOKEN, line_number))
+                             (BEGIN_CODE_TOKEN, BINDING_INIT_TOKEN, line_number+1))
         elif lines[line_number].strip().lower().startswith(END_CODE_TOKEN):
             raise ParseError("Got `%s` statement before `%s` at line %d" %
-                             (END_CODE_TOKEN, BINDING_INIT_TOKEN, line_number))
+                             (END_CODE_TOKEN, BINDING_INIT_TOKEN, line_number+1))
         elif lines[line_number].strip().lower().startswith(BINDING_INIT_TOKEN):
-            bound_function_name = parse_binding_init_statement(lines[line_number], line_number=line_number)
+            bound_function_name = parse_binding_init_statement(lines[line_number], line_number=line_number+1)
             binding_start_line_number = line_number + 1
             break
         else:
@@ -325,15 +372,15 @@ def frontend_pass(lines):
 
     for line_number in range(binding_start_line_number, len(lines)):
         if lines[line_number].strip().lower().startswith(ARG_TOKEN):
-            var_name, var_types, _ = parse_arg_statement(lines[line_number], line_number=line_number, is_default=False)
+            var_name, var_types, _ = parse_arg_statement(lines[line_number], line_number=line_number+1, is_default=False)
             print(TermColors.OKGREEN + "NumpyEigen Arg: " + TermColors.ENDC + var_name + " - " + str(var_types))
         elif lines[line_number].strip().lower().startswith(DEFAULT_ARG_TOKEN):
             var_name, var_types, var_value = \
-                parse_arg_statement(lines[line_number], line_number=line_number, is_default=True)
+                parse_arg_statement(lines[line_number], line_number=line_number+1, is_default=True)
             print(TermColors.OKGREEN + "NumpyEigen Default Arg: " + TermColors.ENDC + var_name + " - " +
                   str(var_types) + " - " + str(var_value))
         elif lines[line_number].strip().lower().startswith(BEGIN_CODE_TOKEN):
-            parse_begin_code_statement(lines[line_number], line_number=line_number)
+            parse_begin_code_statement(lines[line_number], line_number=line_number+1)
             code_start_line_number = line_number + 1
             break
         elif len(lines[line_number].strip()) == 0:
@@ -343,7 +390,7 @@ def frontend_pass(lines):
             # Ignore commented lines
             continue
         else:
-            raise ParseError("Unexpected tokens at line %d: %s" % (line_number, lines[line_number]))
+            raise ParseError("Unexpected tokens at line %d: %s" % (line_number+1, lines[line_number]))
 
     if code_start_line_number < 0:
         raise ParseError("Invalid binding file. Must does not contain a %s() statement." % BEGIN_CODE_TOKEN)
@@ -351,7 +398,7 @@ def frontend_pass(lines):
     reached_end_token = False
     for line_number in range(code_start_line_number, len(lines)):
         if lines[line_number].lower().startswith(END_CODE_TOKEN):
-            parse_end_code_statement(lines[line_number], line_number=line_number)
+            parse_end_code_statement(lines[line_number], line_number=line_number+1)
             reached_end_token = True
         elif not reached_end_token:
             binding_source_code += lines[line_number]
@@ -404,6 +451,7 @@ STORAGE_ORDER_XM = "NoOrder"
 MAP_TYPE_PREFIX = "npe_Map_"
 MATRIX_TYPE_PREFIX = "npe_Matrix_"
 SCALAR_TYPE_PREFIX = "npe_Scalar_"
+FOR_REAL_DEFINE = "__NPE_FOR_REAL__"
 
 
 def has_numpy_types():
@@ -488,13 +536,13 @@ def write_type_id_getter(out_file, var_name):
 
 
 def write_header(out_file):
+    out_file.write("#define " + FOR_REAL_DEFINE + "\n")
     out_file.write("#include <pybind11/pybind11.h>\n")
     out_file.write("#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION\n")
     out_file.write("#include <numpy/arrayobject.h>\n")
     out_file.write("#include <pybind11/eigen.h>\n")
     out_file.write("#include <pybind11/numpy.h>\n")
-    out_file.write("#include <npe_typedefs.h>\n")
-    out_file.write("#include <npe_utils.h>\n")
+    out_file.write("#include <npe.h>\n")
     out_file.write("#include <sparse_array.h>\n")
     out_file.write("#include <Eigen/Sparse>\n")
     out_file.write(preamble_source_code + "\n")
@@ -719,9 +767,12 @@ def backend_pass(out_file):
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("file", type=str)
+    arg_parser.add_argument("cpp_cmd", type=str)
     arg_parser.add_argument("-o", "--output", type=str, default="a.out")
 
     args = arg_parser.parse_args()
+
+    CPP_COMMAND = args.cpp_cmd
 
     with open(args.file, 'r') as f:
         line_list = f.readlines()
