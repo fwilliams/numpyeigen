@@ -52,7 +52,7 @@ NUMPY_ARRAY_TYPES_TO_CPP = {
     'sparse_c256': ('std::complex<__float128>', 'c256', 'complex256')}
 
 NUMPY_ARRAY_TYPES = list(NUMPY_ARRAY_TYPES_TO_CPP.keys())
-MATCHES_TOKEN = "matches"
+MATCHES_TOKEN = "npe_matches"
 ARG_TOKEN = "npe_arg"
 DEFAULT_ARG_TOKEN = "npe_default_arg"
 BEGIN_CODE_TOKEN = "npe_begin_code"

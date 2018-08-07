@@ -11,14 +11,14 @@ npe_function(test_binding)
 // the corresponding Python function takes a numpy array whose dtype is float32 or float64
 npe_arg(a, dense_f32, dense_f64)
 
-// This is another input variable, 'b'. It's type is a matches() statement. In this case, the matches() says that the
-// type of 'b' must match the type of 'a'. matches() statements can only match to numpy overloaded variables.
-npe_arg(b, matches(a))
+// This is another input variable, 'b'. It's type is a npe_matches() statement. In this case, the npe_matches() says that the
+// type of 'b' must match the type of 'a'. npe_matches() statements can only match to numpy overloaded variables.
+npe_arg(b, npe_matches(a))
 
 // Here is another variable 'c' and two variables whose types have to match it.
 npe_arg(c, dense_i32, dense_i64)
-npe_arg(d, matches(c))
-npe_arg(e, matches(d))
+npe_arg(d, npe_matches(c))
+npe_arg(e, npe_matches(d))
 
 // This is a non-numpy overloaded input parameter of type int.
 npe_arg(f, int)

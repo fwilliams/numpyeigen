@@ -6,7 +6,7 @@
 
 npe_function(sparse_matrix_add)
 npe_arg(a, sparse_f64, sparse_f32)
-npe_arg(b, matches(a))
+npe_arg(b, npe_matches(a))
 npe_begin_code()
 
 npe_Matrix_a ret1 = a + b;

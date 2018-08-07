@@ -7,9 +7,6 @@
 // We define a bunch of stuff to make your ide work with npe_* syntax and produce valid types.
 // When we actually generate the bindings all of this is gone
 #ifndef __NPE_FOR_REAL__
-#define __NPE_GET_FIRST(arg, ...) arg
-#define __NPE_MATRIX_TYPE(arg, ...) npe_Matrix_##arg
-#define __NPE_MAP_TYPE(arg, ...) npe_Map_##arg
 
 namespace npe {
 namespace detail {
@@ -17,8 +14,77 @@ namespace detail {
 typedef Eigen::Matrix<std::double_t, Eigen::Dynamic, Eigen::Dynamic> matrix_dense_f64;
 typedef Eigen::Map<matrix_dense_f64, Eigen::Aligned> dense_f64;
 
+typedef Eigen::Matrix<std::float_t, Eigen::Dynamic, Eigen::Dynamic> matrix_dense_f32;
+typedef Eigen::Map<matrix_dense_f32, Eigen::Aligned> dense_f32;
+
+
+typedef Eigen::Matrix<std::int8_t, Eigen::Dynamic, Eigen::Dynamic> matrix_dense_i8;
+typedef Eigen::Map<matrix_dense_i8, Eigen::Aligned> dense_i8;
+
+typedef Eigen::Matrix<std::int16_t, Eigen::Dynamic, Eigen::Dynamic> matrix_dense_i16;
+typedef Eigen::Map<matrix_dense_i16, Eigen::Aligned> dense_i16;
+
+typedef Eigen::Matrix<std::int32_t, Eigen::Dynamic, Eigen::Dynamic> matrix_dense_i32;
+typedef Eigen::Map<matrix_dense_i32, Eigen::Aligned> dense_i32;
+
+typedef Eigen::Matrix<std::int64_t, Eigen::Dynamic, Eigen::Dynamic> matrix_dense_i64;
+typedef Eigen::Map<matrix_dense_i64, Eigen::Aligned> dense_i64;
+
+
+typedef Eigen::Matrix<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic> matrix_dense_u8;
+typedef Eigen::Map<matrix_dense_u8, Eigen::Aligned> dense_u8;
+
+typedef Eigen::Matrix<std::uint16_t, Eigen::Dynamic, Eigen::Dynamic> matrix_dense_u16;
+typedef Eigen::Map<matrix_dense_u16, Eigen::Aligned> dense_u16;
+
+typedef Eigen::Matrix<std::uint32_t, Eigen::Dynamic, Eigen::Dynamic> matrix_dense_u32;
+typedef Eigen::Map<matrix_dense_u32, Eigen::Aligned> dense_u32;
+
+typedef Eigen::Matrix<std::uint64_t, Eigen::Dynamic, Eigen::Dynamic> matrix_dense_u64;
+typedef Eigen::Map<matrix_dense_u64, Eigen::Aligned> dense_u64;
+
+
+
+
+typedef Eigen::Matrix<std::double_t, Eigen::Dynamic, Eigen::Dynamic> matrix_sparse_f64;
+typedef Eigen::Map<matrix_sparse_f64, Eigen::Aligned> sparse_f64;
+
+typedef Eigen::Matrix<std::float_t, Eigen::Dynamic, Eigen::Dynamic> matrix_sparse_f32;
+typedef Eigen::Map<matrix_sparse_f32, Eigen::Aligned> sparse_f32;
+
+
+typedef Eigen::Matrix<std::int8_t, Eigen::Dynamic, Eigen::Dynamic> matrix_sparse_i8;
+typedef Eigen::Map<matrix_sparse_i8, Eigen::Aligned> sparse_i8;
+
+typedef Eigen::Matrix<std::int16_t, Eigen::Dynamic, Eigen::Dynamic> matrix_sparse_i16;
+typedef Eigen::Map<matrix_sparse_i16, Eigen::Aligned> sparse_i16;
+
+typedef Eigen::Matrix<std::int32_t, Eigen::Dynamic, Eigen::Dynamic> matrix_sparse_i32;
+typedef Eigen::Map<matrix_sparse_i32, Eigen::Aligned> sparse_i32;
+
+typedef Eigen::Matrix<std::int64_t, Eigen::Dynamic, Eigen::Dynamic> matrix_sparse_i64;
+typedef Eigen::Map<matrix_sparse_i64, Eigen::Aligned> sparse_i64;
+
+
+typedef Eigen::Matrix<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic> matrix_sparse_u8;
+typedef Eigen::Map<matrix_sparse_u8, Eigen::Aligned> sparse_u8;
+
+typedef Eigen::Matrix<std::uint16_t, Eigen::Dynamic, Eigen::Dynamic> matrix_sparse_u16;
+typedef Eigen::Map<matrix_sparse_u16, Eigen::Aligned> sparse_u16;
+
+typedef Eigen::Matrix<std::uint32_t, Eigen::Dynamic, Eigen::Dynamic> matrix_sparse_u32;
+typedef Eigen::Map<matrix_sparse_u32, Eigen::Aligned> sparse_u32;
+
+typedef Eigen::Matrix<std::uint64_t, Eigen::Dynamic, Eigen::Dynamic> matrix_sparse_u64;
+typedef Eigen::Map<matrix_sparse_u64, Eigen::Aligned> sparse_u64;
 }
+
 }
+
+
+#define __NPE_GET_FIRST(arg, ...) arg
+#define __NPE_MATRIX_TYPE(arg, ...) npe_Matrix_##arg
+#define __NPE_MAP_TYPE(arg, ...) npe_Map_##arg
 
 #define npe_function(name) void name() {
 #define npe_arg(name, ...) \
@@ -31,6 +97,8 @@ typedef Eigen::Map<matrix_dense_f64, Eigen::Aligned> dense_f64;
   npe::detail::__NPE_GET_FIRST(__VA_ARGS__) name;
 #define npe_begin_code()
 #define npe_end_code() }
+#define npe_matches(x) dense_f32
+
 #endif // __NPE_FOR_REAL__
 
 #endif // NPE_H

@@ -6,7 +6,7 @@
 
 npe_function(sparse_matrix_passthru)
 npe_arg(a, sparse_f64, sparse_f32)
-npe_arg(b, matches(a))
+npe_arg(b, npe_matches(a))
 npe_begin_code()
 
 // This addition should have no effect which is what we test.
