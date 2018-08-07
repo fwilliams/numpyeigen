@@ -60,6 +60,8 @@ END_CODE_TOKEN = "npe_end_code"
 BINDING_INIT_TOKEN = "npe_function"
 COMMENT_TOKEN = "//"
 
+CPP_COMMAND = None  # Name of the command to run for the C preprocessor. Set at input.
+
 # TODO: More than one function per file
 # TODO: Refactor the frontend as a module that can be run on a file
 input_file_name = ""  # The name of the input file. Right now we enforce the one function, one file rule
@@ -94,36 +96,15 @@ class VariableMetadata(object):
         return str(self.__dict__)
 
 
-def which(program):
-    """
-    This is basically UNIX which
-    :param program: The name of the program to look for
-    :return: The name of the program or none if not found
-    """
-    def is_exe(fpath):
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-
-    fpath, fname = os.path.split(program)
-    if fpath:
-        if is_exe(program):
-            return program
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            exe_file = os.path.join(path, program)
-            if is_exe(exe_file):
-                return exe_file
-
-    return None
-
-
 def run_cpp(input_str):
-    with tempfile.NamedTemporaryFile(mode="w+") as tmpf:
-        tmpf.write(input_str)
-        tmpf.flush()
-        p = subprocess.Popen("cpp %s" % tmpf.name, shell=True, stdout=subprocess.PIPE)
-        output, err = p.communicate()
-
-        return output.decode('utf-8'), err
+    tmpf = tempfile.NamedTemporaryFile(mode="w+")
+    tmpf.write(input_str)
+    tmpf.flush()
+    cmd = CPP_COMMAND + " -w " + tmpf.name
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, err = p.communicate()
+    tmpf.close()
+    return output.decode('utf-8'), err
 
 
 def tokenize_npe_line(stmt_token, line, line_number):
@@ -131,35 +112,35 @@ def tokenize_npe_line(stmt_token, line, line_number):
     SPLIT_TOKEN = "__NPE_SPLIT_NL__"
     cpp_str = "#define %s(arg, ...) arg %s %s(__VA_ARGS__)" % (stmt_token, SPLIT_TOKEN, stmt_token)
 
-    tokenized = cpp_str + "\n" + line + "\n"
+    cpp_input_str = cpp_str + "\n" + line + "\n"
 
     exited_before_max_iters = False
 
     for i in range(MAX_ITERS):
-        output, err = run_cpp(tokenized)
+        output, err = run_cpp(cpp_input_str)
 
         if err:
             raise ParseError("Invalid code at line %d:\n%s" % (line_number, line))
 
         output = output.split('\n')
 
-        tokenized = ""
+        parsed_string = ""
         for out_line in output:
             if str(out_line).strip().startswith("#"):
                 continue
             elif not out_line.strip():
                 continue
             else:
-                tokenized += str(out_line) + "\n"
+                parsed_string += str(out_line) + "\n"
 
-        tokens = tokenized.split(SPLIT_TOKEN)
+        tokens = parsed_string.split(SPLIT_TOKEN)
 
         if tokens[-1].strip() == "%s()" % stmt_token:
             exited_before_max_iters = True
             tokens.pop()
             break
 
-        tokenized = cpp_str + "\n" + tokenized
+        cpp_input_str = cpp_str + "\n" + parsed_string
 
     if not exited_before_max_iters:
         raise ParseError("Reached token parser maximum recursion depth (%d) at line %d" % (MAX_ITERS, line_number))
@@ -786,12 +767,12 @@ def backend_pass(out_file):
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("file", type=str)
+    arg_parser.add_argument("cpp_cmd", type=str)
     arg_parser.add_argument("-o", "--output", type=str, default="a.out")
 
     args = arg_parser.parse_args()
 
-    if not which("cpp"):
-        raise ParseError("Could not find C preprocessor binary `cpp`. This is required to generate bindings!")
+    CPP_COMMAND = args.cpp_cmd
 
     with open(args.file, 'r') as f:
         line_list = f.readlines()
