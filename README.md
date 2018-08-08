@@ -41,6 +41,7 @@ When compiled, the following code will generate a function `foo(a, b, c, d, e, f
 `foo` returns a tuple of values computed from its inputs.
 
 ```c++
+#include <npe.h>
 #include <tuple>
 #include <string>
 
