@@ -88,6 +88,7 @@ namespace npe {
 #define npe_begin_code()
 #define npe_end_code() }
 #define npe_matches(x) dense_f32
+#define npe_doc(docstr)
 
 #endif // __NPE_FOR_REAL__
 

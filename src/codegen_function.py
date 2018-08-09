@@ -108,9 +108,9 @@ class VariableMetadata(object):
         return str(self.__dict__)
 
 
-def log(log_level, logstr, end='\n'):
+def log(log_level, logstr, end='\n', file=sys.stdout):
     if log_level <= verbosity_level:
-        print(logstr, end=end)
+        print(logstr, end=end, file=file)
 
 
 def run_cpp(input_str):
@@ -137,7 +137,8 @@ def tokenize_npe_line(stmt_token, line, line_number):
         output, err = run_cpp(cpp_input_str)
 
         if err:
-            raise ParseError("Invalid code at line %d:\n%s" % (line_number, line))
+            raise ParseError("Invalid code at line %d:\nCPP Error message:\n%s" %
+                             (line_number, err.decode("utf-8")))
 
         output = output.split('\n')
 
@@ -467,7 +468,7 @@ def frontend_pass(lines):
         elif parse_stmt_call(DOC_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             parse_doc_statement(lines[line_number], line_number=line_number+1)
             log(LOG_INFO_VERBOSE,
-                TermColors.OKGREEN + "NumpyEigen Docstring")
+                TermColors.OKGREEN + "NumpyEigen Docstring - %s" % documentation_string)
         elif parse_stmt_call(BEGIN_CODE_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             parse_begin_code_statement(lines[line_number], line_number=line_number+1)
             code_start_line_number = line_number + 1
@@ -835,6 +836,8 @@ def backend_pass(out_file):
 
     out_file.write("\n")
     out_file.write("}")
+    if len(documentation_string) > 0:
+        out_file.write(", " + documentation_string)
 
     arg_list = ""
     for arg_name, arg_meta in input_variable_meta.items():
