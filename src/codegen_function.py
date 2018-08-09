@@ -61,6 +61,7 @@ BEGIN_CODE_TOKEN = "npe_begin_code"
 END_CODE_TOKEN = "npe_end_code"
 BINDING_INIT_TOKEN = "npe_function"
 DTYPE_TOKEN = "npe_dtype"
+DOC_TOKEN = "npe_doc"
 COMMENT_TOKEN = "//"
 
 CPP_COMMAND = None  # Name of the command to run for the C preprocessor. Set at input.
@@ -77,6 +78,7 @@ input_dtypes = {}  # Map of dtype variables. The keys are the names, and the val
 input_variable_meta = {}  # Dictionary mapping variable names to types
 binding_source_code = ""  # The source code of the binding
 preamble_source_code = ""  # The code that comes before npe_* statements
+documentation_string = ""  # Function documentatioo
 
 LOG_DEBUG = 3
 LOG_INFO = 1
@@ -348,6 +350,21 @@ def parse_dtype_statement(line, line_number):
     return name, types
 
 
+def parse_doc_statement(line, line_number):
+    global DOC_TOKEN, documentation_string
+
+    tokens = tokenize_npe_line(DOC_TOKEN, line, line_number)
+
+    if len(tokens) == 0:
+        raise ParseError("Got %s statement at line %d but no documentation string." % (DOC_TOKEN, line_number))
+
+    if len(tokens) > 1:
+        raise ParseError("Got more than one documentation token at in %s statement at line %d. "
+                         "Did you forget quotes around the docstring?" % (DOC_TOKEN, line_number))
+
+    documentation_string = tokens[0]
+
+
 def parse_begin_code_statement(line, line_number):
     global BEGIN_CODE_TOKEN
     line = parse_token(line.strip(), BEGIN_CODE_TOKEN, line_number=line_number, case_sensitive=False)
@@ -413,6 +430,9 @@ def frontend_pass(lines):
         elif parse_stmt_call(DTYPE_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             raise ParseError("Got `%s` statement before `%s` at line %d" %
                              (DTYPE_TOKEN, BINDING_INIT_TOKEN, line_number+1))
+        elif parse_stmt_call(DOC_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
+            raise ParseError("Got `%s` statement before `%s` at line %d" %
+                             (DOC_TOKEN, BINDING_INIT_TOKEN, line_number+1))
         elif parse_stmt_call(BINDING_INIT_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             bound_function_name = parse_binding_init_statement(lines[line_number], line_number=line_number+1)
             binding_start_line_number = line_number + 1
@@ -424,7 +444,7 @@ def frontend_pass(lines):
     if binding_start_line_number < 0:
         raise ParseError("Invalid binding file. Must begin with %s(<function_name>)." % BINDING_INIT_TOKEN)
 
-    log(LOG_INFO, TermColors.OKGREEN + "NumpyEigen Function: " + TermColors.ENDC + bound_function_name)
+    log(LOG_INFO_VERBOSE, TermColors.OKGREEN + "NumpyEigen Function: " + TermColors.ENDC + bound_function_name)
 
     code_start_line_number = -1
 
@@ -444,6 +464,10 @@ def frontend_pass(lines):
             log(LOG_INFO_VERBOSE,
                 TermColors.OKGREEN + "NumpyEigen DType: " + TermColors.ENDC + dtype_name + " - " +
                 str(dtype_types))
+        elif parse_stmt_call(DOC_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
+            parse_doc_statement(lines[line_number], line_number=line_number+1)
+            log(LOG_INFO_VERBOSE,
+                TermColors.OKGREEN + "NumpyEigen Docstring")
         elif parse_stmt_call(BEGIN_CODE_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             parse_begin_code_statement(lines[line_number], line_number=line_number+1)
             code_start_line_number = line_number + 1
@@ -828,7 +852,7 @@ if __name__ == "__main__":
     arg_parser.add_argument("file", type=str)
     arg_parser.add_argument("cpp_cmd", type=str)
     arg_parser.add_argument("-o", "--output", type=str, default="a.out")
-    arg_parser.add_argument("-v", "--verbosity-level", type=int, default=1, help="How verbose is the output. "
+    arg_parser.add_argument("-v", "--verbosity-level", type=int, default=LOG_INFO, help="How verbose is the output. "
                                                                                  "< 0 = silent, 0 = only errors, "
                                                                                  "1 = normal, 2 = verbose, > 3 = debug")
 

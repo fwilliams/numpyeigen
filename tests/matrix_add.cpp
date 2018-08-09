@@ -5,6 +5,7 @@
 npe_function(matrix_add)
 npe_arg(a, dense_f64, dense_f32)
 npe_arg(b, npe_matches(a))
+npe_doc(R"(Add two matrices.\nThis functions adds two matrices together.)"})
 npe_begin_code()
 
 npe_Matrix_a ret1 = a + b;
