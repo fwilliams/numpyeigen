@@ -15,6 +15,7 @@ npe_add_module(numpyeigen_test
     sparse_matrix_passthru.cpp
     mutate_sparse_matrix.cpp
     default_arg.cpp
+    docstring.cpp
     no_numpy.cpp)
 
 target_link_libraries(numpyeigen_test PRIVATE igl::core)
@@ -39,3 +40,5 @@ add_test(NAME test_npe_call_interface
         COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_npe_call_interface.py)
 add_test(NAME test_1d_arrays
         COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_1d_arrays.py)
+add_test(NAME test_docstring
+        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_docstring.py)

@@ -146,8 +146,6 @@ def tokenize_npe_line(stmt_token, line, line_number):
         for out_line in output:
             if str(out_line).strip().startswith("#"):
                 continue
-            elif not out_line.strip():
-                continue
             else:
                 parsed_string += str(out_line) + "\n"
 
@@ -351,8 +349,10 @@ def parse_dtype_statement(line, line_number):
     return name, types
 
 
-def parse_doc_statement(line, line_number):
+def parse_doc_statement(line, line_number, skip):
     global DOC_TOKEN, documentation_string
+    if not skip:
+        return
 
     tokens = tokenize_npe_line(DOC_TOKEN, line, line_number)
 
@@ -364,6 +364,9 @@ def parse_doc_statement(line, line_number):
                          "Did you forget quotes around the docstring?" % (DOC_TOKEN, line_number))
 
     documentation_string = tokens[0]
+
+    log(LOG_INFO_VERBOSE,
+        TermColors.OKGREEN + "NumpyEigen Docstring - %s" % documentation_string)
 
 
 def parse_begin_code_statement(line, line_number):
@@ -449,36 +452,65 @@ def frontend_pass(lines):
 
     code_start_line_number = -1
 
+    parsing_doc = False
+    doc_lines = ""
     for line_number in range(binding_start_line_number, len(lines)):
         if parse_stmt_call(ARG_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             var_name, var_types, _ = parse_arg_statement(lines[line_number], line_number=line_number+1, is_default=False)
             log(LOG_INFO_VERBOSE,
                 TermColors.OKGREEN + "NumpyEigen Arg: " + TermColors.ENDC + var_name + " - " + str(var_types))
+
+            parse_doc_statement(doc_lines, line_number=line_number + 1, skip=parsing_doc)
+            parsing_doc = False
         elif parse_stmt_call(DEFAULT_ARG_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             var_name, var_types, var_value = \
                 parse_arg_statement(lines[line_number], line_number=line_number+1, is_default=True)
             log(LOG_INFO_VERBOSE,
                 TermColors.OKGREEN + "NumpyEigen Default Arg: " + TermColors.ENDC + var_name + " - " +
                 str(var_types) + " - " + str(var_value))
+
+            # If we were parsing a multiline npe_doc, we've now reached the end so parse the whole statement
+            parse_doc_statement(doc_lines, line_number=line_number + 1, skip=parsing_doc)
+            parsing_doc = False
+
         elif parse_stmt_call(DTYPE_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             dtype_name, dtype_types = parse_dtype_statement(lines[line_number], line_number=line_number+1)
             log(LOG_INFO_VERBOSE,
                 TermColors.OKGREEN + "NumpyEigen DType: " + TermColors.ENDC + dtype_name + " - " +
                 str(dtype_types))
+
+            # If we were parsing a multiline npe_doc, we've now reached the end so parse the whole statement
+            parse_doc_statement(doc_lines, line_number=line_number + 1, skip=parsing_doc)
+            parsing_doc = False
+
         elif parse_stmt_call(DOC_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
-            parse_doc_statement(lines[line_number], line_number=line_number+1)
-            log(LOG_INFO_VERBOSE,
-                TermColors.OKGREEN + "NumpyEigen Docstring - %s" % documentation_string)
+            if documentation_string != "":
+                raise ParseError("Multiple `%s` statements for one function at line %d." % (DOC_TOKEN, line_number+1))
+
+            doc_lines += lines[line_number]
+            parsing_doc = True
+
         elif parse_stmt_call(BEGIN_CODE_TOKEN, lines[line_number], line_number=line_number+1, throw=False):
             parse_begin_code_statement(lines[line_number], line_number=line_number+1)
             code_start_line_number = line_number + 1
+
+            # If we were parsing a multiline npe_doc, we've now reached the end so parse the whole statement
+            parse_doc_statement(doc_lines, line_number=line_number + 1, skip=parsing_doc)
             break
+
+        elif parsing_doc:
+            # If we're parsing a multiline doc string, accumulate the line
+            doc_lines += lines[line_number]
+            continue
+
         elif len(lines[line_number].strip()) == 0:
             # Ignore newlines and whitespace
             continue
+
         elif lines[line_number].strip().lower().startswith(COMMENT_TOKEN):
             # Ignore commented lines
             continue
+
         else:
             raise ParseError("Unexpected tokens at line %d: %s" % (line_number+1, lines[line_number]))
 
