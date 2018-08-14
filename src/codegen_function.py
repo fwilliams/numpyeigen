@@ -761,8 +761,14 @@ def write_code_block(out_file, combo):
                 eigen_type = "Eigen::SparseMatrix<" + cpp_type + ", " + \
                                storage_order_enum + ", int>"
                 out_file.write("typedef " + eigen_type + " Matrix_%s" % var_name + ";\n")
+                out_file.write("#if EIGEN_WORLD_VERSION == 3 && EIGEN_MAJOR_VERSION <= 2\n")
                 out_file.write(indent(2) + "typedef Eigen::MappedSparseMatrix<" + cpp_type + ", " +
                                storage_order_enum + ", int> Map_" + var_name + ";\n")
+                out_file.write("#elif (EIGEN_WORLD_VERSION == 3 && "
+                               "EIGEN_MAJOR_VERSION > 2) || (EIGEN_WORLD_VERSION > 3)\n")
+                out_file.write(indent(2) + "typedef Eigen::Map<Matrix_" + var_name + "> Map_" + var_name + ";\n")
+                out_file.write("#endif\n")
+
             else:
                 eigen_type = "Eigen::Matrix<" + cpp_type + ", " + "Eigen::Dynamic, " + "Eigen::Dynamic, " + \
                              storage_order_enum + ">"
