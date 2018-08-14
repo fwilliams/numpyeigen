@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 2.8.12)
-project(cmake_example)
+cmake_minimum_required(VERSION 3.2)
+project(NumpyEigenTests)
 
 # This is a hack because pybind11 produces a million warnings
 set(CMAKE_CXX_FLAGS  "-Wno-deprecated-declarations" )
@@ -17,7 +17,7 @@ npe_add_module(numpyeigen_test
     default_arg.cpp
     docstring.cpp
     no_numpy.cpp)
-target_link_libraries(numpyeigen_test PRIVATE eigen)
+target_link_libraries(numpyeigen_test PRIVATE Eigen3::Eigen)
 
 # A vanilla pybind11 module used to write functions to compare against pyeigen
 execute_process(COMMAND python -c "import numpy as np;import sys;sys.stdout.write(np.get_include())"
@@ -27,7 +27,7 @@ execute_process(
     python -c "from sysconfig import get_paths;import sys;sys.stdout.write(get_paths()['include'])"
   OUTPUT_VARIABLE PYTHON_INCLUDE_DIR)
 pybind11_add_module(numpyeigen_helpers SHARED pybind11_helper_module.cpp)
-target_link_libraries(numpyeigen_helpers PRIVATE eigen)
+target_link_libraries(numpyeigen_helpers PRIVATE Eigen3::Eigen)
 target_include_directories(numpyeigen_helpers PRIVATE ${NPE_SRC_DIR} ${PYTHON_INCLUDE_DIR} ${NP_INCLUDE_DIR})
 
 

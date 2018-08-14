@@ -44,7 +44,17 @@ function(npe_add_module target_name)
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
   pybind11_add_module(${target_name} SHARED ${module_source_filename} ${NPE_SRC_DIR}/npe_typedefs.cpp ${function_sources})
-  target_include_directories(${target_name} PRIVATE ${NPE_SRC_DIR} ${PYTHON_INCLUDE_DIR} ${NP_INCLUDE_DIR})
+  target_include_directories(${target_name} PUBLIC ${NPE_SRC_DIR} ${PYTHON_INCLUDE_DIR} ${NP_INCLUDE_DIR})
+
+  if(NOT NPE_EXTRA_CXX_FLAGS)
+    set(NPE_EXTRA_CXX_FLAGS "")
+  endif()
+
+  target_compile_options(${target_name} PUBLIC ${NPE_EXTRA_CXX_FLAGS})
+
+  if(${NPE_WITH_EIGEN})
+    target_link_libraries(${target_name} PUBLIC Eigen3::Eigen)
+  endif()
 
   # python ${make_module_BINDING_SOURCE}
 endfunction()
