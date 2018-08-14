@@ -71,8 +71,11 @@ endif()
 
 add_subdirectory(external/pybind11)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+set(NPE_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
 set(NPE_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-set(NPE_SRC_DIR ${NPE_BASE_DIR}/src)
+set(NPE_SRC_DIR "${NPE_BASE_DIR}/src" PARENT_SCOPE)
+set(NPE_SRC_DIR "${NPE_BASE_DIR}/src")
+
 include(numpyeigenTools)
 
 if(${NPE_WITH_EIGEN})
