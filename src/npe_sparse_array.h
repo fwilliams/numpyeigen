@@ -75,8 +75,11 @@ struct sparse_array : pybind11::object {
     pybind11::array indices = this->indices();
     pybind11::array indptr = this->indptr();
 
-    // TODO: Use Eigen::Map in post 3.3
+#if EIGEN_WORLD_VERSION == 3 && EIGEN_MAJOR_VERSION <= 2
     typedef Eigen::MappedSparseMatrix<typename T::Scalar, T::Options, typename T::StorageIndex> RetMap;
+#elif (EIGEN_WORLD_VERSION == 3 && EIGEN_MAJOR_VERSION > 2) || (EIGEN_WORLD_VERSION > 3)
+    typedef Eigen::Map<T> RetMap;
+#endif
     return RetMap(shape[0], shape[1], this->nnz(),
                   (typename T::StorageIndex*) indptr.data(),
                   (typename T::StorageIndex*) indices.data(),

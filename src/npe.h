@@ -15,6 +15,10 @@
 #include <Eigen/Sparse>
 #include <Eigen/Core>
 
+static_assert(EIGEN_WORLD_VERSION >= 3 || EIGEN_WORLD_VERSION == 3 && EIGEN_MAJOR_VERSION >= 2,
+              "NumpyEigen does not support verions prior to 3.2. Please update Eigen to at least version 3.2");
+
+
 // We define a bunch of stuff to make your ide work with npe_* syntax and produce valid types.
 // When we actually generate the bindings all of this is gone
 #ifndef __NPE_FOR_REAL__
