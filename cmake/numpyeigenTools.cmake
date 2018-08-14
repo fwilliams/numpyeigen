@@ -1,5 +1,6 @@
-set(NPE_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
-
+# This function assumes the variable NPE_SRC_DIR is set to the source directory of NumpyEigen.
+# If you included the base directory of the project from your cmake project using `add_subdirectory(numpyeigen)`,
+# then this will be appropriately set.
 function(npe_add_module target_name)
   find_program(CPP_PROGRAM, cpp)
 
