@@ -45,23 +45,28 @@ When compiled, the following code will generate a function `foo(a, b, c, d, e, f
 #include <tuple>
 #include <string>
 
-npe_function(foo)                  // create a function named foo exposed to python
+// Create a function named foo exposed to python
+npe_function(foo)                     
 
 // The arguments to foo are as follows:
-// Each of these are transparently converted to appropriate Eigen::Map types
-npe_arg(a, type_f64, type_f32)       // a is a numpy array with dtype either float or double
-npe_arg(b, matches(a))               // b is a numpy array whose type has to match a
-npe_arg(c, type_i32, type_i64)       // c is a numpy array whose type is either int32 or int64
-npe_arg(d, std::string)              // d is a string
-npe_arg(f, sparse_f32, sparse_f64)   // f is a sparse matrix whose data is either float32 or float64
-npe_arg(e, int)                      // e is an int
+// Each of these are transparently converted from numpy types to appropriate Eigen::Map types
+// wiith zero copy overhead.
+npe_arg(a, dense_f64, type_f32)       // a is a numpy array with dtype either float or double
+npe_arg(b, matches(a))                // b is a numpy array whose type has to match a
+npe_arg(c, dense_i32, dense_i64)      // c is a numpy array whose type is either int32 or int64
+npe_arg(d, std::string)               // d is a string
+npe_arg(f, sparse_f32, sparse_f64)    // f is a sparse matrix whose data is either float32 or float64
+npe_arg(e, int)                       // e is an int
+
+// NumpyEigen supports doc strings as C++ string literals
+npe_doc("A function which computes various values from input matrices")
 
 // The C++ code for the function starts after this line
 npe_begin_code()
 
 // npe_Matrix_* are Eigen::Matrix<T> or Eigen::SparseMatrix<T> types corresponding to the inputs
 npe_Matrix_a ret1 = a + b;
-npe_Matrix_aret2 = a - c;
+npe_Matrix_a ret2 = a - c;
 int ret3 = d + std::string("concatenated");
 int ret4 = e + 2;
 npe_Matrix_f ret5 = f * 1.5;
