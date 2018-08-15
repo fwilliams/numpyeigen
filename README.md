@@ -58,7 +58,7 @@ npe_arg(d, std::string)               // d is a string
 npe_arg(f, sparse_f32, sparse_f64)    // f is a sparse matrix whose data is either float32 or float64
 npe_arg(e, int)                       // e is an int
 
-// NumpyEigen supports doc strings as C++ string literals
+// NumpyEigen supports doc strings which are expression evaluating to C strings or std::string types
 npe_doc("A function which computes various values from input matrices")
 
 // The C++ code for the function starts after this line
