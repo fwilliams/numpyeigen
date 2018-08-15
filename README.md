@@ -81,7 +81,13 @@ To create a Python Module named `mymodule` which exposes the function foo,
 stored in foo.cpp add the following to your `CMakeLists.txt`:
 
 ```cmake
-include(numpyeigenTools)  # This module is located in the `cmake` directory
+# Make numpyeigen available in the current project
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} /path/to/numpyeigen)
+include(numpyeigen)
+
+# Disable this to use your own version of eigen
+option(NPE_WITH_EIGEN "Use Eigen bundled with NumpyEigen" ON)
+
 npe_add_module(mymodule, BINDING_SOURCES foo.cpp)
 ```
 
