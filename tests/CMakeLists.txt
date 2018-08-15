@@ -5,8 +5,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/../cmake)
 include(numpyeigen)
 
 # This is a hack because pybind11 produces a million warnings
-set(CMAKE_CXX_FLAGS  "-Wno-deprecated-declarations" )
-set(CMAKE_CXX_STANDARD 14)
+#set(CMAKE_CXX_FLAGS  "-Wno-deprecated-declarations" )
+#set(CMAKE_CXX_STANDARD 14)
 
 # A module for writing bindings with our framework
 npe_add_module(numpyeigen_test

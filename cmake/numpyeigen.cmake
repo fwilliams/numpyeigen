@@ -150,6 +150,7 @@ function(npe_add_module target_name)
     target_link_libraries(${target_name} PUBLIC Eigen3::Eigen)
   endif()
 
-  # python ${make_module_BINDING_SOURCE}
+  # We require C++ 14
+  target_compile_features(${target_name} PRIVATE cxx_std_14)
 endfunction()
 
