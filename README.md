@@ -82,7 +82,7 @@ stored in foo.cpp add the following to your `CMakeLists.txt`:
 
 ```cmake
 # Make numpyeigen available in the current project
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} /path/to/numpyeigen)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} /path/to/numpyeigen/cmake)
 include(numpyeigen)
 
 # Disable this to use your own version of eigen
