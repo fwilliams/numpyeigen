@@ -17,6 +17,9 @@ class TestDocstring(unittest.TestCase):
                  "string..."
         self.assertTrue(docstr in npe_test.docstring.__doc__)
 
+        docstr = "this is the docstr"
+        self.assertTrue(docstr in npe_test.string_expr_docstring.__doc__)
+
 
 if __name__ == '__main__':
     unittest.main()

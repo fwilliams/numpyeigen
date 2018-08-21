@@ -20,6 +20,12 @@ class TestNpeCallInterface(unittest.TestCase):
         self.assertTrue(np.array_equal(ret, a))
         self.assertTrue(np.array_equal(a, expected))
 
+        def_str, def_nparr, ret = npe_test.default_arg(a, doubleit=True)
+        self.assertEqual(def_str, "abcabcdef")
+        self.assertEqual(def_nparr.shape, (0, 0))
+        self.assertTrue(np.array_equal(ret, a))
+        self.assertTrue(np.array_equal(a, expected))
+
     def test_passing_subset_of_arguments(self):
         a = np.eye(100)
         expected = np.array(a)
@@ -43,6 +49,13 @@ class TestNpeCallInterface(unittest.TestCase):
         self.assertEqual(def_nparr.shape, (7, 7))
         self.assertTrue(np.array_equal(ret, a))
         self.assertTrue(np.array_equal(a, expected))
+
+        def_str, def_nparr, ret = npe_test.default_arg(a, doubleit=True, c=np.eye(7), b="fff")
+        self.assertEqual(def_str, "ffffffdef")
+        self.assertEqual(def_nparr.shape, (7, 7))
+        self.assertTrue(np.array_equal(ret, a))
+        self.assertTrue(np.array_equal(a, expected))
+
 
     def test_passing_no_numpy_arguments(self):
         ret = npe_test.no_numpy("abc")

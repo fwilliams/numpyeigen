@@ -19,6 +19,7 @@ npe_add_module(numpyeigen_test
     mutate_sparse_matrix.cpp
     default_arg.cpp
     docstring.cpp
+    string_expr_docstring.cpp
     no_numpy.cpp)
 target_link_libraries(numpyeigen_test PRIVATE Eigen3::Eigen)
 
