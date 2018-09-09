@@ -1,0 +1,19 @@
+language: python
+python:
+  - "2.7"
+  - "3.3"
+  - "3.4"
+  - "3.5"
+  - "3.6"
+  - "3.7"
+compiler:
+  - gcc
+  - clang
+before_install:
+  - sudo apt-get install cmake
+install:
+  - pip install numpy scipy
+script:
+  - mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release
+  - make -j2
+  - make test
