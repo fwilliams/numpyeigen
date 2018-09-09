@@ -14,7 +14,7 @@ multiple NumPy or SciPy types, have zero copy overhead, and can make use of the 
 NumpyEigen transparently generates bindings which do all of the above, exposing numpy type information at compile 
 time to C++ code. 
 
-### Zero copy overhead 
+### Zero Copy-Overhead 
 Bindings written with NumpyEigen have zero copy overhead from Python to C++ and vice versa for any NumPy dense array or 
 SciPy CSR or CSC sparse matrix.
 
@@ -32,6 +32,7 @@ NumpyEigen only requires the system to have a valid C++ compiler and a running P
 
 NumpyEigen uses [pybind11](https://github.com/pybind/pybind11) under the hood which is included as a submodule. 
 Don't forget to `git clone --recursive`!
+
 
 ## Example
 See the repository [TODO: Example repo](https://github.com/fwilliams/numpyeigen/issues/9) for a fully 
@@ -77,6 +78,7 @@ return std::make_tuple(npe::move(ret1), npe::move(ret2), ret3, ret4, npe::move(r
 npe_end_code()
 ```
 
+#### Building with CMake
 To create a Python Module named `mymodule` which exposes the function foo, 
 stored in foo.cpp add the following to your `CMakeLists.txt`:
 
@@ -88,7 +90,16 @@ include(numpyeigen)
 npe_add_module(mymodule, BINDING_SOURCES foo.cpp)
 ```
 
-## Building and running tests
+
+## Configuring NumpyEigen
+NumpyEigen exposes several configuration options via CMake:
+* `NPE_PYTHON_EXECUTABLE`: The path to the python interpreter to build against. This interpreter is used to determine the correct headers and libraries when building.
+* `NPE_PYTHON_VERSION`: Request a specific version of Python on the system . NOTE: if `NPE_PYTHON_EXECUTABLE` is set, then this option is ignored.
+* `NPE_WITH_EIGEN`: NumpyEigen includes a bundled version of Eigen for convenience. If this option is set, then an interface library named `Eigen3::Eigen` is exposed and used to compile NumpyEigen modules. 
+* `NPE_ROOT`: The path to the root of the NumpyEigen codebase. If you include `numpyeigen.cmake` directly from this repository, you do not need to set this.
+
+
+## Building and Running Tests
 
 Don't forget to `git clone --recursive`!!!
 
