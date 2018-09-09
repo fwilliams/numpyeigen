@@ -51,7 +51,7 @@ npe_function(foo)
 // The arguments to foo are as follows:
 // Each of these are transparently converted from numpy types to appropriate Eigen::Map types
 // wiith zero copy overhead.
-npe_arg(a, dense_f64, type_f32)       // a is a numpy array with dtype either float or double
+npe_arg(a, dense_f64, dense_f32)       // a is a numpy array with dtype either float or double
 npe_arg(b, matches(a))                // b is a numpy array whose type has to match a
 npe_arg(c, dense_i32, dense_i64)      // c is a numpy array whose type is either int32 or int64
 npe_arg(d, std::string)               // d is a string
