@@ -15,9 +15,8 @@ class TestDocstring(unittest.TestCase):
         docstr = "This is\n" + \
                  "a multi-line\n" + \
                  "documentation\n" + \
-                 "\n" + \
-                 "\n" + \
                  "string..."
+
         self.assertTrue(docstr in npe_test.docstring.__doc__)
 
         docstr = "this is the docstr"

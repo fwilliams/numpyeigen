@@ -44,7 +44,7 @@ struct sparse_array : pybind11::object {
     return {{sz.first, sz.second}};
   }
 
-  constexpr ssize_t ndim() const {
+  const ssize_t ndim() const {
     return 2;
   }
 

@@ -170,11 +170,7 @@ function(npe_add_module target_name)
   if (MSVC)
     set(C_PREPROCESSOR_CMD "${CMAKE_CXX_COMPILER} /E")
   else()
-    find_program(cpp FIND_CPP)
-    if (NOT ${FIND_CPP})
-      message(FATAL_ERROR "Failed to find C preprocessor. This is needed to generate bindings!")
-    endif()
-    set(C_PREPROCESSOR_CMD "cpp")
+    set(C_PREPROCESSOR_CMD "${CMAKE_CXX_COMPILER} -w -E")
   endif()
 
   # Get the path to the Python header files
@@ -219,6 +215,8 @@ function(npe_add_module target_name)
   endif()
 
   # We require C++ 14 for auto return types
-  target_compile_features(${target_name} PRIVATE cxx_std_14)
+  set_target_properties(${target_name} PROPERTIES
+    CXX_STANDARD 14
+    CXX_STANDARD_REQUIRED ON)
 endfunction()
 

@@ -114,7 +114,7 @@ def log(log_level, logstr, end='\n', file=sys.stdout):
 
 
 def run_cpp(input_str):
-    tmpf = tempfile.NamedTemporaryFile(mode="w+")
+    tmpf = tempfile.NamedTemporaryFile(mode="w+", suffix=".cc")
     tmpf.write(input_str)
     tmpf.flush()
     cmd = CPP_COMMAND + " -w " + tmpf.name
@@ -122,6 +122,16 @@ def run_cpp(input_str):
     output, err = p.communicate()
     tmpf.close()
     return output.decode('utf-8'), err
+
+
+def arg_meta_in_order():
+    """
+    Iterate over the arguments and their meta data in the order they were passed in
+    :return: An iterator over (argument_name, argument_metadata)
+    """
+    for arg_name in input_variable_order:
+        arg_meta = input_variable_meta[arg_name]
+        yield arg_name, arg_meta
 
 
 def tokenize_npe_line(stmt_token, line, line_number):
@@ -266,7 +276,7 @@ def parse_arg_statement(line, line_number, is_default):
         # TODO: Pretty error message
         raise ParseError('%s("%s") got no type arguments' % (stmt_token, var_name))
     elif len(var_types) > 1 or (len(var_types) == 1 and is_numpy_type(var_types[0])):
-        # We're binding a scipy dense or array. Check that the types are valid.
+        # We're binding a scipy dense or sparse array. Check that the types are valid.
         for type_str in var_types:
             if not is_numpy_type(type_str):
                 # TODO: Pretty error message
@@ -537,7 +547,7 @@ def validate_frontend_output():
     global MATCHES_TOKEN
     global input_type_groups, input_variable_meta
 
-    for var_name in input_variable_meta.keys():
+    for var_name, var_meta in arg_meta_in_order():
         var_meta = input_variable_meta[var_name]
         is_sparse = is_sparse_type(var_meta.name_or_type[0])
         for type_name in var_meta.name_or_type:
@@ -546,7 +556,8 @@ def validate_frontend_output():
                                     % (var_name, var_meta.line_number))
         input_variable_meta[var_name].is_sparse = is_sparse
 
-    for var_name in input_variable_meta.keys():
+    # for var_name in input_variable_meta.keys():
+    for var_name, var_meta in arg_meta_in_order():
         if var_meta.is_matches:
             group_idx = input_varname_to_group[var_name]
             matches_name = var_meta.name_or_type[0]
@@ -583,7 +594,7 @@ def has_numpy_types():
     :return: true if any of the input arguments are numpy or scipy types
     """
     has = False
-    for var_name, var_meta in input_variable_meta.items():
+    for var_name, var_meta in arg_meta_in_order():
         if is_numpy_type(var_meta.name_or_type[0]) or var_meta.is_matches:
             has = True
             break
@@ -676,7 +687,6 @@ def write_header(out_file):
     for i in range(len(input_variable_order)):
         var_name = input_variable_order[i]
         if var_name in input_varname_to_group:
-            # print(var_name, "is_sparse:", input_variable_meta[var_name].is_sparse)
             if input_variable_meta[var_name].is_sparse:
                 out_file.write("npe::sparse_array ")
             else:
@@ -778,14 +788,14 @@ def write_code_block(out_file, combo):
 
     call_str = "return callit"
     template_str = "<"
-    for var_name, var_meta in input_variable_meta.items():
+    for var_name, var_meta in arg_meta_in_order():
         if var_name in input_varname_to_group:
             template_str += "Map_" + var_name + ", Matrix_" + var_name + ", Scalar_" + var_name + ","
     template_str = template_str[:-1] + ">("
 
     call_str = call_str + template_str if has_numpy_types() else call_str + "("
 
-    for var_name, var_meta in input_variable_meta.items():
+    for var_name, var_meta in arg_meta_in_order():
         if var_name in input_varname_to_group:
             if not var_meta.is_sparse:
                 call_str += "Map_" + var_name + "((Scalar_" + var_name + "*) " + var_name + ".data(), " + \
@@ -803,7 +813,7 @@ def write_code_block(out_file, combo):
 
 def write_code_function_definition(out_file):
     template_str = "template <"
-    for arg_name, arg_meta in input_variable_meta.items():
+    for arg_name, arg_meta in arg_meta_in_order():
         if arg_name in input_varname_to_group:
             template_str += "typename " + MAP_TYPE_PREFIX + arg_name + ","
             template_str += "typename " + MATRIX_TYPE_PREFIX + arg_name + ","
@@ -814,7 +824,7 @@ def write_code_function_definition(out_file):
     out_file.write("static auto callit(")
 
     argument_str = ""
-    for arg_name, arg_meta in input_variable_meta.items():
+    for arg_name, arg_meta in arg_meta_in_order():
         if arg_name in input_varname_to_group:
             argument_str += "%s%s %s," % (MAP_TYPE_PREFIX, arg_name, arg_name)
         else:
