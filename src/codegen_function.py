@@ -878,7 +878,9 @@ def backend_pass(out_file):
         out_file.write(", " + documentation_string)
 
     arg_list = ""
-    for arg_name, arg_meta in input_variable_meta.items():
+    for i in range(len(input_variable_order)):
+        arg_name = input_variable_order[i]
+        arg_meta = input_variable_meta[arg_name]
         arg_list += ", pybind11::arg(\"" + arg_name + "\")"
         arg_list += "=" + arg_meta.default_value if arg_meta.default_value else ""
 

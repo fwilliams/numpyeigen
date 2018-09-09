@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.2)
 project(NumpyEigen VERSION 0.1.0)
 
-set(NPE_PYTHON_EXECUTABLE "" CACHE STRING "Path to the Python interpreter")
+set(NPE_PYTHON_EXECUTABLE "python" CACHE STRING "Path to the Python interpreter")
 set(NPE_PYTHON_VERSION "" CACHE STRING "Request a specific version of Python")
 option(NPE_WITH_EIGEN "Whether to use the bundled version of Eigen" ON)
 
