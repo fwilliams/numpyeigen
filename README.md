@@ -83,6 +83,7 @@ stored in foo.cpp add one of the following to your `CMakeLists.txt`:
 #### 1) If NumpyEigen is a subdirectory of your project
 ```cmake
 add_subdirectory(/path/to/numpyeigen)
+
 npe_add_module(mymodule, BINDING_SOURCES foo.cpp)
 ```
 
@@ -91,9 +92,6 @@ npe_add_module(mymodule, BINDING_SOURCES foo.cpp)
 # Make numpyeigen available in the current project
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} /path/to/numpyeigen/cmake)
 include(numpyeigen)
-
-# Disable this to use your own version of eigen
-option(NPE_WITH_EIGEN "Use Eigen bundled with NumpyEigen" ON)
 
 npe_add_module(mymodule, BINDING_SOURCES foo.cpp)
 ```
