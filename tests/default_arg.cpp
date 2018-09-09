@@ -15,6 +15,6 @@ std::string retstr = "";
 if(doubleit) {
   retstr = b;
 }
-return std::make_tuple(retstr + b + std::string("def"), NPE_MOVE_DENSE_MAP(c), NPE_MOVE_DENSE_MAP(a));
+return std::make_tuple(retstr + b + std::string("def"), npe::move(c), npe::move(a));
 
 npe_end_code()

@@ -11,8 +11,7 @@ npe_begin_code()
 
 npe_Matrix_a ret1 = a + b;
 
-return NPE_MOVE_SPARSE(ret1);
-
+return npe::move(ret1);
 npe_end_code()
 
 

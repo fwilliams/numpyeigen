@@ -895,9 +895,9 @@ if __name__ == "__main__":
     arg_parser.add_argument("file", type=str)
     arg_parser.add_argument("cpp_cmd", type=str)
     arg_parser.add_argument("-o", "--output", type=str, default="a.out")
-    arg_parser.add_argument("-v", "--verbosity-level", type=int, default=LOG_INFO, help="How verbose is the output. "
-                                                                                 "< 0 = silent, 0 = only errors, "
-                                                                                 "1 = normal, 2 = verbose, > 3 = debug")
+    arg_parser.add_argument("-v", "--verbosity-level", type=int, default=LOG_INFO,
+                            help="How verbose is the output. < 0 = silent, "
+                                 "0 = only errors, 1 = normal, 2 = verbose, > 3 = debug")
 
     args = arg_parser.parse_args()
 

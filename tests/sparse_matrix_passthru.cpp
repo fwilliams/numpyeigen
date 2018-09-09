@@ -12,7 +12,7 @@ npe_begin_code()
 // This addition should have no effect which is what we test.
 npe_Matrix_a ret1 = a + b;
 
-return NPE_MOVE_SPARSE(a);
+return npe::move(a);
 
 npe_end_code()
 

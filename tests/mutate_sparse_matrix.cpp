@@ -10,6 +10,6 @@ npe_begin_code()
 
 a.coeffRef(0, 0) = 2.0;
 
-return NPE_MOVE_SPARSE(a);
+return npe::move(a);
 
 npe_end_code()
