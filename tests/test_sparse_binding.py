@@ -27,7 +27,7 @@ class TestSparseMatrixWrapper(unittest.TestCase):
         a = sp.diags([np.ones(1000000)], [0], format="csr")
         b = sp.diags([np.ones(1000000)], [0], format="csr")
         for i in range(10):
-            ret: sp.csr_matrix = npe_test.sparse_matrix_add(a, b)
+            ret = npe_test.sparse_matrix_add(a, b)
             self.assertEqual(ret.data[0], 2)
 
     def test_pass_thru(self):

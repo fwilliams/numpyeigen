@@ -1,6 +1,9 @@
+from __future__ import print_function
+
 import unittest
 import sys
 import os
+
 
 sys.path.append(os.getcwd())
 import numpyeigen_test as npe_test
