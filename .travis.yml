@@ -3,14 +3,15 @@ python:
   - "2.7"
   - "3.5"
   - "3.6"
-compiler:
-  - gcc
-  - clang
-before_install:
-  - sudo apt-get install cmake
+os:
+  - linux
+addons:
+  apt:
+    packages:
+    - libc++-dev
 env:
   - CC=gcc CXX=g++
-#  - CC=clang CXX=clang++
+  - CC=clang CXX=clang++ CXXFLAGS="-stdlib=libc++"
 install:
   - pip install scipy
 script:

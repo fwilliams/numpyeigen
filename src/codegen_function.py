@@ -556,7 +556,6 @@ def validate_frontend_output():
                                     % (var_name, var_meta.line_number))
         input_variable_meta[var_name].is_sparse = is_sparse
 
-    # for var_name in input_variable_meta.keys():
     for var_name, var_meta in arg_meta_in_order():
         if var_meta.is_matches:
             group_idx = input_varname_to_group[var_name]
