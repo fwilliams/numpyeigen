@@ -28,7 +28,7 @@ NumpyEigen comes built-in with [CMake](https://cmake.org/) tools to integrate wi
  single line of code. A set of scripts to integrate with other build systems will be included in the future.
 
 ### Minimal Dependencies
-NumpyEigen only requires the system to have a valid C++ compiler and a running Python interpreter with version > 3.0. 
+NumpyEigen only requires the system to have a valid C++ 14 (or later) compiler and a running Python interpreter with version >= 2.7. 
 
 NumpyEigen uses [pybind11](https://github.com/pybind/pybind11) under the hood which is included as a submodule. 
 Don't forget to `git clone --recursive`!
