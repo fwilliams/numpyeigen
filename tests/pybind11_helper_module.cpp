@@ -41,6 +41,9 @@ PYBIND11_MODULE(numpyeigen_helpers, m) {
     return ret;
   }, pybind11::return_value_policy::copy);
 
+  m.def("test_dtype_cast", [](pybind11::dtype t) {
+    pybind11::print(t);
+  });
 #ifdef VERSION_INFO
   m.attr("__version__") = VERSION_INFO;
 #else

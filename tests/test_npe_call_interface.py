@@ -56,10 +56,40 @@ class TestNpeCallInterface(unittest.TestCase):
         self.assertTrue(np.array_equal(ret, a))
         self.assertTrue(np.array_equal(a, expected))
 
-
     def test_passing_no_numpy_arguments(self):
         ret = npe_test.no_numpy("abc")
         self.assertEqual(ret, "abc")
+
+    def test_dtype(self):
+        a = np.zeros(10, dtype=np.float32)
+
+        b = npe_test.test_dtype(a, dtype="float32")
+        self.assertEqual(b.dtype, np.float32)
+
+        b = npe_test.test_dtype(a, dtype="float64")
+        self.assertEqual(b.dtype, np.float64)
+
+        b = npe_test.test_dtype(a, dtype=np.float32)
+        self.assertEqual(b.dtype, np.float32)
+
+        b = npe_test.test_dtype(a, dtype=np.float64)
+        self.assertEqual(b.dtype, np.float64)
+
+        threw = False
+        try:
+            npe_test.test_dtype(a, dtype=np.int32)
+        except TypeError:
+            threw = True
+        self.assertTrue(threw)
+
+        threw = False
+        try:
+            npe_test.test_dtype(a, dtype="not_a_type")
+        except TypeError:
+            threw = True
+        self.assertTrue(threw)
+
+
 
 
 if __name__ == '__main__':

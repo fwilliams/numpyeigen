@@ -19,7 +19,8 @@ npe_add_module(numpyeigen_test
     default_arg.cpp
     docstring.cpp
     string_expr_docstring.cpp
-    no_numpy.cpp)
+    no_numpy.cpp
+    dtype.cpp)
 target_link_libraries(numpyeigen_test PRIVATE Eigen3::Eigen)
 
 # A vanilla pybind11 module used to write functions to compare against pyeigen

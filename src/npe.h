@@ -11,6 +11,7 @@
 #include <npe_utils.h>
 #include <npe_typedefs.h>
 #include <npe_sparse_array.h>
+#include <npe_dtype.h>
 
 #include <Eigen/Sparse>
 #include <Eigen/Core>
