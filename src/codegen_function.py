@@ -236,47 +236,68 @@ class VariableMetadata(object):
         self.name_or_type = name_or_type
         self.line_number = line_number
         self.is_sparse = False
+        self.is_dense = False
         self.default_value = default_value
+
+    @property
+    def is_numpy_type(self):
+        return self.is_sparse or self.is_dense
 
     def __repr__(self):
         return str(self.__dict__)
 
 
 class NpeFunction(object):
-    def __init__(self):
-        self.bound_function_name = ""  # The name of the function we are binding
-        self.input_type_groups = []  # Set of allowed types for each group of variables
-        self.input_varname_to_group = {}  # Dictionary mapping input variable names to type groups
-        self.group_to_input_varname = {}  # Dictionary mapping type groups to input variable names
-        self.input_variable_order = []  # List of input variables in order
-        self.input_dtypes = {}  # Map of dtype variables. The keys are the names, and the values are a list of tuples
-        self.input_variable_meta = {}  # Dictionary mapping variable names to types
-        self.binding_source_code = ""  # The source code of the binding
-        self.preamble_source_code = ""  # The code that comes before npe_* statements
-        self.documentation_string = ""  # Function documentation
+    def __init__(self, lines):
+        self.name = ""                # The name of the function we are binding
+        self.input_type_groups = []   # Set of allowed types for each group of variables
+        self._argument_to_group = {}  # Dictionary mapping input variable names to type groups
+        self._group_to_argument = {}  # Dictionary mapping type groups to input variable names
+        self._arguments = []          # List of input variable names in order
+        self._argument_metadata = {}  # Dictionary mapping variable names to types
+        self._source_code = ""        # The source code of the binding
+        self._preamble = ""           # The code that comes before npe_* statements
+        self._docstr = ""             # Function documentation
 
-    def arg_meta_in_order(self):
+        self._parse(lines)
+        self._validate()
+
+    @property
+    def argument_metadata(self):
         """
         Iterate over the arguments and their meta data in the order they were passed in
         :return: An iterator over (argument_name, argument_metadata)
         """
-        for arg_name in self.input_variable_order:
-            arg_meta = self.input_variable_meta[arg_name]
+        for arg_name in self._arguments:
+            arg_meta = self._argument_metadata[arg_name]
             yield arg_name, arg_meta
 
-    def parse_matches_statement(self, line, line_number):
-        global MATCHES_TOKEN
+    @property
+    def num_args(self):
+        return len(self._arguments)
 
-        line = parse_token(line.strip(), MATCHES_TOKEN, line_number=line_number, case_sensitive=False)
-        line = parse_token(line.strip(), '(', line_number=line_number).strip()
-        if not line.endswith(')'):
-            # TODO: Pretty error message
-            raise ParseError("Missing ')' for matches() token at line %d" % line_number)
+    def metadata_for_argument(self, arg_name):
+        return self._argument_metadata[arg_name]
 
-        return line[:-1]
-
-    def parse_arg_statement(self, line, line_number, is_default):
+    def _parse_arg_statement(self, line, line_number, is_default):
         global NUMPY_ARRAY_TYPES, MATCHES_TOKEN, ARG_TOKEN
+
+        def _parse_matches_statement(line, line_number):
+            """
+            Parse a matches(<type>) statement, returning the the type inside the parentheses
+            :param line: The current line being parsed
+            :param line_number: The number of the line in the file being parsed
+            :return: The name of the type inside the matches statement as a string
+            """
+            global MATCHES_TOKEN
+
+            line = parse_token(line.strip(), MATCHES_TOKEN, line_number=line_number, case_sensitive=False)
+            line = parse_token(line.strip(), '(', line_number=line_number).strip()
+            if not line.endswith(')'):
+                # TODO: Pretty error message
+                raise ParseError("Missing ')' for matches() token at line %d" % line_number)
+
+            return line[:-1]
 
         stmt_token = DEFAULT_ARG_TOKEN if is_default else ARG_TOKEN
 
@@ -303,17 +324,17 @@ class NpeFunction(object):
                                      "If multiple types are specified, "
                                      "they must be one of %s" % (type_str, stmt_token, line_number, NUMPY_ARRAY_TYPES))
 
-            if var_name in self.input_varname_to_group:
+            if var_name in self._argument_to_group:
                 # There was a matches() done before the group was created, fix the data structure
-                group_idx = self.input_varname_to_group[var_name]
+                group_idx = self._argument_to_group[var_name]
                 assert len(self.input_type_groups[group_idx]) == 0
                 self.input_type_groups[group_idx] = var_types
             else:
                 # This is the first time we're seeing this group
                 self.input_type_groups.append(var_types)
                 group_id = len(self.input_type_groups) - 1
-                self.input_varname_to_group[var_name] = group_id
-                self.group_to_input_varname[group_id] = [var_name]
+                self._argument_to_group[var_name] = group_id
+                self._group_to_argument[group_id] = [var_name]
         else:
             assert len(var_types) == 1
 
@@ -321,62 +342,37 @@ class NpeFunction(object):
                 is_matches = True
 
                 # If the type was enforcing a match on another type, then handle that case
-                matches_name = self.parse_matches_statement(var_types[0], line_number=line_number)
+                matches_name = _parse_matches_statement(var_types[0], line_number=line_number)
 
-                if matches_name in self.input_varname_to_group:
-                    group_id = self.input_varname_to_group[matches_name]
-                    self.input_varname_to_group[var_name] = group_id
-                    if group_id not in self.group_to_input_varname:
-                        self.group_to_input_varname[group_id] = []
-                    self.group_to_input_varname[group_id].append(var_name)
+                if matches_name in self._argument_to_group:
+                    group_id = self._argument_to_group[matches_name]
+                    self._argument_to_group[var_name] = group_id
+                    if group_id not in self._group_to_argument:
+                        self._group_to_argument[group_id] = []
+                    self._group_to_argument[group_id].append(var_name)
                 else:
                     self.input_type_groups.append([])
                     group_id = len(self.input_type_groups) - 1
-                    self.input_varname_to_group[var_name] = group_id
-                    self.input_varname_to_group[matches_name] = group_id
-                    if group_id not in self.group_to_input_varname:
-                        self.group_to_input_varname[group_id] = []
-                    self.group_to_input_varname[group_id].append(var_name)
-                    self.group_to_input_varname[group_id].append(matches_name)
+                    self._argument_to_group[var_name] = group_id
+                    self._argument_to_group[matches_name] = group_id
+                    if group_id not in self._group_to_argument:
+                        self._group_to_argument[group_id] = []
+                    self._group_to_argument[group_id].append(var_name)
+                    self._group_to_argument[group_id].append(matches_name)
             else:
                 # TODO: Check that type requested is valid? - I'm not sure if we can really do this though.
                 pass
 
-        self.input_variable_order.append(var_name)
-        self.input_variable_meta[var_name] = VariableMetadata(name=var_name,
-                                                              is_matches=is_matches,
-                                                              name_or_type=var_types,
-                                                              line_number=line_number,
-                                                              default_value=var_value)
+        self._arguments.append(var_name)
+        self._argument_metadata[var_name] = VariableMetadata(name=var_name,
+                                                             is_matches=is_matches,
+                                                             name_or_type=var_types,
+                                                             line_number=line_number,
+                                                             default_value=var_value)
 
         return var_name, var_types, var_value
 
-    def parse_dtype_statement(self, line, line_number):
-        global DTYPE_TOKEN
-
-        tokens = tokenize_npe_line(DTYPE_TOKEN, line, line_number)
-
-        if len(tokens) < 2:
-            raise ParseError("Got too few arguments for `%s` statement at line %d." % (DTYPE_TOKEN, line_number))
-
-        name = tokens[0]
-        validate_identifier_name(name)
-
-        types = tokens[1:]
-
-        for type in types:
-            if not type in NUMPY_SCALAR_TYPES:
-                raise ParseError("%s statement got invalid dtype, `%s`. Expected one of %s." %
-                                 (DTYPE_TOKEN, type, NUMPY_SCALAR_TYPES))
-
-        if name not in self.input_dtypes:
-            self.input_dtypes[name] = []
-
-        self.input_dtypes[name].append(types)
-
-        return name, types
-
-    def parse_doc_statement(self, line, line_number, skip):
+    def _parse_doc_statement(self, line, line_number, skip):
         global DOC_TOKEN
         if not skip:
             return
@@ -390,40 +386,40 @@ class NpeFunction(object):
             raise ParseError("Got more than one documentation token at in %s statement at line %d. "
                              "Did you forget quotes around the docstring?" % (DOC_TOKEN, line_number))
 
-        self.documentation_string = tokens[0]
+        self._docstr = tokens[0]
 
         log(LOG_INFO_VERBOSE,
-            TermColors.OKGREEN + "NumpyEigen Docstring - %s" % self.documentation_string)
+            TermColors.OKGREEN + "NumpyEigen Docstring - %s" % self._docstr)
 
-    def parse_begin_code_statement(self, line, line_number):
-        global BEGIN_CODE_TOKEN
-        line = parse_token(line.strip(), BEGIN_CODE_TOKEN, line_number=line_number, case_sensitive=False)
-        line = parse_token(line.strip(), '(', line_number=line_number)
-        line = parse_token(line.strip(), ')', line_number=line_number)
-        parse_eol_token(line.strip(), line_number=line_number)
-
-    def parse_end_code_statement(self, line, line_number):
-        global END_CODE_TOKEN
-        line = parse_token(line.strip(), END_CODE_TOKEN, line_number=line_number, case_sensitive=False)
-        line = parse_token(line.strip(), '(', line_number=line_number)
-        line = parse_token(line.strip(), ')', line_number=line_number)
-        parse_eol_token(line.strip(), line_number=line_number)
-
-    def parse_binding_init_statement(self, line, line_number):
-        global BINDING_INIT_TOKEN
-
-        tokens = tokenize_npe_line(BINDING_INIT_TOKEN, line, line_number)
-        if len(tokens) > 1:
-            raise ParseError(BINDING_INIT_TOKEN + " got extra tokens, %s, at line %d. "
-                                                  "Expected only the name of the function." % (
-                             tokens[1, :], line_number))
-        binding_name = tokens[0]
-        validate_identifier_name(binding_name)
-
-        return binding_name
-
-    def frontend_pass(self, lines):
+    def _parse(self, lines):
         global ARG_TOKEN, BEGIN_CODE_TOKEN, END_CODE_TOKEN, BINDING_INIT_TOKEN
+
+        def _parse_npe_function_statement(line, line_number):
+            global BINDING_INIT_TOKEN
+
+            tokens = tokenize_npe_line(BINDING_INIT_TOKEN, line, line_number)
+            if len(tokens) > 1:
+                raise ParseError(BINDING_INIT_TOKEN + " got extra tokens, %s, at line %d. "
+                                                      "Expected only the name of the function." %
+                                 (tokens[1, :], line_number))
+            binding_name = tokens[0]
+            validate_identifier_name(binding_name)
+
+            return binding_name
+
+        def _parse_begin_code_statement(line, line_number):
+            global BEGIN_CODE_TOKEN
+            line = parse_token(line.strip(), BEGIN_CODE_TOKEN, line_number=line_number, case_sensitive=False)
+            line = parse_token(line.strip(), '(', line_number=line_number)
+            line = parse_token(line.strip(), ')', line_number=line_number)
+            parse_eol_token(line.strip(), line_number=line_number)
+
+        def _parse_end_code_statement(line, line_number):
+            global END_CODE_TOKEN
+            line = parse_token(line.strip(), END_CODE_TOKEN, line_number=line_number, case_sensitive=False)
+            line = parse_token(line.strip(), '(', line_number=line_number)
+            line = parse_token(line.strip(), ')', line_number=line_number)
+            parse_eol_token(line.strip(), line_number=line_number)
 
         binding_start_line_number = -1
 
@@ -449,17 +445,17 @@ class NpeFunction(object):
                 raise ParseError("Got `%s` statement before `%s` at line %d" %
                                  (DOC_TOKEN, BINDING_INIT_TOKEN, line_number + 1))
             elif parse_stmt_call(BINDING_INIT_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
-                self.bound_function_name = self.parse_binding_init_statement(lines[line_number], line_number=line_number + 1)
+                self.name = _parse_npe_function_statement(lines[line_number], line_number=line_number + 1)
                 binding_start_line_number = line_number + 1
                 break
             else:
-                self.preamble_source_code += lines[line_number]
+                self._preamble += lines[line_number]
                 # raise ParseError("Unexpected tokens at line %d: %s" % (line_number, lines[line_number]))
 
         if binding_start_line_number < 0:
             raise ParseError("Invalid binding file. Must begin with %s(<function_name>)." % BINDING_INIT_TOKEN)
 
-        log(LOG_INFO_VERBOSE, TermColors.OKGREEN + "NumpyEigen Function: " + TermColors.ENDC + self.bound_function_name)
+        log(LOG_INFO_VERBOSE, TermColors.OKGREEN + "NumpyEigen Function: " + TermColors.ENDC + self.name)
 
         code_start_line_number = -1
 
@@ -467,36 +463,26 @@ class NpeFunction(object):
         doc_lines = ""
         for line_number in range(binding_start_line_number, len(lines)):
             if parse_stmt_call(ARG_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
-                var_name, var_types, _ = self.parse_arg_statement(lines[line_number], line_number=line_number + 1,
-                                                                  is_default=False)
+                var_name, var_types, _ = self._parse_arg_statement(lines[line_number], line_number=line_number + 1,
+                                                                   is_default=False)
                 log(LOG_INFO_VERBOSE,
                     TermColors.OKGREEN + "NumpyEigen Arg: " + TermColors.ENDC + var_name + " - " + str(var_types))
 
-                self.parse_doc_statement(doc_lines, line_number=line_number + 1, skip=parsing_doc)
+                self._parse_doc_statement(doc_lines, line_number=line_number + 1, skip=parsing_doc)
                 parsing_doc = False
             elif parse_stmt_call(DEFAULT_ARG_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
                 var_name, var_types, var_value = \
-                    self.parse_arg_statement(lines[line_number], line_number=line_number + 1, is_default=True)
+                    self._parse_arg_statement(lines[line_number], line_number=line_number + 1, is_default=True)
                 log(LOG_INFO_VERBOSE,
                     TermColors.OKGREEN + "NumpyEigen Default Arg: " + TermColors.ENDC + var_name + " - " +
                     str(var_types) + " - " + str(var_value))
 
                 # If we were parsing a multiline npe_doc, we've now reached the end so parse the whole statement
-                self.parse_doc_statement(doc_lines, line_number=line_number + 1, skip=parsing_doc)
-                parsing_doc = False
-
-            elif parse_stmt_call(DTYPE_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
-                dtype_name, dtype_types = self.parse_dtype_statement(lines[line_number], line_number=line_number + 1)
-                log(LOG_INFO_VERBOSE,
-                    TermColors.OKGREEN + "NumpyEigen DType: " + TermColors.ENDC + dtype_name + " - " +
-                    str(dtype_types))
-
-                # If we were parsing a multiline npe_doc, we've now reached the end so parse the whole statement
-                self.parse_doc_statement(doc_lines, line_number=line_number + 1, skip=parsing_doc)
+                self._parse_doc_statement(doc_lines, line_number=line_number + 1, skip=parsing_doc)
                 parsing_doc = False
 
             elif parse_stmt_call(DOC_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
-                if self.documentation_string != "":
+                if self._docstr != "":
                     raise ParseError(
                         "Multiple `%s` statements for one function at line %d." % (DOC_TOKEN, line_number + 1))
 
@@ -504,11 +490,11 @@ class NpeFunction(object):
                 parsing_doc = True
 
             elif parse_stmt_call(BEGIN_CODE_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
-                self.parse_begin_code_statement(lines[line_number], line_number=line_number + 1)
+                _parse_begin_code_statement(lines[line_number], line_number=line_number + 1)
                 code_start_line_number = line_number + 1
 
                 # If we were parsing a multiline npe_doc, we've now reached the end so parse the whole statement
-                self.parse_doc_statement(doc_lines, line_number=line_number + 1, skip=parsing_doc)
+                self._parse_doc_statement(doc_lines, line_number=line_number + 1, skip=parsing_doc)
                 break
 
             elif parsing_doc:
@@ -534,10 +520,10 @@ class NpeFunction(object):
         for line_number in range(code_start_line_number, len(lines)):
             # if lines[line_number].lower().startswith(END_CODE_TOKEN):
             if parse_stmt_call(END_CODE_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
-                self.parse_end_code_statement(lines[line_number], line_number=line_number + 1)
+                _parse_end_code_statement(lines[line_number], line_number=line_number + 1)
                 reached_end_token = True
             elif not reached_end_token:
-                self.binding_source_code += lines[line_number]
+                self._source_code += lines[line_number]
             elif reached_end_token and len(lines[line_number].strip()) != 0:
                 raise ParseError("Expected end of file after %s(). Line %d: %s" %
                                  (END_CODE_TOKEN, line_number, lines[line_number]))
@@ -545,26 +531,30 @@ class NpeFunction(object):
         if not reached_end_token:
             raise ParseError("Unexpected EOF. Binding file must end with a %s() statement." % END_CODE_TOKEN)
 
-    def validate_frontend_output(self):
+    def _validate(self):
         global MATCHES_TOKEN
 
-        for var_name, var_meta in self.arg_meta_in_order():
-            var_meta = self.input_variable_meta[var_name]
+        for var_name, var_meta in self.argument_metadata:
             is_sparse = is_sparse_type(var_meta.name_or_type[0])
+            is_dense = is_dense_type(var_meta.name_or_type[0])
+
             for type_name in var_meta.name_or_type:
-                if is_sparse_type(type_name) != is_sparse:
+                if is_sparse_type(type_name) != is_sparse or is_dense_type(type_name) != is_dense:
                     raise SemanticError("Input Variable %s (line %d) has a mix of sparse and dense types."
                                         % (var_name, var_meta.line_number))
-            self.input_variable_meta[var_name].is_sparse = is_sparse
 
-        for var_name, var_meta in self.arg_meta_in_order():
+            self._argument_metadata[var_name].is_sparse = is_sparse
+            self._argument_metadata[var_name].is_dense = is_dense
+
+        for var_name, var_meta in self.argument_metadata:
             if var_meta.is_matches:
-                group_idx = self.input_varname_to_group[var_name]
+                group_idx = self._argument_to_group[var_name]
                 matches_name = var_meta.name_or_type[0]
                 if len(self.input_type_groups[group_idx]) == 0:
                     raise SemanticError("Input Variable %s (line %d) was declared with type %s but was "
                                         "unmatched with a numpy type." % (var_name, var_meta.line_number, matches_name))
-                self.input_variable_meta[var_name].is_sparse = is_sparse_type(self.input_type_groups[group_idx][0])
+                self._argument_metadata[var_name].is_sparse = is_sparse_type(self.input_type_groups[group_idx][0])
+                self._argument_metadata[var_name].is_dense = is_dense_type(self.input_type_groups[group_idx][0])
 
 
 PRIVATE_ID_PREFIX = "_NPE_PY_BINDING_"
@@ -594,7 +584,7 @@ def has_numpy_types():
     :return: true if any of the input arguments are numpy or scipy types
     """
     has = False
-    for var_name, var_meta in fun.arg_meta_in_order():
+    for var_name, var_meta in fun.argument_metadata:
         if is_numpy_type(var_meta.name_or_type[0]) or var_meta.is_matches:
             has = True
             break
@@ -623,6 +613,10 @@ def type_id_var(var_name):
 
 def is_sparse_type(type_name):
     return type_name.startswith("sparse_")
+
+
+def is_dense_type(type_name):
+    return type_name.startswith("dense_")
 
 
 def storage_order_for_suffix(suffix):
@@ -672,7 +666,7 @@ def write_type_id_getter(out_file, var_name):
 def write_header(out_file):
     out_file.write("#define " + FOR_REAL_DEFINE + "\n")
     out_file.write("#include <npe.h>\n")
-    out_file.write(fun.preamble_source_code + "\n")
+    out_file.write(fun._preamble + "\n")
 
     write_code_function_definition(out_file)
 
@@ -680,29 +674,29 @@ def write_header(out_file):
     func_name = "pybind_output_fun_" + os.path.basename(input_file_name).replace(".", "_")
     out_file.write("void %s(pybind11::module& m) {\n" % func_name)
     out_file.write('m.def(')
-    out_file.write('"%s"' % fun.bound_function_name)
+    out_file.write('"%s"' % fun.name)
     out_file.write(", [](")
 
     # Write the argument list
-    for i in range(len(fun.input_variable_order)):
-        var_name = fun.input_variable_order[i]
-        if var_name in fun.input_varname_to_group:
-            if fun.input_variable_meta[var_name].is_sparse:
-                out_file.write("npe::sparse_array ")
-            else:
-                out_file.write("pybind11::array ")
+    i = 0
+    for var_name, var_meta in fun.argument_metadata:
+        if var_meta.is_sparse:
+            out_file.write("npe::sparse_array ")
+            out_file.write(var_name)
+        elif var_meta.is_dense:
+            out_file.write("pybind11::array ")
             out_file.write(var_name)
         else:
-            assert len(fun.input_variable_meta[var_name].name_or_type) == 1
-            var_type = fun.input_variable_meta[var_name].name_or_type[0]
+            assert len(var_meta.name_or_type) == 1
+            var_type = var_meta.name_or_type[0]
             out_file.write(var_type + " ")
             out_file.write(var_name)
-
-        next_token = ", " if i < len(fun.input_variable_order) - 1 else ") {\n"
+        next_token = ", " if i < fun.num_args - 1 else ") {\n"
         out_file.write(next_token)
+        i += 1
 
     # Declare variables used to determine the type at runtime
-    for var_name in fun.input_varname_to_group.keys():
+    for var_name in fun._argument_to_group.keys():
         out_file.write(indent(1) + "const char %s = %s.dtype().type();\n" % (type_name_var(var_name), var_name))
         out_file.write(indent(1) + "ssize_t %s_shape_0 = 0;\n" % var_name)
         out_file.write(indent(1) + "ssize_t %s_shape_1 = 0;\n" % var_name)
@@ -721,8 +715,8 @@ def write_header(out_file):
         write_type_id_getter(out_file, var_name)
 
     # Ensure the types in each group match
-    for group_id in fun.group_to_input_varname.keys():
-        group_var_names = fun.group_to_input_varname[group_id]
+    for group_id in fun._group_to_argument.keys():
+        group_var_names = fun._group_to_argument[group_id]
         group_types = fun.input_type_groups[group_id]
         pretty_group_types = [NUMPY_ARRAY_TYPES_TO_CPP[gt][2] for gt in group_types]
 
@@ -761,7 +755,7 @@ def write_code_block(out_file, combo):
     for group_id in range(len(combo)):
         type_prefix = combo[group_id][0]
         type_suffix = combo[group_id][1]
-        for var_name in fun.group_to_input_varname[group_id]:
+        for var_name in fun._group_to_argument[group_id]:
             cpp_type = NUMPY_ARRAY_TYPES_TO_CPP[type_prefix][0]
             storage_order_enum = storage_order_for_suffix(type_suffix)
             aligned_enum = aligned_enum_for_suffix(type_suffix)
@@ -788,15 +782,15 @@ def write_code_block(out_file, combo):
 
     call_str = "return callit"
     template_str = "<"
-    for var_name, var_meta in fun.arg_meta_in_order():
-        if var_name in fun.input_varname_to_group:
+    for var_name, var_meta in fun.argument_metadata:
+        if var_name in fun._argument_to_group:
             template_str += "Map_" + var_name + ", Matrix_" + var_name + ", Scalar_" + var_name + ","
     template_str = template_str[:-1] + ">("
 
     call_str = call_str + template_str if has_numpy_types() else call_str + "("
 
-    for var_name, var_meta in fun.arg_meta_in_order():
-        if var_name in fun.input_varname_to_group:
+    for var_name, var_meta in fun.argument_metadata:
+        if var_name in fun._argument_to_group:
             if not var_meta.is_sparse:
                 call_str += "Map_" + var_name + "((Scalar_" + var_name + "*) " + var_name + ".data(), " + \
                     var_name + "_shape_0, " + var_name + "_shape_1),"
@@ -813,8 +807,8 @@ def write_code_block(out_file, combo):
 
 def write_code_function_definition(out_file):
     template_str = "template <"
-    for arg_name, arg_meta in fun.arg_meta_in_order():
-        if arg_name in fun.input_varname_to_group:
+    for arg_name, arg_meta in fun.argument_metadata:
+        if arg_name in fun._argument_to_group:
             template_str += "typename " + MAP_TYPE_PREFIX + arg_name + ","
             template_str += "typename " + MATRIX_TYPE_PREFIX + arg_name + ","
             template_str += "typename " + SCALAR_TYPE_PREFIX + arg_name + ","
@@ -824,15 +818,15 @@ def write_code_function_definition(out_file):
     out_file.write("static auto callit(")
 
     argument_str = ""
-    for arg_name, arg_meta in fun.arg_meta_in_order():
-        if arg_name in fun.input_varname_to_group:
+    for arg_name, arg_meta in fun.argument_metadata:
+        if arg_name in fun._argument_to_group:
             argument_str += "%s%s %s," % (MAP_TYPE_PREFIX, arg_name, arg_name)
         else:
             arg_meta = arg_meta
             argument_str += arg_meta.name_or_type[0] + " " + arg_name + ","
     argument_str = argument_str[:-1] + ") {\n"
     out_file.write(argument_str)
-    out_file.write(fun.binding_source_code)
+    out_file.write(fun._source_code)
     out_file.write("}\n")
 
 
@@ -855,7 +849,7 @@ def backend_pass(out_file):
                 if is_sparse_type(combo[group_id][0]) and combo[group_id][1] == STORAGE_ORDER_SUFFIX_XM:
                     skip = True
                     break
-                repr_var = fun.group_to_input_varname[group_id][0]
+                repr_var = fun._group_to_argument[group_id][0]
                 typename = combo[group_id][0] + combo[group_id][1]
                 out_str += type_id_var(repr_var) + " == " + PRIVATE_NAMESPACE + "::" + TYPE_ID_ENUM + "::" + typename
                 next_token = " && " if group_id < len(combo)-1 else ")"
@@ -879,18 +873,16 @@ def backend_pass(out_file):
                                        "File a github issue at https://github.com/fwilliams/numpyeigen"
         for _ in group_combos:
             out_file.write("{\n")
-            out_file.write(fun.binding_source_code + "\n")
+            out_file.write(fun._source_code + "\n")
             out_file.write("}\n")
 
     out_file.write("\n")
     out_file.write("}")
-    if len(fun.documentation_string) > 0:
-        out_file.write(", " + fun.documentation_string)
+    if len(fun._docstr) > 0:
+        out_file.write(", " + fun._docstr)
 
     arg_list = ""
-    for i in range(len(fun.input_variable_order)):
-        arg_name = fun.input_variable_order[i]
-        arg_meta = fun.input_variable_meta[arg_name]
+    for arg_name, arg_meta in fun.argument_metadata:
         arg_list += ", pybind11::arg(\"" + arg_name + "\")"
         arg_list += "=" + arg_meta.default_value if arg_meta.default_value else ""
 
@@ -920,9 +912,7 @@ if __name__ == "__main__":
 
     try:
         input_file_name = args.file
-        fun = NpeFunction()
-        fun.frontend_pass(line_list)
-        fun.validate_frontend_output()
+        fun = NpeFunction(line_list)
 
         with open(args.output, 'w+') as outfile:
             backend_pass(outfile)
