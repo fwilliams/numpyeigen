@@ -238,7 +238,7 @@ class NpeArgument(object):
         self.is_sparse = False
         self.is_dense = False
         self.default_value = default_value
-        self.group = -1
+        self.group = None
         self.matches_name = ""
 
     @property
@@ -249,14 +249,22 @@ class NpeArgument(object):
         return str(self.__dict__)
 
 
+class NpeArgumentGroup(object):
+    def __init__(self, types=[], arguments=[]):
+        self.arguments = arguments
+        self.types = types
+
+    def __repr__(self):
+        return str(self.__dict__)
+
+
 class NpeFunction(object):
     def __init__(self, lines):
         self.name = ""                     # The name of the function we are binding
         self._input_type_groups = []       # Set of allowed types for each group of variables
         self._argument_name_to_group = {}  # Dictionary mapping input variable names to type groups
-        self._group_to_arguments = {}      # Dictionary mapping type groups to input variable names
-        self._argument_names = []               # List of input variable names in order
-        self._argument_metadata = {}       # Dictionary mapping variable names to types
+        self._argument_names = []          # List of input variable names in order
+        self._arguments = {}       # Dictionary mapping variable names to types
         self._source_code = ""             # The source code of the binding
         self._preamble = ""                # The code that comes before npe_* statements
         self._docstr = ""                  # Function documentation
@@ -271,13 +279,13 @@ class NpeFunction(object):
         :return: An iterator over (argument_name, argument_metadata)
         """
         for arg_name in self._argument_names:
-            arg_meta = self._argument_metadata[arg_name]
-            yield arg_name, arg_meta
+            arg_meta = self._arguments[arg_name]
+            yield arg_meta
 
     @property
     def array_arguments(self):
         for arg_name in self._argument_names:
-            arg_meta = self._argument_metadata[arg_name]
+            arg_meta = self._arguments[arg_name]
             if arg_meta.is_numpy_type:
                 yield arg_name, arg_meta
 
@@ -286,13 +294,17 @@ class NpeFunction(object):
         return len(self._argument_names)
 
     @property
+    def num_type_groups(self):
+        return len(self._input_type_groups)
+
+    @property
     def has_array_arguments(self):
         """
         Returns true if any of the arguments are numpy or scipy types
         :return: true if any of the input arguments are numpy or scipy types
         """
         has = False
-        for var_name, var_meta in self.arguments:
+        for var_meta in self.arguments:
             if is_numpy_type(var_meta.name_or_type[0]) or var_meta.is_matches:
                 has = True
                 break
@@ -301,9 +313,6 @@ class NpeFunction(object):
     @property
     def argument_groups(self):
         return self._input_type_groups
-
-    def arguments_for_group(self, group_id):
-        return self._group_to_arguments[group_id]
 
     def _parse_arg_statement(self, line, line_number, is_default):
         global NUMPY_ARRAY_TYPES, MATCHES_TOKEN, ARG_TOKEN
@@ -340,6 +349,8 @@ class NpeFunction(object):
                                line_number=line_number,
                                default_value=var_value)
 
+        group_id = -1
+
         if len(var_types) == 0:
             # TODO: Pretty error message
             raise ParseError('%s("%s") got no type arguments' % (stmt_token, var_name))
@@ -354,16 +365,17 @@ class NpeFunction(object):
 
             if var_name in self._argument_name_to_group:
                 # There was a matches() done before the group was created, fix the data structure
-                group_idx = self._argument_name_to_group[var_name]
-                assert len(self._input_type_groups[group_idx]) == 0
-                self._input_type_groups[group_idx] = var_types
-                self._group_to_arguments[group_idx].append(var_meta)
+                group_id = self._argument_name_to_group[var_name]
+                assert len(self._input_type_groups[group_id].types) == 0
+                self._input_type_groups[group_id].types = var_types
+                self._input_type_groups[group_id].arguments.append(var_meta)
             else:
                 # This is the first time we're seeing this group
-                self._input_type_groups.append(var_types)
+                var_group = NpeArgumentGroup(types=var_types)
+                self._input_type_groups.append(var_group)
                 group_id = len(self._input_type_groups) - 1
                 self._argument_name_to_group[var_name] = group_id
-                self._group_to_arguments[group_id] = [var_meta]
+                self._input_type_groups[group_id].arguments = [var_meta]
         else:
             assert len(var_types) == 1
 
@@ -376,24 +388,22 @@ class NpeFunction(object):
                 if matches_name in self._argument_name_to_group:
                     group_id = self._argument_name_to_group[matches_name]
                     self._argument_name_to_group[var_name] = group_id
-                    if group_id not in self._group_to_arguments:
-                        self._group_to_arguments[group_id] = []
-                    self._group_to_arguments[group_id].append(var_meta)
+                    self._input_type_groups[group_id].arguments.append(var_meta)
                 else:
-                    self._input_type_groups.append([])
                     group_id = len(self._input_type_groups) - 1
                     self._argument_name_to_group[var_name] = group_id
                     self._argument_name_to_group[matches_name] = group_id
-                    if group_id not in self._group_to_arguments:
-                        self._group_to_arguments[group_id] = []
                     var_meta.matches_name = matches_name
-                    self._group_to_arguments[group_id].append(var_meta)
+
+                    var_group = NpeArgumentGroup(types=[], arguments=[var_meta])
+                    self._input_type_groups.append(var_group)
             else:
                 # TODO: Check that type requested is valid? - I'm not sure if we can really do this though.
                 pass
 
+        var_meta.group = self._input_type_groups[group_id] if group_id >= 0 else None
         self._argument_names.append(var_name)
-        self._argument_metadata[var_name] = var_meta
+        self._arguments[var_name] = var_meta
 
         return var_name, var_types, var_value
 
@@ -557,29 +567,30 @@ class NpeFunction(object):
             raise ParseError("Unexpected EOF. Binding file must end with a %s() statement." % END_CODE_TOKEN)
 
     def _validate(self):
-        for var_name, var_meta in self.arguments:
-            is_sparse = is_sparse_type(var_meta.name_or_type[0])
-            is_dense = is_dense_type(var_meta.name_or_type[0])
+        for arg in self.arguments:
+            is_sparse = is_sparse_type(arg.name_or_type[0])
+            is_dense = is_dense_type(arg.name_or_type[0])
 
-            for type_name in var_meta.name_or_type:
+            for type_name in arg.name_or_type:
                 if is_sparse_type(type_name) != is_sparse or is_dense_type(type_name) != is_dense:
                     raise SemanticError("Input Variable %s (line %d) has a mix of sparse and dense types."
-                                        % (var_name, var_meta.line_number))
-            if var_name in self._argument_name_to_group:
-                var_meta.group = self._argument_name_to_group[var_name]
+                                        % (arg.name, arg.line_number))
+            if arg.name in self._argument_name_to_group:
+                arg.group = self._argument_name_to_group[arg.name]
 
-            var_meta.is_sparse = is_sparse
-            var_meta.is_dense = is_dense
+            arg.is_sparse = is_sparse
+            arg.is_dense = is_dense
 
-        for var_name, var_meta in self.arguments:
-            if var_meta.is_matches:
-                group_idx = self._argument_name_to_group[var_name]
-                matches_name = var_meta.name_or_type[0]
-                if len(self._input_type_groups[group_idx]) == 0:
+        for arg in self.arguments:
+            if arg.is_matches:
+                group_idx = self._argument_name_to_group[arg.name]
+                matches_name = arg.name_or_type[0]
+                if len(self._input_type_groups[group_idx].types) == 0:
                     raise SemanticError("Input Variable %s (line %d) was declared with type %s but was "
-                                        "unmatched with a numpy type." % (var_name, var_meta.line_number, matches_name))
-                var_meta.is_sparse = is_sparse_type(self._input_type_groups[group_idx][0])
-                var_meta.is_dense = is_dense_type(self._input_type_groups[group_idx][0])
+                                        "unmatched with a numpy type." %
+                                        (arg.name, arg.line_number, matches_name))
+                arg.is_sparse = is_sparse_type(self._input_type_groups[group_idx].types[0])
+                arg.is_dense = is_dense_type(self._input_type_groups[group_idx].types[0])
 
 
 PRIVATE_ID_PREFIX = "_NPE_PY_BINDING_"
@@ -691,7 +702,8 @@ def write_header(out_file):
 
     # Write the argument list
     i = 0
-    for var_name, var_meta in fun.arguments:
+    for var_meta in fun.arguments:
+        var_name = var_meta.name
         if var_meta.is_sparse:
             out_file.write("npe::sparse_array ")
             out_file.write(var_name)
@@ -727,9 +739,9 @@ def write_header(out_file):
         write_type_id_getter(out_file, var_name)
 
     # Ensure the types in each group match
-    for group_id in fun._group_to_arguments.keys():
-        group_var_names = [vm.name for vm in fun._group_to_arguments[group_id]]
-        group_types = fun._input_type_groups[group_id]
+    for group_id in range(fun.num_type_groups):
+        group_var_names = [vm.name for vm in fun.argument_groups[group_id].arguments]
+        group_types = fun.argument_groups[group_id].types
         pretty_group_types = [NUMPY_ARRAY_TYPES_TO_CPP[gt][2] for gt in group_types]
 
         out_str = "if ("
@@ -767,7 +779,7 @@ def write_code_block(out_file, combo):
     for group_id in range(len(combo)):
         type_prefix = combo[group_id][0]
         type_suffix = combo[group_id][1]
-        for var_meta in fun._group_to_arguments[group_id]:
+        for var_meta in fun.argument_groups[group_id].arguments:
             var_name = var_meta.name
             cpp_type = NUMPY_ARRAY_TYPES_TO_CPP[type_prefix][0]
             storage_order_enum = storage_order_for_suffix(type_suffix)
@@ -795,14 +807,16 @@ def write_code_block(out_file, combo):
 
     call_str = "return callit"
     template_str = "<"
-    for var_name, var_meta in fun.arguments:
+    for var_meta in fun.arguments:
+        var_name = var_meta.name
         if var_meta.is_numpy_type:
             template_str += "Map_" + var_name + ", Matrix_" + var_name + ", Scalar_" + var_name + ","
     template_str = template_str[:-1] + ">("
 
     call_str = call_str + template_str if fun.has_array_arguments else call_str + "("
 
-    for var_name, var_meta in fun.arguments:
+    for var_meta in fun.arguments:
+        var_name = var_meta.name
         if var_meta.is_numpy_type:
             if not var_meta.is_sparse:
                 call_str += "Map_" + var_name + "((Scalar_" + var_name + "*) " + var_name + ".data(), " + \
@@ -820,7 +834,8 @@ def write_code_block(out_file, combo):
 
 def write_code_function_definition(out_file):
     template_str = "template <"
-    for arg_name, arg_meta in fun.arguments:
+    for arg_meta in fun.arguments:
+        arg_name = arg_meta.name
         if arg_meta.is_numpy_type:
             template_str += "typename " + MAP_TYPE_PREFIX + arg_name + ","
             template_str += "typename " + MATRIX_TYPE_PREFIX + arg_name + ","
@@ -831,7 +846,8 @@ def write_code_function_definition(out_file):
     out_file.write("static auto callit(")
 
     argument_str = ""
-    for arg_name, arg_meta in fun.arguments:
+    for arg_meta in fun.arguments:
+        arg_name = arg_meta.name
         if arg_meta.is_numpy_type:
             argument_str += "%s%s %s," % (MAP_TYPE_PREFIX, arg_name, arg_name)
         else:
@@ -846,7 +862,7 @@ def write_code_function_definition(out_file):
 def backend_pass(out_file):
     write_header(out_file)
 
-    expanded_type_groups = [itertools.product(group, STORAGE_ORDER_SUFFIXES) for group in fun._input_type_groups]
+    expanded_type_groups = [itertools.product(group.types, STORAGE_ORDER_SUFFIXES) for group in fun.argument_groups]
     group_combos = itertools.product(*expanded_type_groups)
 
     branch_count = 0
@@ -862,9 +878,9 @@ def backend_pass(out_file):
                 if is_sparse_type(combo[group_id][0]) and combo[group_id][1] == STORAGE_ORDER_SUFFIX_XM:
                     skip = True
                     break
-                repr_var = fun._group_to_arguments[group_id][0].name
+                repr_var = fun.argument_groups[group_id].arguments[0]
                 typename = combo[group_id][0] + combo[group_id][1]
-                out_str += type_id_var(repr_var) + " == " + PRIVATE_NAMESPACE + "::" + TYPE_ID_ENUM + "::" + typename
+                out_str += type_id_var(repr_var.name) + " == " + PRIVATE_NAMESPACE + "::" + TYPE_ID_ENUM + "::" + typename
                 next_token = " && " if group_id < len(combo)-1 else ")"
                 out_str += next_token
 
@@ -895,8 +911,8 @@ def backend_pass(out_file):
         out_file.write(", " + fun._docstr)
 
     arg_list = ""
-    for arg_name, arg_meta in fun.arguments:
-        arg_list += ", pybind11::arg(\"" + arg_name + "\")"
+    for arg_meta in fun.arguments:
+        arg_list += ", pybind11::arg(\"" + arg_meta.name + "\")"
         arg_list += "=" + arg_meta.default_value if arg_meta.default_value else ""
 
     out_file.write(arg_list)
