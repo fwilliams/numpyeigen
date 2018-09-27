@@ -229,7 +229,7 @@ def parse_stmt_call(token, line, line_number, throw=True):
     return True
 
 
-class VariableMetadata(object):
+class NpeArgument(object):
     def __init__(self, name, is_matches, name_or_type, line_number, default_value):
         self.name = name
         self.is_matches = is_matches
@@ -282,6 +282,19 @@ class NpeFunction(object):
     @property
     def num_args(self):
         return len(self._arguments)
+
+    @property
+    def has_array_arguments(self):
+        """
+        Returns true if any of the arguments are numpy or scipy types
+        :return: true if any of the input arguments are numpy or scipy types
+        """
+        has = False
+        for var_name, var_meta in self.arguments:
+            if is_numpy_type(var_meta.name_or_type[0]) or var_meta.is_matches:
+                has = True
+                break
+        return has
 
     def _parse_arg_statement(self, line, line_number, is_default):
         global NUMPY_ARRAY_TYPES, MATCHES_TOKEN, ARG_TOKEN
@@ -368,11 +381,11 @@ class NpeFunction(object):
                 pass
 
         self._arguments.append(var_name)
-        self._argument_metadata[var_name] = VariableMetadata(name=var_name,
-                                                             is_matches=is_matches,
-                                                             name_or_type=var_types,
-                                                             line_number=line_number,
-                                                             default_value=var_value)
+        self._argument_metadata[var_name] = NpeArgument(name=var_name,
+                                                        is_matches=is_matches,
+                                                        name_or_type=var_types,
+                                                        line_number=line_number,
+                                                        default_value=var_value)
 
         return var_name, var_types, var_value
 
@@ -582,19 +595,6 @@ SCALAR_TYPE_PREFIX = "npe_Scalar_"
 FOR_REAL_DEFINE = "__NPE_FOR_REAL__"
 
 
-def has_numpy_types():
-    """
-    Returns true if any of the arguments are numpy or scipy types
-    :return: true if any of the input arguments are numpy or scipy types
-    """
-    has = False
-    for var_name, var_meta in fun.arguments:
-        if is_numpy_type(var_meta.name_or_type[0]) or var_meta.is_matches:
-            has = True
-            break
-    return has
-
-
 def indent(n):
     ret = ""
     for _ in range(n):
@@ -791,7 +791,7 @@ def write_code_block(out_file, combo):
             template_str += "Map_" + var_name + ", Matrix_" + var_name + ", Scalar_" + var_name + ","
     template_str = template_str[:-1] + ">("
 
-    call_str = call_str + template_str if has_numpy_types() else call_str + "("
+    call_str = call_str + template_str if fun.has_array_arguments else call_str + "("
 
     for var_name, var_meta in fun.arguments:
         if var_meta.is_numpy_type:
@@ -817,7 +817,7 @@ def write_code_function_definition(out_file):
             template_str += "typename " + MATRIX_TYPE_PREFIX + arg_name + ","
             template_str += "typename " + SCALAR_TYPE_PREFIX + arg_name + ","
     template_str = template_str[:-1] + ">\n"
-    if has_numpy_types():
+    if fun.has_array_arguments:
         out_file.write(template_str)
     out_file.write("static auto callit(")
 
@@ -842,7 +842,7 @@ def backend_pass(out_file):
 
     branch_count = 0
 
-    if has_numpy_types():
+    if fun.has_array_arguments:
         for combo in group_combos:
             if_or_elseif = "if " if branch_count == 0 else " else if "
             out_str = if_or_elseif + "("
