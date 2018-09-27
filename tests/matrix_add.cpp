@@ -3,8 +3,9 @@
 #include <npe.h>
 
 npe_function(matrix_add)
-npe_arg(a, dense_f64, dense_f32)
 npe_arg(b, npe_matches(a))
+npe_arg(a, dense_f64, dense_f32)
+
 npe_doc(R"(Add two matrices of the same type)")
 npe_begin_code()
 
