@@ -322,6 +322,10 @@ class NpeFunction(object):
     def argument_groups(self):
         return self._input_type_groups
 
+    @property
+    def docstring(self):
+        return self._docstr
+
     def _parse_arg_statement(self, line, line_number, is_default):
         global NUMPY_ARRAY_TYPES, MATCHES_TOKEN, ARG_TOKEN
 
@@ -561,7 +565,6 @@ class NpeFunction(object):
 
         reached_end_token = False
         for line_number in range(code_start_line_number, len(lines)):
-            # if lines[line_number].lower().startswith(END_CODE_TOKEN):
             if parse_stmt_call(END_CODE_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
                 _parse_end_code_statement(lines[line_number], line_number=line_number + 1)
                 reached_end_token = True
@@ -601,317 +604,299 @@ class NpeFunction(object):
                 arg.is_dense = is_dense_type(self._input_type_groups[group_idx].types[0])
 
 
-PRIVATE_ID_PREFIX = "_NPE_PY_BINDING_"
-PRIVATE_NAMESPACE = "npe::detail"
-TYPE_STRUCT_PUBLIC_NAME = "npe"
-STORAGE_ORDER_ENUM = "StorageOrder"
-ALIGNED_ENUM = "Alignment"
-TYPE_ID_ENUM = "TypeId"
-TYPE_CHAR_ENUM = "NumpyTypeChar"
-INDENT = "  "
-STORAGE_ORDER_SUFFIXES = ['_cm', '_rm', '_x']
-STORAGE_ORDER_SUFFIX_CM = STORAGE_ORDER_SUFFIXES[0]
-STORAGE_ORDER_SUFFIX_RM = STORAGE_ORDER_SUFFIXES[1]
-STORAGE_ORDER_SUFFIX_XM = STORAGE_ORDER_SUFFIXES[2]
-STORAGE_ORDER_CM = "ColMajor"
-STORAGE_ORDER_RM = "RowMajor"
-STORAGE_ORDER_XM = "NoOrder"
-MAP_TYPE_PREFIX = "npe_Map_"
-MATRIX_TYPE_PREFIX = "npe_Matrix_"
-SCALAR_TYPE_PREFIX = "npe_Scalar_"
-FOR_REAL_DEFINE = "__NPE_FOR_REAL__"
+def codegen_function(fun, out_file):
+    PRIVATE_ID_PREFIX = "_NPE_PY_BINDING_"
+    PRIVATE_NAMESPACE = "npe::detail"
+    STORAGE_ORDER_ENUM = "StorageOrder"
+    ALIGNED_ENUM = "Alignment"
+    TYPE_ID_ENUM = "TypeId"
+    TYPE_CHAR_ENUM = "NumpyTypeChar"
+    STORAGE_ORDER_SUFFIXES = ['_cm', '_rm', '_x']
+    STORAGE_ORDER_SUFFIX_CM = STORAGE_ORDER_SUFFIXES[0]
+    STORAGE_ORDER_SUFFIX_RM = STORAGE_ORDER_SUFFIXES[1]
+    STORAGE_ORDER_SUFFIX_XM = STORAGE_ORDER_SUFFIXES[2]
+    STORAGE_ORDER_CM = "ColMajor"
+    STORAGE_ORDER_RM = "RowMajor"
+    STORAGE_ORDER_XM = "NoOrder"
+    MAP_TYPE_PREFIX = "npe_Map_"
+    MATRIX_TYPE_PREFIX = "npe_Matrix_"
+    SCALAR_TYPE_PREFIX = "npe_Scalar_"
 
+    def type_name_var(var_name):
+        return PRIVATE_ID_PREFIX + var_name + "_type_s"
 
-def indent(n):
-    ret = ""
-    for _ in range(n):
-        ret += INDENT
+    def storage_order_var(var_name):
+        return PRIVATE_ID_PREFIX + var_name + "_so"
 
-    return ret
+    def type_id_var(var_name):
+        return PRIVATE_ID_PREFIX + var_name + "_t_id"
 
-
-def type_name_var(var_name):
-    return PRIVATE_ID_PREFIX + var_name + "_type_s"
-
-
-def storage_order_var(var_name):
-    return PRIVATE_ID_PREFIX + var_name + "_so"
-
-
-def type_id_var(var_name):
-    return PRIVATE_ID_PREFIX + var_name + "_t_id"
-
-
-def storage_order_for_suffix(suffix):
-    if suffix == STORAGE_ORDER_SUFFIX_CM:
-        return PRIVATE_NAMESPACE + "::" + STORAGE_ORDER_ENUM + "::" + STORAGE_ORDER_CM
-    elif suffix == STORAGE_ORDER_SUFFIX_RM:
-        return PRIVATE_NAMESPACE + "::" + STORAGE_ORDER_ENUM + "::" + STORAGE_ORDER_RM
-    elif suffix == STORAGE_ORDER_SUFFIX_XM:
-        return PRIVATE_NAMESPACE + "::" + STORAGE_ORDER_ENUM + "::" + STORAGE_ORDER_XM
-    else:
-        assert False, "major wtf"
-
-
-def aligned_enum_for_suffix(suffix):
-    if suffix == STORAGE_ORDER_SUFFIX_CM or suffix == STORAGE_ORDER_SUFFIX_RM:
-        return PRIVATE_NAMESPACE + "::" + ALIGNED_ENUM + "::" + "Aligned"
-    elif suffix == STORAGE_ORDER_SUFFIX_XM:
-        return PRIVATE_NAMESPACE + "::" + ALIGNED_ENUM + "::" + "Unaligned"
-    else:
-        assert False, "major wtf"
-
-
-def type_char_for_numpy_type(np_type):
-    return PRIVATE_NAMESPACE + "::" + TYPE_CHAR_ENUM + "::char_" + NUMPY_ARRAY_TYPES_TO_CPP[np_type][1]
-
-
-def write_flags_getter(out_file, var_name):
-    storage_order_var_name = storage_order_var(var_name)
-    row_major = PRIVATE_NAMESPACE + "::RowMajor"
-    col_major = PRIVATE_NAMESPACE + "::ColMajor"
-    no_order = PRIVATE_NAMESPACE + "::NoOrder"
-    out_str = INDENT + "const " + PRIVATE_NAMESPACE + "::" + STORAGE_ORDER_ENUM + " " + storage_order_var_name + " = "
-    out_str += "(" + var_name + ".flags() & NPY_ARRAY_F_CONTIGUOUS) ? " + col_major + " : "
-    out_str += "(" + var_name + ".flags() & NPY_ARRAY_C_CONTIGUOUS ? " + row_major + " : " + no_order + ");\n"
-    out_file.write(out_str)
-
-
-def write_type_id_getter(out_file, var_name):
-    out_str = INDENT + "const int " + type_id_var(var_name) + " = "
-    type_name = type_name_var(var_name)
-    storate_order_name = storage_order_var(var_name)
-    is_sparse = PRIVATE_NAMESPACE + "::is_sparse<decltype(" + var_name + ")>::value"
-    out_str += PRIVATE_NAMESPACE + "::get_type_id(" + is_sparse + ", " + type_name + ", " + storate_order_name + ");\n"
-    out_file.write(out_str)
-
-
-def write_header(out_file):
-    out_file.write("#define " + FOR_REAL_DEFINE + "\n")
-    out_file.write("#include <npe.h>\n")
-    out_file.write(fun._preamble + "\n")
-
-    write_code_function_definition(out_file)
-
-    # TODO: Use the function name properly
-    func_name = "pybind_output_fun_" + os.path.basename(input_file_name).replace(".", "_")
-    out_file.write("void %s(pybind11::module& m) {\n" % func_name)
-    out_file.write('m.def(')
-    out_file.write('"%s"' % fun.name)
-    out_file.write(", [](")
-
-    # Write the argument list
-    i = 0
-    for arg in fun.arguments:
-        if arg.is_sparse:
-            out_file.write("npe::sparse_array ")
-            out_file.write(arg.name)
-        elif arg.is_dense:
-            out_file.write("pybind11::array ")
-            out_file.write(arg.name)
+    def storage_order_for_suffix(suffix):
+        if suffix == STORAGE_ORDER_SUFFIX_CM:
+            return PRIVATE_NAMESPACE + "::" + STORAGE_ORDER_ENUM + "::" + STORAGE_ORDER_CM
+        elif suffix == STORAGE_ORDER_SUFFIX_RM:
+            return PRIVATE_NAMESPACE + "::" + STORAGE_ORDER_ENUM + "::" + STORAGE_ORDER_RM
+        elif suffix == STORAGE_ORDER_SUFFIX_XM:
+            return PRIVATE_NAMESPACE + "::" + STORAGE_ORDER_ENUM + "::" + STORAGE_ORDER_XM
         else:
-            assert len(arg.name_or_type) == 1
-            var_type = arg.name_or_type[0]
-            out_file.write(var_type + " ")
-            out_file.write(arg.name)
-        next_token = ", " if i < fun.num_args - 1 else ") {\n"
-        out_file.write(next_token)
-        i += 1
+            assert False, "major wtf"
 
-    # Declare variables used to determine the type at runtime
-    for arg in fun.array_arguments:
-        out_file.write(indent(1) + "const char %s = %s.dtype().type();\n" % (type_name_var(arg.name), arg.name))
-        out_file.write(indent(1) + "ssize_t %s_shape_0 = 0;\n" % arg.name)
-        out_file.write(indent(1) + "ssize_t %s_shape_1 = 0;\n" % arg.name)
-        out_file.write(indent(1) + "if (%s.ndim() == 1) {\n" % arg.name)
-        out_file.write(indent(2) + "%s_shape_0 = %s.shape()[0];\n" % (arg.name, arg.name))
-        out_file.write(indent(2) + "%s_shape_1 = %s.shape()[0] == 0 ? 0 : 1;\n" % (arg.name, arg.name))
-        out_file.write(indent(1) + "} else if (%s.ndim() == 2) {\n" % arg.name)
-        out_file.write(indent(2) + "%s_shape_0 = %s.shape()[0];\n" % (arg.name, arg.name))
-        out_file.write(indent(2) + "%s_shape_1 = %s.shape()[1];\n" % (arg.name, arg.name))
-        out_file.write(indent(1) + "} else if (%s.ndim() > 2) {\n" % arg.name)
-        out_file.write(indent(2) + "  throw std::invalid_argument(\"Argument " + arg.name +
-                       " has invalid number of dimensions. Must be 1 or 2.\");\n")
-        out_file.write(indent(1) + "}\n")
+    def aligned_enum_for_suffix(suffix):
+        if suffix == STORAGE_ORDER_SUFFIX_CM or suffix == STORAGE_ORDER_SUFFIX_RM:
+            return PRIVATE_NAMESPACE + "::" + ALIGNED_ENUM + "::" + "Aligned"
+        elif suffix == STORAGE_ORDER_SUFFIX_XM:
+            return PRIVATE_NAMESPACE + "::" + ALIGNED_ENUM + "::" + "Unaligned"
+        else:
+            assert False, "major wtf"
 
-        write_flags_getter(out_file, arg.name)
-        write_type_id_getter(out_file, arg.name)
+    def type_char_for_numpy_type(np_type):
+        return PRIVATE_NAMESPACE + "::" + TYPE_CHAR_ENUM + "::char_" + NUMPY_ARRAY_TYPES_TO_CPP[np_type][1]
 
-    # Ensure the types in each group match
-    for group_id in range(fun.num_type_groups):
-        group_var_names = [vm.name for vm in fun.argument_groups[group_id].arguments]
-        group_types = fun.argument_groups[group_id].types
-        pretty_group_types = [NUMPY_ARRAY_TYPES_TO_CPP[gt][2] for gt in group_types]
-
-        out_str = "if ("
-        for i in range(len(group_types)):
-            type_name = group_types[i]
-            out_str += type_name_var(group_var_names[0]) + " != " + type_char_for_numpy_type(type_name)
-            next_token = " && " if i < len(group_types) - 1 else ") {\n"
-            out_str += next_token
-        out_str += INDENT + 'throw std::invalid_argument("Invalid type (%s) for argument \'%s\'. ' \
-                            'Expected one of %s.");\n' % (pretty_group_types[0], group_var_names[0], pretty_group_types)
-        out_str += "}\n"
+    def write_flags_getter(var_name):
+        storage_order_var_name = storage_order_var(var_name)
+        row_major = PRIVATE_NAMESPACE + "::RowMajor"
+        col_major = PRIVATE_NAMESPACE + "::ColMajor"
+        no_order = PRIVATE_NAMESPACE + "::NoOrder"
+        out_str = "const " + PRIVATE_NAMESPACE + "::" + STORAGE_ORDER_ENUM + " " + storage_order_var_name + " = "
+        out_str += "(" + var_name + ".flags() & NPY_ARRAY_F_CONTIGUOUS) ? " + col_major + " : "
+        out_str += "(" + var_name + ".flags() & NPY_ARRAY_C_CONTIGUOUS ? " + row_major + " : " + no_order + ");\n"
         out_file.write(out_str)
 
-        assert len(group_var_names) >= 1
-        if len(group_var_names) == 1:
-            continue
-
-        for i in range(1, len(group_var_names)):
-            out_str = "if ("
-            out_str += type_id_var(group_var_names[0]) + " != " + type_id_var(group_var_names[i]) + ") {\n"
-            out_str += INDENT + 'std::string err_msg = std::string("Invalid type (") + %s::type_to_str(%s) + ' \
-                                'std::string(") for argument \'%s\'. Expected it to match argument \'%s\' ' \
-                                'which is of type ") + %s::type_to_str(%s) + std::string(".");\n' \
-                       % (PRIVATE_NAMESPACE, type_name_var(group_var_names[i]), group_var_names[i],
-                          group_var_names[0], PRIVATE_NAMESPACE, type_name_var(group_var_names[0]))
-            out_str += INDENT + 'throw std::invalid_argument(err_msg);\n'
-
-            out_str += "}\n"
-
+    def write_type_id_getter(var_name):
+        out_str = "const int " + type_id_var(var_name) + " = "
+        type_name = type_name_var(var_name)
+        storate_order_name = storage_order_var(var_name)
+        is_sparse = PRIVATE_NAMESPACE + "::is_sparse<decltype(" + var_name + ")>::value"
+        out_str += PRIVATE_NAMESPACE + "::get_type_id(" + is_sparse + ", " + type_name + ", " + storate_order_name + ");\n"
         out_file.write(out_str)
 
+    def write_declaration():
+        out_file.write(fun._preamble + "\n")
 
-def write_code_block(out_file, combo):
-    out_file.write("{\n")
-    for group_id in range(len(combo)):
-        type_prefix = combo[group_id][0]
-        type_suffix = combo[group_id][1]
-        for arg in fun.argument_groups[group_id].arguments:
-            cpp_type = NUMPY_ARRAY_TYPES_TO_CPP[type_prefix][0]
-            storage_order_enum = storage_order_for_suffix(type_suffix)
-            aligned_enum = aligned_enum_for_suffix(type_suffix)
+        write_code_function_definition()
 
-            out_file.write(indent(2) + "typedef " + cpp_type + " Scalar_" + arg.name + ";\n")
-            if is_sparse_type(combo[group_id][0]):
-                eigen_type = "Eigen::SparseMatrix<" + cpp_type + ", " + \
-                               storage_order_enum + ", int>"
-                out_file.write("typedef " + eigen_type + " Matrix_%s" % arg.name + ";\n")
-                out_file.write("#if EIGEN_WORLD_VERSION == 3 && EIGEN_MAJOR_VERSION <= 2\n")
-                out_file.write(indent(2) + "typedef Eigen::MappedSparseMatrix<" + cpp_type + ", " +
-                               storage_order_enum + ", int> Map_" + arg.name + ";\n")
-                out_file.write("#elif (EIGEN_WORLD_VERSION == 3 && "
-                               "EIGEN_MAJOR_VERSION > 2) || (EIGEN_WORLD_VERSION > 3)\n")
-                out_file.write(indent(2) + "typedef Eigen::Map<Matrix_" + arg.name + "> Map_" + arg.name + ";\n")
-                out_file.write("#endif\n")
+        # TODO: Use the function name properly
+        func_name = "pybind_output_fun_" + os.path.basename(input_file_name).replace(".", "_")
+        out_file.write("void %s(pybind11::module& m) {\n" % func_name)
+        out_file.write('m.def(')
+        out_file.write('"%s"' % fun.name)
+        out_file.write(", [](")
 
+        # Write the argument list
+        i = 0
+        for arg in fun.arguments:
+            if arg.is_sparse:
+                out_file.write("npe::sparse_array ")
+                out_file.write(arg.name)
+            elif arg.is_dense:
+                out_file.write("pybind11::array ")
+                out_file.write(arg.name)
             else:
-                eigen_type = "Eigen::Matrix<" + cpp_type + ", " + "Eigen::Dynamic, " + "Eigen::Dynamic, " + \
-                             storage_order_enum + ">"
-                out_file.write("typedef " + eigen_type + " Matrix_%s" % arg.name + ";\n")
-                out_file.write(indent(2) + "typedef Eigen::Map<" + eigen_type + ", " +
-                               aligned_enum + "> Map_" + arg.name + ";\n")
+                assert len(arg.name_or_type) == 1
+                var_type = arg.name_or_type[0]
+                out_file.write(var_type + " ")
+                out_file.write(arg.name)
+            next_token = ", " if i < fun.num_args - 1 else ") {\n"
+            out_file.write(next_token)
+            i += 1
 
-    call_str = "return callit"
-    template_str = "<"
-    for arg in fun.arguments:
-        if arg.is_numpy_type:
-            template_str += "Map_" + arg.name + ", Matrix_" + arg.name + ", Scalar_" + arg.name + ","
-    template_str = template_str[:-1] + ">("
-
-    call_str = call_str + template_str if fun.has_array_arguments else call_str + "("
-
-    for arg in fun.arguments:
-        if arg.is_numpy_type:
-            if not arg.is_sparse:
-                call_str += "Map_" + arg.name + "((Scalar_" + arg.name + "*) " + arg.name + ".data(), " + \
-                            arg.name + "_shape_0, " + arg.name + "_shape_1),"
-            else:
-                call_str += arg.name + ".as_eigen<Matrix_" + arg.name + ">(),"
-        else:
-            call_str += arg.name + ","
-
-    call_str = call_str[:-1] + ");\n"
-    out_file.write(call_str)
-    # out_file.write(binding_source_code + "\n")
-    out_file.write("}\n")
-
-
-def write_code_function_definition(out_file):
-    template_str = "template <"
-    for arg in fun.arguments:
-        if arg.is_numpy_type:
-            template_str += "typename " + MAP_TYPE_PREFIX + arg.name + ","
-            template_str += "typename " + MATRIX_TYPE_PREFIX + arg.name + ","
-            template_str += "typename " + SCALAR_TYPE_PREFIX + arg.name + ","
-    template_str = template_str[:-1] + ">\n"
-    if fun.has_array_arguments:
-        out_file.write(template_str)
-    out_file.write("static auto callit(")
-
-    argument_str = ""
-    for arg in fun.arguments:
-        if arg.is_numpy_type:
-            argument_str += "%s%s %s," % (MAP_TYPE_PREFIX, arg.name, arg.name)
-        else:
-            argument_str += arg.name_or_type[0] + " " + arg.name + ","
-    argument_str = argument_str[:-1] + ") {\n"
-    out_file.write(argument_str)
-    out_file.write(fun._source_code)
-    out_file.write("}\n")
-
-
-def backend_pass(out_file):
-    write_header(out_file)
-
-    expanded_type_groups = [itertools.product(group.types, STORAGE_ORDER_SUFFIXES) for group in fun.argument_groups]
-    group_combos = itertools.product(*expanded_type_groups)
-
-    branch_count = 0
-
-    if fun.has_array_arguments:
-        for combo in group_combos:
-            if_or_elseif = "if " if branch_count == 0 else " else if "
-            out_str = if_or_elseif + "("
-
-            skip = False
-            for group_id in range(len(combo)):
-                # Sparse types only have column (csc) and row (csr) matrix types so don't output a branch for unaligned
-                if is_sparse_type(combo[group_id][0]) and combo[group_id][1] == STORAGE_ORDER_SUFFIX_XM:
-                    skip = True
-                    break
-                repr_var = fun.argument_groups[group_id].arguments[0]
-                typename = combo[group_id][0] + combo[group_id][1]
-                out_str += type_id_var(repr_var.name) + " == " + PRIVATE_NAMESPACE + "::" + TYPE_ID_ENUM + "::" + typename
-                next_token = " && " if group_id < len(combo)-1 else ")"
-                out_str += next_token
-
-            if skip:
-                continue
-
-            out_str += " {\n"
-            out_file.write(out_str)
-            write_code_block(out_file, combo)
-            out_file.write("}")
-            branch_count += 1
-        out_file.write(" else {\n")
-        out_file.write(INDENT + 'throw std::invalid_argument("This should never happen but clearly it did. '
-                                'File a github issue at https://github.com/fwilliams/numpyeigen");\n')
-        out_file.write("}\n")
-    else:
-        group_combos = list(group_combos)
-        assert len(group_combos) == 1, "This should never happen but clearly it did. " \
-                                       "File a github issue at https://github.com/fwilliams/numpyeigen"
-        for _ in group_combos:
-            out_file.write("{\n")
-            out_file.write(fun._source_code + "\n")
+        # Declare variables used to determine the type at runtime
+        for arg in fun.array_arguments:
+            out_file.write("const char %s = %s.dtype().type();\n" % (type_name_var(arg.name), arg.name))
+            out_file.write("ssize_t %s_shape_0 = 0;\n" % arg.name)
+            out_file.write("ssize_t %s_shape_1 = 0;\n" % arg.name)
+            out_file.write("if (%s.ndim() == 1) {\n" % arg.name)
+            out_file.write("%s_shape_0 = %s.shape()[0];\n" % (arg.name, arg.name))
+            out_file.write("%s_shape_1 = %s.shape()[0] == 0 ? 0 : 1;\n" % (arg.name, arg.name))
+            out_file.write("} else if (%s.ndim() == 2) {\n" % arg.name)
+            out_file.write("%s_shape_0 = %s.shape()[0];\n" % (arg.name, arg.name))
+            out_file.write("%s_shape_1 = %s.shape()[1];\n" % (arg.name, arg.name))
+            out_file.write("} else if (%s.ndim() > 2) {\n" % arg.name)
+            out_file.write("  throw std::invalid_argument(\"Argument " + arg.name +
+                           " has invalid number of dimensions. Must be 1 or 2.\");\n")
             out_file.write("}\n")
 
-    out_file.write("\n")
-    out_file.write("}")
-    if len(fun._docstr) > 0:
-        out_file.write(", " + fun._docstr)
+            write_flags_getter(arg.name)
+            write_type_id_getter(arg.name)
 
-    arg_list = ""
-    for arg in fun.arguments:
-        arg_list += ", pybind11::arg(\"" + arg.name + "\")"
-        arg_list += "=" + arg.default_value if arg.default_value else ""
+        # Ensure the types in each group match
+        for group_id in range(fun.num_type_groups):
+            group_var_names = [vm.name for vm in fun.argument_groups[group_id].arguments]
+            group_types = fun.argument_groups[group_id].types
+            pretty_group_types = [NUMPY_ARRAY_TYPES_TO_CPP[gt][2] for gt in group_types]
 
-    out_file.write(arg_list)
-    out_file.write(");\n")
-    out_file.write("}\n")
-    out_file.write("\n")
+            out_str = "if ("
+            for i in range(len(group_types)):
+                type_name = group_types[i]
+                out_str += type_name_var(group_var_names[0]) + " != " + type_char_for_numpy_type(type_name)
+                next_token = " && " if i < len(group_types) - 1 else ") {\n"
+                out_str += next_token
+            out_str += 'throw std::invalid_argument("Invalid type (%s) for argument \'%s\'. ' \
+                       'Expected one of %s.");\n' % (
+                       pretty_group_types[0], group_var_names[0], pretty_group_types)
+            out_str += "}\n"
+            out_file.write(out_str)
+
+            assert len(group_var_names) >= 1
+            if len(group_var_names) == 1:
+                continue
+
+            for i in range(1, len(group_var_names)):
+                out_str = "if ("
+                out_str += type_id_var(group_var_names[0]) + " != " + type_id_var(group_var_names[i]) + ") {\n"
+                out_str += 'std::string err_msg = std::string("Invalid type (") + %s::type_to_str(%s) + ' \
+                           'std::string(") for argument \'%s\'. Expected it to match argument \'%s\' ' \
+                           'which is of type ") + %s::type_to_str(%s) + std::string(".");\n' \
+                           % (PRIVATE_NAMESPACE, type_name_var(group_var_names[i]), group_var_names[i],
+                              group_var_names[0], PRIVATE_NAMESPACE, type_name_var(group_var_names[0]))
+                out_str += 'throw std::invalid_argument(err_msg);\n'
+
+                out_str += "}\n"
+
+            out_file.write(out_str)
+
+    def write_code_block(combo):
+        out_file.write("{\n")
+        for group_id in range(len(combo)):
+            type_prefix = combo[group_id][0]
+            type_suffix = combo[group_id][1]
+            for arg in fun.argument_groups[group_id].arguments:
+                cpp_type = NUMPY_ARRAY_TYPES_TO_CPP[type_prefix][0]
+                storage_order_enum = storage_order_for_suffix(type_suffix)
+                aligned_enum = aligned_enum_for_suffix(type_suffix)
+
+                out_file.write("typedef " + cpp_type + " Scalar_" + arg.name + ";\n")
+                if is_sparse_type(combo[group_id][0]):
+                    eigen_type = "Eigen::SparseMatrix<" + cpp_type + ", " + \
+                                 storage_order_enum + ", int>"
+                    out_file.write("typedef " + eigen_type + " Matrix_%s" % arg.name + ";\n")
+                    out_file.write("#if EIGEN_WORLD_VERSION == 3 && EIGEN_MAJOR_VERSION <= 2\n")
+                    out_file.write("typedef Eigen::MappedSparseMatrix<" + cpp_type + ", " +
+                                   storage_order_enum + ", int> Map_" + arg.name + ";\n")
+                    out_file.write("#elif (EIGEN_WORLD_VERSION == 3 && "
+                                   "EIGEN_MAJOR_VERSION > 2) || (EIGEN_WORLD_VERSION > 3)\n")
+                    out_file.write("typedef Eigen::Map<Matrix_" + arg.name + "> Map_" + arg.name + ";\n")
+                    out_file.write("#endif\n")
+
+                else:
+                    eigen_type = "Eigen::Matrix<" + cpp_type + ", " + "Eigen::Dynamic, " + "Eigen::Dynamic, " + \
+                                 storage_order_enum + ">"
+                    out_file.write("typedef " + eigen_type + " Matrix_%s" % arg.name + ";\n")
+                    out_file.write("typedef Eigen::Map<" + eigen_type + ", " +
+                                   aligned_enum + "> Map_" + arg.name + ";\n")
+
+        call_str = "return callit"
+        template_str = "<"
+        for arg in fun.arguments:
+            if arg.is_numpy_type:
+                template_str += "Map_" + arg.name + ", Matrix_" + arg.name + ", Scalar_" + arg.name + ","
+        template_str = template_str[:-1] + ">("
+
+        call_str = call_str + template_str if fun.has_array_arguments else call_str + "("
+
+        for arg in fun.arguments:
+            if arg.is_numpy_type:
+                if not arg.is_sparse:
+                    call_str += "Map_" + arg.name + "((Scalar_" + arg.name + "*) " + arg.name + ".data(), " + \
+                                arg.name + "_shape_0, " + arg.name + "_shape_1),"
+                else:
+                    call_str += arg.name + ".as_eigen<Matrix_" + arg.name + ">(),"
+            else:
+                call_str += arg.name + ","
+
+        call_str = call_str[:-1] + ");\n"
+        out_file.write(call_str)
+        # out_file.write(binding_source_code + "\n")
+        out_file.write("}\n")
+
+    def write_code_function_definition():
+        template_str = "template <"
+        for arg in fun.arguments:
+            if arg.is_numpy_type:
+                template_str += "typename " + MAP_TYPE_PREFIX + arg.name + ","
+                template_str += "typename " + MATRIX_TYPE_PREFIX + arg.name + ","
+                template_str += "typename " + SCALAR_TYPE_PREFIX + arg.name + ","
+        template_str = template_str[:-1] + ">\n"
+        if fun.has_array_arguments:
+            out_file.write(template_str)
+        out_file.write("static auto callit(")
+
+        argument_str = ""
+        for arg in fun.arguments:
+            if arg.is_numpy_type:
+                argument_str += "%s%s %s," % (MAP_TYPE_PREFIX, arg.name, arg.name)
+            else:
+                argument_str += arg.name_or_type[0] + " " + arg.name + ","
+        argument_str = argument_str[:-1] + ") {\n"
+        out_file.write(argument_str)
+        out_file.write(fun._source_code)
+        out_file.write("}\n")
+
+    def write_body():
+        expanded_type_groups = [itertools.product(group.types, STORAGE_ORDER_SUFFIXES) for group in fun.argument_groups]
+        group_combos = itertools.product(*expanded_type_groups)
+
+        branch_count = 0
+
+        if fun.has_array_arguments:
+            for combo in group_combos:
+                if_or_elseif = "if " if branch_count == 0 else " else if "
+                out_str = if_or_elseif + "("
+
+                skip = False
+                for group_id in range(len(combo)):
+                    # Sparse types only have column (csc) and row (csr) matrix types,
+                    #  so don't output a branch for unaligned
+                    if is_sparse_type(combo[group_id][0]) and combo[group_id][1] == STORAGE_ORDER_SUFFIX_XM:
+                        skip = True
+                        break
+                    repr_var = fun.argument_groups[group_id].arguments[0]
+                    typename = combo[group_id][0] + combo[group_id][1]
+                    out_str += type_id_var(
+                        repr_var.name) + " == " + PRIVATE_NAMESPACE + "::" + TYPE_ID_ENUM + "::" + typename
+                    next_token = " && " if group_id < len(combo) - 1 else ")"
+                    out_str += next_token
+
+                if skip:
+                    continue
+
+                out_str += " {\n"
+                out_file.write(out_str)
+                write_code_block(combo)
+                out_file.write("}")
+                branch_count += 1
+            out_file.write(" else {\n")
+            out_file.write('throw std::invalid_argument("This should never happen but clearly it did. '
+                           'File a github issue at https://github.com/fwilliams/numpyeigen");\n')
+            out_file.write("}\n")
+        else:
+            group_combos = list(group_combos)
+            assert len(group_combos) == 1, "This should never happen but clearly it did. " \
+                                           "File a github issue at https://github.com/fwilliams/numpyeigen"
+            for _ in group_combos:
+                out_file.write("{\n")
+                out_file.write(fun._source_code + "\n")
+                out_file.write("}\n")
+        out_file.write("\n")
+        out_file.write("}")
+
+    def write_end():
+        if len(fun.docstring) > 0:
+            out_file.write(", " + fun.docstring)
+
+        arg_list = ""
+        for arg in fun.arguments:
+            arg_list += ", pybind11::arg(\"" + arg.name + "\")"
+            arg_list += "=" + arg.default_value if arg.default_value else ""
+
+        out_file.write(arg_list)
+        out_file.write(");\n")
+        out_file.write("}\n")
+        out_file.write("\n")
+
+    write_declaration()
+    write_body()
+    write_end()
 
 
 if __name__ == "__main__":
@@ -934,10 +919,13 @@ if __name__ == "__main__":
 
     try:
         input_file_name = args.file
-        fun = NpeFunction(line_list)
+        f = NpeFunction(line_list)
 
         with open(args.output, 'w+') as outfile:
-            backend_pass(outfile)
+            FOR_REAL_DEFINE = "__NPE_FOR_REAL__"
+            outfile.write("#define " + FOR_REAL_DEFINE + "\n")
+            outfile.write("#include <npe.h>\n")
+            codegen_function(f, outfile)
     except SemanticError as e:
         # TODO: Pretty printer
         log(LOG_ERROR, TermColors.FAIL + TermColors.BOLD + "NumpyEigen Semantic Error: " +
