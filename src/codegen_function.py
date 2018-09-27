@@ -249,18 +249,21 @@ class NpeArgument(object):
 
 class NpeFunction(object):
     def __init__(self, lines):
-        self.name = ""                # The name of the function we are binding
-        self.input_type_groups = []   # Set of allowed types for each group of variables
-        self._argument_to_group = {}  # Dictionary mapping input variable names to type groups
-        self._group_to_argument = {}  # Dictionary mapping type groups to input variable names
-        self._arguments = []          # List of input variable names in order
-        self._argument_metadata = {}  # Dictionary mapping variable names to types
-        self._source_code = ""        # The source code of the binding
-        self._preamble = ""           # The code that comes before npe_* statements
-        self._docstr = ""             # Function documentation
+        self.name = ""                     # The name of the function we are binding
+        self._input_type_groups = []       # Set of allowed types for each group of variables
+        self._argument_name_to_group = {}  # Dictionary mapping input variable names to type groups
+        self._group_to_argument = {}       # Dictionary mapping type groups to input variable names
+        self._arguments = []               # List of input variable names in order
+        self._argument_metadata = {}       # Dictionary mapping variable names to types
+        self._source_code = ""             # The source code of the binding
+        self._preamble = ""                # The code that comes before npe_* statements
+        self._docstr = ""                  # Function documentation
 
         self._parse(lines)
         self._validate()
+
+        print(self._input_type_groups)
+        print(self._argument_name_to_group)
 
     @property
     def arguments(self):
@@ -295,6 +298,10 @@ class NpeFunction(object):
                 has = True
                 break
         return has
+
+    @property
+    def argument_groups(self):
+        return self._input_type_groups
 
     def _parse_arg_statement(self, line, line_number, is_default):
         global NUMPY_ARRAY_TYPES, MATCHES_TOKEN, ARG_TOKEN
@@ -341,16 +348,16 @@ class NpeFunction(object):
                                      "If multiple types are specified, "
                                      "they must be one of %s" % (type_str, stmt_token, line_number, NUMPY_ARRAY_TYPES))
 
-            if var_name in self._argument_to_group:
+            if var_name in self._argument_name_to_group:
                 # There was a matches() done before the group was created, fix the data structure
-                group_idx = self._argument_to_group[var_name]
-                assert len(self.input_type_groups[group_idx]) == 0
-                self.input_type_groups[group_idx] = var_types
+                group_idx = self._argument_name_to_group[var_name]
+                assert len(self._input_type_groups[group_idx]) == 0
+                self._input_type_groups[group_idx] = var_types
             else:
                 # This is the first time we're seeing this group
-                self.input_type_groups.append(var_types)
-                group_id = len(self.input_type_groups) - 1
-                self._argument_to_group[var_name] = group_id
+                self._input_type_groups.append(var_types)
+                group_id = len(self._input_type_groups) - 1
+                self._argument_name_to_group[var_name] = group_id
                 self._group_to_argument[group_id] = [var_name]
         else:
             assert len(var_types) == 1
@@ -361,17 +368,17 @@ class NpeFunction(object):
                 # If the type was enforcing a match on another type, then handle that case
                 matches_name = _parse_matches_statement(var_types[0], line_number=line_number)
 
-                if matches_name in self._argument_to_group:
-                    group_id = self._argument_to_group[matches_name]
-                    self._argument_to_group[var_name] = group_id
+                if matches_name in self._argument_name_to_group:
+                    group_id = self._argument_name_to_group[matches_name]
+                    self._argument_name_to_group[var_name] = group_id
                     if group_id not in self._group_to_argument:
                         self._group_to_argument[group_id] = []
                     self._group_to_argument[group_id].append(var_name)
                 else:
-                    self.input_type_groups.append([])
-                    group_id = len(self.input_type_groups) - 1
-                    self._argument_to_group[var_name] = group_id
-                    self._argument_to_group[matches_name] = group_id
+                    self._input_type_groups.append([])
+                    group_id = len(self._input_type_groups) - 1
+                    self._argument_name_to_group[var_name] = group_id
+                    self._argument_name_to_group[matches_name] = group_id
                     if group_id not in self._group_to_argument:
                         self._group_to_argument[group_id] = []
                     self._group_to_argument[group_id].append(var_name)
@@ -549,8 +556,6 @@ class NpeFunction(object):
             raise ParseError("Unexpected EOF. Binding file must end with a %s() statement." % END_CODE_TOKEN)
 
     def _validate(self):
-        global MATCHES_TOKEN
-
         for var_name, var_meta in self.arguments:
             is_sparse = is_sparse_type(var_meta.name_or_type[0])
             is_dense = is_dense_type(var_meta.name_or_type[0])
@@ -565,13 +570,13 @@ class NpeFunction(object):
 
         for var_name, var_meta in self.arguments:
             if var_meta.is_matches:
-                group_idx = self._argument_to_group[var_name]
+                group_idx = self._argument_name_to_group[var_name]
                 matches_name = var_meta.name_or_type[0]
-                if len(self.input_type_groups[group_idx]) == 0:
+                if len(self._input_type_groups[group_idx]) == 0:
                     raise SemanticError("Input Variable %s (line %d) was declared with type %s but was "
                                         "unmatched with a numpy type." % (var_name, var_meta.line_number, matches_name))
-                self._argument_metadata[var_name].is_sparse = is_sparse_type(self.input_type_groups[group_idx][0])
-                self._argument_metadata[var_name].is_dense = is_dense_type(self.input_type_groups[group_idx][0])
+                self._argument_metadata[var_name].is_sparse = is_sparse_type(self._input_type_groups[group_idx][0])
+                self._argument_metadata[var_name].is_dense = is_dense_type(self._input_type_groups[group_idx][0])
 
 
 PRIVATE_ID_PREFIX = "_NPE_PY_BINDING_"
@@ -721,7 +726,7 @@ def write_header(out_file):
     # Ensure the types in each group match
     for group_id in fun._group_to_argument.keys():
         group_var_names = fun._group_to_argument[group_id]
-        group_types = fun.input_type_groups[group_id]
+        group_types = fun._input_type_groups[group_id]
         pretty_group_types = [NUMPY_ARRAY_TYPES_TO_CPP[gt][2] for gt in group_types]
 
         out_str = "if ("
@@ -837,7 +842,7 @@ def write_code_function_definition(out_file):
 def backend_pass(out_file):
     write_header(out_file)
 
-    expanded_type_groups = [itertools.product(group, STORAGE_ORDER_SUFFIXES) for group in fun.input_type_groups]
+    expanded_type_groups = [itertools.product(group, STORAGE_ORDER_SUFFIXES) for group in fun._input_type_groups]
     group_combos = itertools.product(*expanded_type_groups)
 
     branch_count = 0
