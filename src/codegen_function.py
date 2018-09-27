@@ -151,6 +151,14 @@ def is_numpy_type(typestr):
     return typestr.lower() in NUMPY_ARRAY_TYPES
 
 
+def is_sparse_type(type_name):
+    return is_numpy_type(type_name) and type_name.startswith("sparse_")
+
+
+def is_dense_type(type_name):
+    return is_numpy_type(type_name) and type_name.startswith("dense_")
+
+
 def parse_token(line, token, line_number, case_sensitive=True):
     check_line = line if case_sensitive else line.lower()
     check_token = token if case_sensitive else token.lower()
@@ -287,7 +295,7 @@ class NpeFunction(object):
         for arg_name in self._argument_names:
             arg_meta = self._arguments[arg_name]
             if arg_meta.is_numpy_type:
-                yield arg_name, arg_meta
+                yield arg_meta
 
     @property
     def num_args(self):
@@ -304,8 +312,8 @@ class NpeFunction(object):
         :return: true if any of the input arguments are numpy or scipy types
         """
         has = False
-        for var_meta in self.arguments:
-            if is_numpy_type(var_meta.name_or_type[0]) or var_meta.is_matches:
+        for arg in self.arguments:
+            if is_numpy_type(arg.name_or_type[0]) or arg.is_matches:
                 has = True
                 break
         return has
@@ -634,14 +642,6 @@ def type_id_var(var_name):
     return PRIVATE_ID_PREFIX + var_name + "_t_id"
 
 
-def is_sparse_type(type_name):
-    return type_name.startswith("sparse_")
-
-
-def is_dense_type(type_name):
-    return type_name.startswith("dense_")
-
-
 def storage_order_for_suffix(suffix):
     if suffix == STORAGE_ORDER_SUFFIX_CM:
         return PRIVATE_NAMESPACE + "::" + STORAGE_ORDER_ENUM + "::" + STORAGE_ORDER_CM
@@ -702,41 +702,40 @@ def write_header(out_file):
 
     # Write the argument list
     i = 0
-    for var_meta in fun.arguments:
-        var_name = var_meta.name
-        if var_meta.is_sparse:
+    for arg in fun.arguments:
+        if arg.is_sparse:
             out_file.write("npe::sparse_array ")
-            out_file.write(var_name)
-        elif var_meta.is_dense:
+            out_file.write(arg.name)
+        elif arg.is_dense:
             out_file.write("pybind11::array ")
-            out_file.write(var_name)
+            out_file.write(arg.name)
         else:
-            assert len(var_meta.name_or_type) == 1
-            var_type = var_meta.name_or_type[0]
+            assert len(arg.name_or_type) == 1
+            var_type = arg.name_or_type[0]
             out_file.write(var_type + " ")
-            out_file.write(var_name)
+            out_file.write(arg.name)
         next_token = ", " if i < fun.num_args - 1 else ") {\n"
         out_file.write(next_token)
         i += 1
 
     # Declare variables used to determine the type at runtime
-    for var_name, var_meta in fun.array_arguments:
-        out_file.write(indent(1) + "const char %s = %s.dtype().type();\n" % (type_name_var(var_name), var_name))
-        out_file.write(indent(1) + "ssize_t %s_shape_0 = 0;\n" % var_name)
-        out_file.write(indent(1) + "ssize_t %s_shape_1 = 0;\n" % var_name)
-        out_file.write(indent(1) + "if (%s.ndim() == 1) {\n" % var_name)
-        out_file.write(indent(2) + "%s_shape_0 = %s.shape()[0];\n" % (var_name, var_name))
-        out_file.write(indent(2) + "%s_shape_1 = %s.shape()[0] == 0 ? 0 : 1;\n" % (var_name, var_name))
-        out_file.write(indent(1) + "} else if (%s.ndim() == 2) {\n" % var_name)
-        out_file.write(indent(2) + "%s_shape_0 = %s.shape()[0];\n" % (var_name, var_name))
-        out_file.write(indent(2) + "%s_shape_1 = %s.shape()[1];\n" % (var_name, var_name))
-        out_file.write(indent(1) + "} else if (%s.ndim() > 2) {\n" % var_name)
-        out_file.write(indent(2) + "  throw std::invalid_argument(\"Argument " + var_name +
+    for arg in fun.array_arguments:
+        out_file.write(indent(1) + "const char %s = %s.dtype().type();\n" % (type_name_var(arg.name), arg.name))
+        out_file.write(indent(1) + "ssize_t %s_shape_0 = 0;\n" % arg.name)
+        out_file.write(indent(1) + "ssize_t %s_shape_1 = 0;\n" % arg.name)
+        out_file.write(indent(1) + "if (%s.ndim() == 1) {\n" % arg.name)
+        out_file.write(indent(2) + "%s_shape_0 = %s.shape()[0];\n" % (arg.name, arg.name))
+        out_file.write(indent(2) + "%s_shape_1 = %s.shape()[0] == 0 ? 0 : 1;\n" % (arg.name, arg.name))
+        out_file.write(indent(1) + "} else if (%s.ndim() == 2) {\n" % arg.name)
+        out_file.write(indent(2) + "%s_shape_0 = %s.shape()[0];\n" % (arg.name, arg.name))
+        out_file.write(indent(2) + "%s_shape_1 = %s.shape()[1];\n" % (arg.name, arg.name))
+        out_file.write(indent(1) + "} else if (%s.ndim() > 2) {\n" % arg.name)
+        out_file.write(indent(2) + "  throw std::invalid_argument(\"Argument " + arg.name +
                        " has invalid number of dimensions. Must be 1 or 2.\");\n")
         out_file.write(indent(1) + "}\n")
 
-        write_flags_getter(out_file, var_name)
-        write_type_id_getter(out_file, var_name)
+        write_flags_getter(out_file, arg.name)
+        write_type_id_getter(out_file, arg.name)
 
     # Ensure the types in each group match
     for group_id in range(fun.num_type_groups):
@@ -779,52 +778,49 @@ def write_code_block(out_file, combo):
     for group_id in range(len(combo)):
         type_prefix = combo[group_id][0]
         type_suffix = combo[group_id][1]
-        for var_meta in fun.argument_groups[group_id].arguments:
-            var_name = var_meta.name
+        for arg in fun.argument_groups[group_id].arguments:
             cpp_type = NUMPY_ARRAY_TYPES_TO_CPP[type_prefix][0]
             storage_order_enum = storage_order_for_suffix(type_suffix)
             aligned_enum = aligned_enum_for_suffix(type_suffix)
 
-            out_file.write(indent(2) + "typedef " + cpp_type + " Scalar_" + var_name + ";\n")
+            out_file.write(indent(2) + "typedef " + cpp_type + " Scalar_" + arg.name + ";\n")
             if is_sparse_type(combo[group_id][0]):
                 eigen_type = "Eigen::SparseMatrix<" + cpp_type + ", " + \
                                storage_order_enum + ", int>"
-                out_file.write("typedef " + eigen_type + " Matrix_%s" % var_name + ";\n")
+                out_file.write("typedef " + eigen_type + " Matrix_%s" % arg.name + ";\n")
                 out_file.write("#if EIGEN_WORLD_VERSION == 3 && EIGEN_MAJOR_VERSION <= 2\n")
                 out_file.write(indent(2) + "typedef Eigen::MappedSparseMatrix<" + cpp_type + ", " +
-                               storage_order_enum + ", int> Map_" + var_name + ";\n")
+                               storage_order_enum + ", int> Map_" + arg.name + ";\n")
                 out_file.write("#elif (EIGEN_WORLD_VERSION == 3 && "
                                "EIGEN_MAJOR_VERSION > 2) || (EIGEN_WORLD_VERSION > 3)\n")
-                out_file.write(indent(2) + "typedef Eigen::Map<Matrix_" + var_name + "> Map_" + var_name + ";\n")
+                out_file.write(indent(2) + "typedef Eigen::Map<Matrix_" + arg.name + "> Map_" + arg.name + ";\n")
                 out_file.write("#endif\n")
 
             else:
                 eigen_type = "Eigen::Matrix<" + cpp_type + ", " + "Eigen::Dynamic, " + "Eigen::Dynamic, " + \
                              storage_order_enum + ">"
-                out_file.write("typedef " + eigen_type + " Matrix_%s" % var_name + ";\n")
+                out_file.write("typedef " + eigen_type + " Matrix_%s" % arg.name + ";\n")
                 out_file.write(indent(2) + "typedef Eigen::Map<" + eigen_type + ", " +
-                               aligned_enum + "> Map_" + var_name + ";\n")
+                               aligned_enum + "> Map_" + arg.name + ";\n")
 
     call_str = "return callit"
     template_str = "<"
-    for var_meta in fun.arguments:
-        var_name = var_meta.name
-        if var_meta.is_numpy_type:
-            template_str += "Map_" + var_name + ", Matrix_" + var_name + ", Scalar_" + var_name + ","
+    for arg in fun.arguments:
+        if arg.is_numpy_type:
+            template_str += "Map_" + arg.name + ", Matrix_" + arg.name + ", Scalar_" + arg.name + ","
     template_str = template_str[:-1] + ">("
 
     call_str = call_str + template_str if fun.has_array_arguments else call_str + "("
 
-    for var_meta in fun.arguments:
-        var_name = var_meta.name
-        if var_meta.is_numpy_type:
-            if not var_meta.is_sparse:
-                call_str += "Map_" + var_name + "((Scalar_" + var_name + "*) " + var_name + ".data(), " + \
-                    var_name + "_shape_0, " + var_name + "_shape_1),"
+    for arg in fun.arguments:
+        if arg.is_numpy_type:
+            if not arg.is_sparse:
+                call_str += "Map_" + arg.name + "((Scalar_" + arg.name + "*) " + arg.name + ".data(), " + \
+                            arg.name + "_shape_0, " + arg.name + "_shape_1),"
             else:
-                call_str += var_name + ".as_eigen<Matrix_" + var_name + ">(),"
+                call_str += arg.name + ".as_eigen<Matrix_" + arg.name + ">(),"
         else:
-            call_str += var_name + ","
+            call_str += arg.name + ","
 
     call_str = call_str[:-1] + ");\n"
     out_file.write(call_str)
@@ -834,25 +830,22 @@ def write_code_block(out_file, combo):
 
 def write_code_function_definition(out_file):
     template_str = "template <"
-    for arg_meta in fun.arguments:
-        arg_name = arg_meta.name
-        if arg_meta.is_numpy_type:
-            template_str += "typename " + MAP_TYPE_PREFIX + arg_name + ","
-            template_str += "typename " + MATRIX_TYPE_PREFIX + arg_name + ","
-            template_str += "typename " + SCALAR_TYPE_PREFIX + arg_name + ","
+    for arg in fun.arguments:
+        if arg.is_numpy_type:
+            template_str += "typename " + MAP_TYPE_PREFIX + arg.name + ","
+            template_str += "typename " + MATRIX_TYPE_PREFIX + arg.name + ","
+            template_str += "typename " + SCALAR_TYPE_PREFIX + arg.name + ","
     template_str = template_str[:-1] + ">\n"
     if fun.has_array_arguments:
         out_file.write(template_str)
     out_file.write("static auto callit(")
 
     argument_str = ""
-    for arg_meta in fun.arguments:
-        arg_name = arg_meta.name
-        if arg_meta.is_numpy_type:
-            argument_str += "%s%s %s," % (MAP_TYPE_PREFIX, arg_name, arg_name)
+    for arg in fun.arguments:
+        if arg.is_numpy_type:
+            argument_str += "%s%s %s," % (MAP_TYPE_PREFIX, arg.name, arg.name)
         else:
-            arg_meta = arg_meta
-            argument_str += arg_meta.name_or_type[0] + " " + arg_name + ","
+            argument_str += arg.name_or_type[0] + " " + arg.name + ","
     argument_str = argument_str[:-1] + ") {\n"
     out_file.write(argument_str)
     out_file.write(fun._source_code)
@@ -911,9 +904,9 @@ def backend_pass(out_file):
         out_file.write(", " + fun._docstr)
 
     arg_list = ""
-    for arg_meta in fun.arguments:
-        arg_list += ", pybind11::arg(\"" + arg_meta.name + "\")"
-        arg_list += "=" + arg_meta.default_value if arg_meta.default_value else ""
+    for arg in fun.arguments:
+        arg_list += ", pybind11::arg(\"" + arg.name + "\")"
+        arg_list += "=" + arg.default_value if arg.default_value else ""
 
     out_file.write(arg_list)
     out_file.write(");\n")
