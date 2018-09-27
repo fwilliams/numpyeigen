@@ -263,7 +263,7 @@ class NpeFunction(object):
         self._validate()
 
     @property
-    def argument_metadata(self):
+    def arguments(self):
         """
         Iterate over the arguments and their meta data in the order they were passed in
         :return: An iterator over (argument_name, argument_metadata)
@@ -273,11 +273,15 @@ class NpeFunction(object):
             yield arg_name, arg_meta
 
     @property
+    def array_arguments(self):
+        for arg_name in self._arguments:
+            arg_meta = self._argument_metadata[arg_name]
+            if arg_meta.is_numpy_type:
+                yield arg_name, arg_meta
+
+    @property
     def num_args(self):
         return len(self._arguments)
-
-    def metadata_for_argument(self, arg_name):
-        return self._argument_metadata[arg_name]
 
     def _parse_arg_statement(self, line, line_number, is_default):
         global NUMPY_ARRAY_TYPES, MATCHES_TOKEN, ARG_TOKEN
@@ -534,7 +538,7 @@ class NpeFunction(object):
     def _validate(self):
         global MATCHES_TOKEN
 
-        for var_name, var_meta in self.argument_metadata:
+        for var_name, var_meta in self.arguments:
             is_sparse = is_sparse_type(var_meta.name_or_type[0])
             is_dense = is_dense_type(var_meta.name_or_type[0])
 
@@ -546,7 +550,7 @@ class NpeFunction(object):
             self._argument_metadata[var_name].is_sparse = is_sparse
             self._argument_metadata[var_name].is_dense = is_dense
 
-        for var_name, var_meta in self.argument_metadata:
+        for var_name, var_meta in self.arguments:
             if var_meta.is_matches:
                 group_idx = self._argument_to_group[var_name]
                 matches_name = var_meta.name_or_type[0]
@@ -584,7 +588,7 @@ def has_numpy_types():
     :return: true if any of the input arguments are numpy or scipy types
     """
     has = False
-    for var_name, var_meta in fun.argument_metadata:
+    for var_name, var_meta in fun.arguments:
         if is_numpy_type(var_meta.name_or_type[0]) or var_meta.is_matches:
             has = True
             break
@@ -679,7 +683,7 @@ def write_header(out_file):
 
     # Write the argument list
     i = 0
-    for var_name, var_meta in fun.argument_metadata:
+    for var_name, var_meta in fun.arguments:
         if var_meta.is_sparse:
             out_file.write("npe::sparse_array ")
             out_file.write(var_name)
@@ -696,7 +700,7 @@ def write_header(out_file):
         i += 1
 
     # Declare variables used to determine the type at runtime
-    for var_name in fun._argument_to_group.keys():
+    for var_name, var_meta in fun.array_arguments:
         out_file.write(indent(1) + "const char %s = %s.dtype().type();\n" % (type_name_var(var_name), var_name))
         out_file.write(indent(1) + "ssize_t %s_shape_0 = 0;\n" % var_name)
         out_file.write(indent(1) + "ssize_t %s_shape_1 = 0;\n" % var_name)
@@ -782,15 +786,15 @@ def write_code_block(out_file, combo):
 
     call_str = "return callit"
     template_str = "<"
-    for var_name, var_meta in fun.argument_metadata:
-        if var_name in fun._argument_to_group:
+    for var_name, var_meta in fun.arguments:
+        if var_meta.is_numpy_type:
             template_str += "Map_" + var_name + ", Matrix_" + var_name + ", Scalar_" + var_name + ","
     template_str = template_str[:-1] + ">("
 
     call_str = call_str + template_str if has_numpy_types() else call_str + "("
 
-    for var_name, var_meta in fun.argument_metadata:
-        if var_name in fun._argument_to_group:
+    for var_name, var_meta in fun.arguments:
+        if var_meta.is_numpy_type:
             if not var_meta.is_sparse:
                 call_str += "Map_" + var_name + "((Scalar_" + var_name + "*) " + var_name + ".data(), " + \
                     var_name + "_shape_0, " + var_name + "_shape_1),"
@@ -807,8 +811,8 @@ def write_code_block(out_file, combo):
 
 def write_code_function_definition(out_file):
     template_str = "template <"
-    for arg_name, arg_meta in fun.argument_metadata:
-        if arg_name in fun._argument_to_group:
+    for arg_name, arg_meta in fun.arguments:
+        if arg_meta.is_numpy_type:
             template_str += "typename " + MAP_TYPE_PREFIX + arg_name + ","
             template_str += "typename " + MATRIX_TYPE_PREFIX + arg_name + ","
             template_str += "typename " + SCALAR_TYPE_PREFIX + arg_name + ","
@@ -818,8 +822,8 @@ def write_code_function_definition(out_file):
     out_file.write("static auto callit(")
 
     argument_str = ""
-    for arg_name, arg_meta in fun.argument_metadata:
-        if arg_name in fun._argument_to_group:
+    for arg_name, arg_meta in fun.arguments:
+        if arg_meta.is_numpy_type:
             argument_str += "%s%s %s," % (MAP_TYPE_PREFIX, arg_name, arg_name)
         else:
             arg_meta = arg_meta
@@ -882,7 +886,7 @@ def backend_pass(out_file):
         out_file.write(", " + fun._docstr)
 
     arg_list = ""
-    for arg_name, arg_meta in fun.argument_metadata:
+    for arg_name, arg_meta in fun.arguments:
         arg_list += ", pybind11::arg(\"" + arg_name + "\")"
         arg_list += "=" + arg_meta.default_value if arg_meta.default_value else ""
 
