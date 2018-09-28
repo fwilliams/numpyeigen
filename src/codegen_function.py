@@ -103,9 +103,9 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
         tmpf.flush()
         cmd = CPP_COMMAND + " -w " + tmpf.name
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        output, err = p.communicate()
+        cpp_output, cpp_err = p.communicate()
         tmpf.close()
-        return output.decode('utf-8'), err
+        return cpp_output.decode('utf-8'), cpp_err
 
     cpp_str = "#define %s(arg, ...) arg %s %s(__VA_ARGS__)" % (stmt_token, split_token, stmt_token)
 
@@ -113,6 +113,7 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
 
     exited_before_max_iters = False
 
+    tokens = []
     for i in range(max_iters):
         output, err = run_cpp(cpp_input_str)
 
@@ -143,6 +144,10 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
     if not exited_before_max_iters:
         raise ParseError("Reached token parser maximum recursion depth (%d) at line %d" % (max_iters, line_number))
 
+    if len(tokens) == 0:
+        raise RuntimeError("This should never happen but clearly it did. "
+                           "File a github issue at https://github.com/fwilliams/numpyeigen")
+
     tokens = [s.strip() for s in tokens]
 
     return tokens
@@ -155,23 +160,23 @@ def validate_identifier_name(var_name):
     :return: True if var_name is a valid C++ identifier
     """
     # TODO: Validate identifier name
-    pass
+    return var_name
 
 
-def is_numpy_type(typestr):
+def is_numpy_type(type_name):
     """
     Return True if typestr refers to a NPE type corresponding to a Numpy/Eigen type
-    :param typestr: The type string to check
+    :param type_name: The type string to check
     :return: True if typestr names a Numpy/Eigen type (e.g. dense_f64, sparse_i32)
     """
     global NUMPY_ARRAY_TYPES
-    return typestr.lower() in NUMPY_ARRAY_TYPES
+    return type_name.lower() in NUMPY_ARRAY_TYPES
 
 
 def is_sparse_type(type_name):
     """
     Return True if typestr refers to a NPE type corresponding to a Numpy/Eigen sparse type
-    :param typestr: The type string to check
+    :param type_name: The type string to check
     :return: True if typestr names a Numpy/Eigen sparse type (e.g. sparse_f64, sparse_i32)
     """
     return is_numpy_type(type_name) and type_name.startswith("sparse_")
@@ -180,7 +185,7 @@ def is_sparse_type(type_name):
 def is_dense_type(type_name):
     """
     Return True if typestr refers to a NPE type corresponding to a Numpy/Eigen dense type
-    :param typestr: The type string to check
+    :param type_name: The type string to check
     :return: True if typestr names a Numpy/Eigen dense type (e.g. dense_f64, dense_i32)
     """
     return is_numpy_type(type_name) and type_name.startswith("dense_")
@@ -299,9 +304,9 @@ class NpeArgument(object):
 
 
 class NpeArgumentGroup(object):
-    def __init__(self, types=[], arguments=[]):
-        self.arguments = arguments
-        self.types = types
+    def __init__(self, types=None, arguments=None):
+        self.arguments = arguments if arguments is not None else []
+        self.types = types if types is not None else []
 
     def __repr__(self):
         return str(self.__dict__)
@@ -370,22 +375,22 @@ class NpeFunction(object):
     def _parse_arg_statement(self, line, line_number, is_default):
         global NUMPY_ARRAY_TYPES, MATCHES_TOKEN, ARG_TOKEN
 
-        def _parse_matches_statement(line, line_number):
+        def _parse_matches_statement(line_, line_number_):
             """
             Parse a matches(<type>) statement, returning the the type inside the parentheses
-            :param line: The current line being parsed
-            :param line_number: The number of the line in the file being parsed
+            :param line_: The current line being parsed
+            :param line_number_: The number of the line in the file being parsed
             :return: The name of the type inside the matches statement as a string
             """
             global MATCHES_TOKEN
 
-            line = consume_token(line.strip(), MATCHES_TOKEN, line_number=line_number, case_sensitive=False)
-            line = consume_token(line.strip(), '(', line_number=line_number).strip()
-            if not line.endswith(')'):
+            line_ = consume_token(line_.strip(), MATCHES_TOKEN, line_number=line_number_, case_sensitive=False)
+            line_ = consume_token(line_.strip(), '(', line_number=line_number_).strip()
+            if not line_.endswith(')'):
                 # TODO: Pretty error message
-                raise ParseError("Missing ')' for matches() token at line %d" % line_number)
+                raise ParseError("Missing ')' for matches() token at line %d" % line_number_)
 
-            return line[:-1]
+            return line_[:-1]
 
         stmt_token = DEFAULT_ARG_TOKEN if is_default else ARG_TOKEN
 
@@ -436,7 +441,7 @@ class NpeFunction(object):
                 var_meta.is_matches = True
 
                 # If the type was enforcing a match on another type, then handle that case
-                matches_name = _parse_matches_statement(var_types[0], line_number=line_number)
+                matches_name = _parse_matches_statement(var_types[0], line_number_=line_number)
 
                 if matches_name in self._argument_name_to_group:
                     group_id = self._argument_name_to_group[matches_name]
@@ -482,10 +487,10 @@ class NpeFunction(object):
     def _parse(self, file_reader):
         global ARG_TOKEN, BEGIN_CODE_TOKEN, END_CODE_TOKEN, FUNCTION_TOKEN
 
-        def _parse_npe_function_statement(line, line_number):
+        def _parse_npe_function_statement(line_, line_number):
             global FUNCTION_TOKEN
 
-            tokens = tokenize_npe_line(FUNCTION_TOKEN, line, line_number)
+            tokens = tokenize_npe_line(FUNCTION_TOKEN, line_, line_number)
             if len(tokens) > 1:
                 raise ParseError(FUNCTION_TOKEN + " got extra tokens, %s, at line %d. "
                                                   "Expected only the name of the function." %
@@ -495,19 +500,19 @@ class NpeFunction(object):
 
             return binding_name
 
-        def _parse_begin_code_statement(line, line_number):
+        def _parse_begin_code_statement(line_, line_number):
             global BEGIN_CODE_TOKEN
-            line = consume_token(line.strip(), BEGIN_CODE_TOKEN, line_number=line_number, case_sensitive=False)
-            line = consume_token(line.strip(), '(', line_number=line_number)
-            line = consume_token(line.strip(), ')', line_number=line_number)
-            consume_eol(line.strip(), line_number=line_number)
+            line_ = consume_token(line_.strip(), BEGIN_CODE_TOKEN, line_number=line_number, case_sensitive=False)
+            line_ = consume_token(line_.strip(), '(', line_number=line_number)
+            line_ = consume_token(line_.strip(), ')', line_number=line_number)
+            consume_eol(line_.strip(), line_number=line_number)
 
-        def _parse_end_code_statement(line, line_number):
+        def _parse_end_code_statement(line_, line_number):
             global END_CODE_TOKEN
-            line = consume_token(line.strip(), END_CODE_TOKEN, line_number=line_number, case_sensitive=False)
-            line = consume_token(line.strip(), '(', line_number=line_number)
-            line = consume_token(line.strip(), ')', line_number=line_number)
-            consume_eol(line.strip(), line_number=line_number)
+            line_ = consume_token(line_.strip(), END_CODE_TOKEN, line_number=line_number, case_sensitive=False)
+            line_ = consume_token(line_.strip(), '(', line_number=line_number)
+            line_ = consume_token(line_.strip(), ')', line_number=line_number)
+            consume_eol(line_.strip(), line_number=line_number)
 
         line = file_reader.readline()
         if consume_call_statement(FUNCTION_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
@@ -545,7 +550,8 @@ class NpeFunction(object):
             elif consume_call_statement(DOC_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
                 if self._docstr != "":
                     raise ParseError(
-                        "Multiple `%s` statements for one function at line %d." % (DOC_TOKEN, file_reader.line_number + 1))
+                        "Multiple `%s` statements for one function at line %d."
+                        % (DOC_TOKEN, file_reader.line_number + 1))
 
                 doc_lines += line
                 parsing_doc = True
@@ -997,10 +1003,10 @@ if __name__ == "__main__":
     except SemanticError as e:
         # TODO: Pretty printer
         log(LOG_ERROR, TermColors.FAIL + TermColors.BOLD + "NumpyEigen Semantic Error: " +
-              TermColors.ENDC + TermColors.ENDC + str(e), file=sys.stderr)
+            TermColors.ENDC + TermColors.ENDC + str(e), file=sys.stderr)
         sys.exit(1)
     except ParseError as e:
         # TODO: Pretty printer
         log(LOG_ERROR, TermColors.FAIL + TermColors.BOLD + "NumpyEigen Syntax Error: " +
-              TermColors.ENDC + TermColors.ENDC + str(e), file=sys.stderr)
+            TermColors.ENDC + TermColors.ENDC + str(e), file=sys.stderr)
         sys.exit(1)
