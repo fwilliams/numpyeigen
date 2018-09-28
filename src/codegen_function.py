@@ -315,7 +315,7 @@ class NpeFunction(object):
         self._argument_names = []          # List of input variable names in order
         self._arguments = {}       # Dictionary mapping variable names to types
         self.source_code = ""             # The source code of the binding
-        self._preamble = ""                # The code that comes before npe_* statements
+        self.preamble = ""                # The code that comes before npe_* statements
         self._docstr = ""                  # Function documentation
 
         self._parse(file_reader)
@@ -488,7 +488,7 @@ class NpeFunction(object):
             tokens = tokenize_npe_line(FUNCTION_TOKEN, line, line_number)
             if len(tokens) > 1:
                 raise ParseError(FUNCTION_TOKEN + " got extra tokens, %s, at line %d. "
-                                                      "Expected only the name of the function." %
+                                                  "Expected only the name of the function." %
                                  (tokens[1, :], line_number))
             binding_name = tokens[0]
             validate_identifier_name(binding_name)
@@ -509,43 +509,16 @@ class NpeFunction(object):
             line = consume_token(line.strip(), ')', line_number=line_number)
             consume_eol(line.strip(), line_number=line_number)
 
-        binding_start_line_number = -1
-
-        for line in file_reader:
-            if len(line.strip()) == 0:
-                continue
-            elif consume_call_statement(ARG_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
-                raise ParseError("Got `%s` statement before `%s` at line %d" %
-                                 (ARG_TOKEN, FUNCTION_TOKEN, file_reader.line_number + 1))
-            elif consume_call_statement(DEFAULT_ARG_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
-                raise ParseError("Got `%s` statement before `%s` at line %d" %
-                                 (DEFAULT_ARG_TOKEN, FUNCTION_TOKEN, file_reader.line_number + 1))
-            elif consume_call_statement(BEGIN_CODE_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
-                raise ParseError("Got `%s` statement before `%s` at line %d" %
-                                 (BEGIN_CODE_TOKEN, FUNCTION_TOKEN, file_reader.line_number + 1))
-            elif consume_call_statement(END_CODE_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
-                raise ParseError("Got `%s` statement before `%s` at line %d" %
-                                 (END_CODE_TOKEN, FUNCTION_TOKEN, file_reader.line_number + 1))
-            elif consume_call_statement(DTYPE_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
-                raise ParseError("Got `%s` statement before `%s` at line %d" %
-                                 (DTYPE_TOKEN, FUNCTION_TOKEN, file_reader.line_number + 1))
-            elif consume_call_statement(DOC_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
-                raise ParseError("Got `%s` statement before `%s` at line %d" %
-                                 (DOC_TOKEN, FUNCTION_TOKEN, file_reader.line_number + 1))
-            elif consume_call_statement(FUNCTION_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
-                self.name = _parse_npe_function_statement(line, line_number=file_reader.line_number + 1)
-                binding_start_line_number = file_reader.line_number + 1
-                break
-            else:
-                self._preamble += line
-                # raise ParseError("Unexpected tokens at line %d: %s" % (line_number, lines[line_number]))
-
-        if binding_start_line_number < 0:
-            raise ParseError("Invalid binding file. Must begin with %s(<function_name>)." % FUNCTION_TOKEN)
+        line = file_reader.readline()
+        if consume_call_statement(FUNCTION_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
+            self.name = _parse_npe_function_statement(line, line_number=file_reader.line_number + 1)
+        else:
+            raise RuntimeError("This should never happen but clearly it did. "
+                               "File a github issue at https://github.com/fwilliams/numpyeigen")
 
         log(LOG_INFO_VERBOSE, TermColors.OKGREEN + "NumpyEigen Function: " + TermColors.ENDC + self.name)
 
-        code_start_line_number = -1
+        found_begin_code_statement = False
 
         parsing_doc = False
         doc_lines = ""
@@ -579,7 +552,7 @@ class NpeFunction(object):
 
             elif consume_call_statement(BEGIN_CODE_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
                 _parse_begin_code_statement(line, line_number=file_reader.line_number + 1)
-                code_start_line_number = file_reader.line_number + 1
+                found_begin_code_statement = True
 
                 # If we were parsing a multiline npe_doc, we've now reached the end so parse the whole statement
                 self._parse_doc_statement(doc_lines, line_number=file_reader.line_number + 1, skip=parsing_doc)
@@ -601,7 +574,7 @@ class NpeFunction(object):
             else:
                 raise ParseError("Unexpected tokens at line %d: %s" % (file_reader.line_number + 1, line))
 
-        if code_start_line_number < 0:
+        if not found_begin_code_statement:
             raise ParseError("Invalid binding file. Must does not contain a %s() statement." % BEGIN_CODE_TOKEN)
 
         reached_end_token = False
@@ -681,8 +654,8 @@ class NpeAST(object):
                                  (DOC_TOKEN, file_reader.line_number + 1))
             elif consume_call_statement(FUNCTION_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
                 self.children.append(NpeFunction(file_reader))
-                assert len(self.children[-1]._preamble) == 0
-                self.children[-1]._preamble = _preamble
+                assert len(self.children[-1].preamble) == 0
+                self.children[-1].preamble = _preamble
                 _preamble = ""
             else:
                 _preamble += file_reader.readline()
@@ -974,7 +947,7 @@ def codegen_ast(ast: NpeAST, out_file):
     outfile.write("#include <npe.h>\n")
 
     for child in ast.children:
-        out_file.write(child._preamble + "\n")
+        out_file.write(child.preamble + "\n")
         if type(child) == NpeFunction:
             write_function_definition(child)
         else:
