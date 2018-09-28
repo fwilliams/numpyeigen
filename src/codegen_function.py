@@ -59,7 +59,7 @@ ARG_TOKEN = "npe_arg"
 DEFAULT_ARG_TOKEN = "npe_default_arg"
 BEGIN_CODE_TOKEN = "npe_begin_code"
 END_CODE_TOKEN = "npe_end_code"
-BINDING_INIT_TOKEN = "npe_function"
+FUNCTION_TOKEN = "npe_function"
 DTYPE_TOKEN = "npe_dtype"
 DOC_TOKEN = "npe_doc"
 COMMENT_TOKEN = "//"
@@ -86,27 +86,34 @@ def log(log_level, logstr, end='\n', file=sys.stdout):
         print(logstr, end=end, file=file)
 
 
-def run_cpp(input_str):
-    tmpf = tempfile.NamedTemporaryFile(mode="w+", suffix=".cc")
-    tmpf.write(input_str)
-    tmpf.flush()
-    cmd = CPP_COMMAND + " -w " + tmpf.name
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    output, err = p.communicate()
-    tmpf.close()
-    return output.decode('utf-8'), err
+def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="__NPE_SPLIT_NL__"):
+    """
+    Tokenize an NPE statement of the forn STMT(arg1, ..., argN)
+    :param stmt_token: The name of the statement to parse.
+    :param line: The line to tokenize.
+    :param line_number: The line number in the file being parsed.
+    :param max_iters: The number of iterations of the C preprocessor to parse everything.
+                      This has the side effect of setting the max number of arguments.
+    :param split_token: The split token for the C preprocessor to use. Don't change this unless you have a good reason.
+    :return:
+    """
+    def run_cpp(input_str):
+        tmpf = tempfile.NamedTemporaryFile(mode="w+", suffix=".cc")
+        tmpf.write(input_str)
+        tmpf.flush()
+        cmd = CPP_COMMAND + " -w " + tmpf.name
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, err = p.communicate()
+        tmpf.close()
+        return output.decode('utf-8'), err
 
-
-def tokenize_npe_line(stmt_token, line, line_number):
-    MAX_ITERS = 64
-    SPLIT_TOKEN = "__NPE_SPLIT_NL__"
-    cpp_str = "#define %s(arg, ...) arg %s %s(__VA_ARGS__)" % (stmt_token, SPLIT_TOKEN, stmt_token)
+    cpp_str = "#define %s(arg, ...) arg %s %s(__VA_ARGS__)" % (stmt_token, split_token, stmt_token)
 
     cpp_input_str = cpp_str + "\n" + line + "\n"
 
     exited_before_max_iters = False
 
-    for i in range(MAX_ITERS):
+    for i in range(max_iters):
         output, err = run_cpp(cpp_input_str)
 
         if err:
@@ -122,7 +129,7 @@ def tokenize_npe_line(stmt_token, line, line_number):
             else:
                 parsed_string += str(out_line) + "\n"
 
-        tokens = parsed_string.split(SPLIT_TOKEN)
+        tokens = parsed_string.split(split_token)
 
         if tokens[-1].strip().startswith("%s()" % stmt_token) and tokens[-1].strip() != "%s()" % stmt_token:
             raise ParseError("Extra tokens after `%s` statement on line %d" % (stmt_token, line_number))
@@ -134,7 +141,7 @@ def tokenize_npe_line(stmt_token, line, line_number):
         cpp_input_str = cpp_str + "\n" + parsed_string
 
     if not exited_before_max_iters:
-        raise ParseError("Reached token parser maximum recursion depth (%d) at line %d" % (MAX_ITERS, line_number))
+        raise ParseError("Reached token parser maximum recursion depth (%d) at line %d" % (max_iters, line_number))
 
     tokens = [s.strip() for s in tokens]
 
@@ -142,24 +149,53 @@ def tokenize_npe_line(stmt_token, line, line_number):
 
 
 def validate_identifier_name(var_name):
+    """
+    Returns True if var_name is a valid C++ identifier, otherwise throws a ParseError
+    :param var_name: The name of the identifier to check
+    :return: True if var_name is a valid C++ identifier
+    """
     # TODO: Validate identifier name
     pass
 
 
 def is_numpy_type(typestr):
+    """
+    Return True if typestr refers to a NPE type corresponding to a Numpy/Eigen type
+    :param typestr: The type string to check
+    :return: True if typestr names a Numpy/Eigen type (e.g. dense_f64, sparse_i32)
+    """
     global NUMPY_ARRAY_TYPES
     return typestr.lower() in NUMPY_ARRAY_TYPES
 
 
 def is_sparse_type(type_name):
+    """
+    Return True if typestr refers to a NPE type corresponding to a Numpy/Eigen sparse type
+    :param typestr: The type string to check
+    :return: True if typestr names a Numpy/Eigen sparse type (e.g. sparse_f64, sparse_i32)
+    """
     return is_numpy_type(type_name) and type_name.startswith("sparse_")
 
 
 def is_dense_type(type_name):
+    """
+    Return True if typestr refers to a NPE type corresponding to a Numpy/Eigen dense type
+    :param typestr: The type string to check
+    :return: True if typestr names a Numpy/Eigen dense type (e.g. dense_f64, dense_i32)
+    """
     return is_numpy_type(type_name) and type_name.startswith("dense_")
 
 
-def parse_token(line, token, line_number, case_sensitive=True):
+def consume_token(line, token, line_number, case_sensitive=True):
+    """
+    Consume the token, token, from the input line, ignoring leading whitespace. If the line
+    does not start with token, then throw a ParseError
+    :param line: The line from which to consume the token
+    :param token: The token string to consume
+    :param line_number: The line number in the file being read used for error reporting
+    :param case_sensitive: Whether parsing is case sensitive or not
+    :return: The line with the input token stripped
+    """
     check_line = line if case_sensitive else line.lower()
     check_token = token if case_sensitive else token.lower()
     if not check_line.startswith(check_token):
@@ -169,72 +205,75 @@ def parse_token(line, token, line_number, case_sensitive=True):
     return line[len(token):]
 
 
-def parse_string_token(line, line_number):
-    if not line.startswith('"'):
-        # TODO: Pretty error message
-        raise ParseError("Invalid string token at line %d" % line_number)
-
-    # Handle escaped strings
-    str_token = ""
-    while True:
-        idx = line.find('"', 1)
-        if idx < 0:
-            raise ParseError("Invalid string token at line %d" % line_number)
-        if line[idx-1] == "\\":  # escaped
-            str_token += line[1:idx-1] + line[idx]
-            line = line[idx:]
-        else:
-            str_token += line[1:idx]
-            break
-    return str_token, line[idx+1:]
-
-
-def parse_eol_token(line, line_number):
+def consume_eol(line, line_number):
+    """
+    Consumes whitespace at the end of a line
+    :param line: The line from which to consume from
+    :param line_number: The number of the line in the file being parsed, used for error reporting
+    :return: An empty string on success
+    """
     if len(line.strip()) != 0:
         # TODO: Pretty error message
         raise ParseError("Expected end-of-line after ')' token on line %d. Got '%s'" % (line_number, line.strip()))
     return line.strip()
 
 
-def parse_one_of_tokens(line, token_list, line_number, case_sensitive=True):
+def consume_call_statement(token, line, line_number, throw=True):
     """
-    Parse one of several types of tokens
-    :param line:
-    :param token_list:
-    :param line_number:
-    :param case_sensitive:
-    :return:
-    """
-    success = False
-    ret_token, ret = None, None
-    for t in token_list:
-        try:
-            ret = parse_token(line, t, line_number, case_sensitive=case_sensitive)
-            ret_token = t
-            success = True
-            break
-        except ParseError:
-            continue
-    if not success:
-        # TODO: Pretty error message
-        raise ParseError("Expected one of %s at line %d" % (token_list, line_number))
-
-    return ret_token, ret
-
-
-def parse_stmt_call(token, line, line_number, throw=True):
-    """
-    Parse a statement of the form <token>(
+    Consume the tokens <token> and <(> from the input line ignoring whitespace
+    :param token: The name of the call token
+    :param line: The line to check
+    :param line_number: The number of the line in the file being read
+    :param throw: Whether to throw an exception or simply return False if the line does not start with "token("
+    :return: The line with the start tokens consumed or False if throw=False and the line did not start with "token("
     """
     try:
-        line = parse_token(line.strip(), token, line_number)
-        parse_token(line.strip(), '(', line_number)
+        line = consume_token(line.strip(), token, line_number)
+        consume_token(line.strip(), '(', line_number)
     except ParseError:
         if throw:
             raise ParseError("Got invalid token at line %d. Expected `%s`" % (line_number, token))
         else:
             return False
-    return True
+    return line
+
+
+class NpeFileReader(object):
+    def __init__(self, name):
+        self.file_name = name
+        self.file = open(name, 'r')
+        self.line_number = 0
+        self.line = ""
+
+    def close(self):
+        return self.file.close()
+
+    def readline(self):
+        self.line_number += 1
+        return self.file.readline()
+
+    def peekline(self):
+        pos = self.file.tell()
+        line = self.readline()
+        f.seek(pos)
+        return line
+
+    # to allow using in 'with' statements
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def __next__(self):
+        self.line = self.file.readline()
+        if len(self.line) == 0:
+            raise StopIteration()
+        else:
+            return self.line
+
+    def __iter__(self):
+        return self
 
 
 class NpeArgument(object):
@@ -267,7 +306,7 @@ class NpeArgumentGroup(object):
 
 
 class NpeFunction(object):
-    def __init__(self, lines):
+    def __init__(self, file_reader):
         self.name = ""                     # The name of the function we are binding
         self._input_type_groups = []       # Set of allowed types for each group of variables
         self._argument_name_to_group = {}  # Dictionary mapping input variable names to type groups
@@ -277,7 +316,7 @@ class NpeFunction(object):
         self._preamble = ""                # The code that comes before npe_* statements
         self._docstr = ""                  # Function documentation
 
-        self._parse(lines)
+        self._parse(file_reader)
         self._validate()
 
     @property
@@ -338,8 +377,8 @@ class NpeFunction(object):
             """
             global MATCHES_TOKEN
 
-            line = parse_token(line.strip(), MATCHES_TOKEN, line_number=line_number, case_sensitive=False)
-            line = parse_token(line.strip(), '(', line_number=line_number).strip()
+            line = consume_token(line.strip(), MATCHES_TOKEN, line_number=line_number, case_sensitive=False)
+            line = consume_token(line.strip(), '(', line_number=line_number).strip()
             if not line.endswith(')'):
                 # TODO: Pretty error message
                 raise ParseError("Missing ')' for matches() token at line %d" % line_number)
@@ -438,15 +477,15 @@ class NpeFunction(object):
         log(LOG_INFO_VERBOSE,
             TermColors.OKGREEN + "NumpyEigen Docstring - %s" % self._docstr)
 
-    def _parse(self, lines):
-        global ARG_TOKEN, BEGIN_CODE_TOKEN, END_CODE_TOKEN, BINDING_INIT_TOKEN
+    def _parse(self, file_reader):
+        global ARG_TOKEN, BEGIN_CODE_TOKEN, END_CODE_TOKEN, FUNCTION_TOKEN
 
         def _parse_npe_function_statement(line, line_number):
-            global BINDING_INIT_TOKEN
+            global FUNCTION_TOKEN
 
-            tokens = tokenize_npe_line(BINDING_INIT_TOKEN, line, line_number)
+            tokens = tokenize_npe_line(FUNCTION_TOKEN, line, line_number)
             if len(tokens) > 1:
-                raise ParseError(BINDING_INIT_TOKEN + " got extra tokens, %s, at line %d. "
+                raise ParseError(FUNCTION_TOKEN + " got extra tokens, %s, at line %d. "
                                                       "Expected only the name of the function." %
                                  (tokens[1, :], line_number))
             binding_name = tokens[0]
@@ -456,51 +495,51 @@ class NpeFunction(object):
 
         def _parse_begin_code_statement(line, line_number):
             global BEGIN_CODE_TOKEN
-            line = parse_token(line.strip(), BEGIN_CODE_TOKEN, line_number=line_number, case_sensitive=False)
-            line = parse_token(line.strip(), '(', line_number=line_number)
-            line = parse_token(line.strip(), ')', line_number=line_number)
-            parse_eol_token(line.strip(), line_number=line_number)
+            line = consume_token(line.strip(), BEGIN_CODE_TOKEN, line_number=line_number, case_sensitive=False)
+            line = consume_token(line.strip(), '(', line_number=line_number)
+            line = consume_token(line.strip(), ')', line_number=line_number)
+            consume_eol(line.strip(), line_number=line_number)
 
         def _parse_end_code_statement(line, line_number):
             global END_CODE_TOKEN
-            line = parse_token(line.strip(), END_CODE_TOKEN, line_number=line_number, case_sensitive=False)
-            line = parse_token(line.strip(), '(', line_number=line_number)
-            line = parse_token(line.strip(), ')', line_number=line_number)
-            parse_eol_token(line.strip(), line_number=line_number)
+            line = consume_token(line.strip(), END_CODE_TOKEN, line_number=line_number, case_sensitive=False)
+            line = consume_token(line.strip(), '(', line_number=line_number)
+            line = consume_token(line.strip(), ')', line_number=line_number)
+            consume_eol(line.strip(), line_number=line_number)
 
         binding_start_line_number = -1
 
-        for line_number in range(len(lines)):
-            if len(lines[line_number].strip()) == 0:
+        for line in file_reader:
+            if len(line.strip()) == 0:
                 continue
-            elif parse_stmt_call(ARG_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
+            elif consume_call_statement(ARG_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
                 raise ParseError("Got `%s` statement before `%s` at line %d" %
-                                 (ARG_TOKEN, BINDING_INIT_TOKEN, line_number + 1))
-            elif parse_stmt_call(DEFAULT_ARG_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
+                                 (ARG_TOKEN, FUNCTION_TOKEN, file_reader.line_number + 1))
+            elif consume_call_statement(DEFAULT_ARG_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
                 raise ParseError("Got `%s` statement before `%s` at line %d" %
-                                 (DEFAULT_ARG_TOKEN, BINDING_INIT_TOKEN, line_number + 1))
-            elif parse_stmt_call(BEGIN_CODE_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
+                                 (DEFAULT_ARG_TOKEN, FUNCTION_TOKEN, file_reader.line_number + 1))
+            elif consume_call_statement(BEGIN_CODE_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
                 raise ParseError("Got `%s` statement before `%s` at line %d" %
-                                 (BEGIN_CODE_TOKEN, BINDING_INIT_TOKEN, line_number + 1))
-            elif parse_stmt_call(END_CODE_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
+                                 (BEGIN_CODE_TOKEN, FUNCTION_TOKEN, file_reader.line_number + 1))
+            elif consume_call_statement(END_CODE_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
                 raise ParseError("Got `%s` statement before `%s` at line %d" %
-                                 (END_CODE_TOKEN, BINDING_INIT_TOKEN, line_number + 1))
-            elif parse_stmt_call(DTYPE_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
+                                 (END_CODE_TOKEN, FUNCTION_TOKEN, file_reader.line_number + 1))
+            elif consume_call_statement(DTYPE_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
                 raise ParseError("Got `%s` statement before `%s` at line %d" %
-                                 (DTYPE_TOKEN, BINDING_INIT_TOKEN, line_number + 1))
-            elif parse_stmt_call(DOC_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
+                                 (DTYPE_TOKEN, FUNCTION_TOKEN, file_reader.line_number + 1))
+            elif consume_call_statement(DOC_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
                 raise ParseError("Got `%s` statement before `%s` at line %d" %
-                                 (DOC_TOKEN, BINDING_INIT_TOKEN, line_number + 1))
-            elif parse_stmt_call(BINDING_INIT_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
-                self.name = _parse_npe_function_statement(lines[line_number], line_number=line_number + 1)
-                binding_start_line_number = line_number + 1
+                                 (DOC_TOKEN, FUNCTION_TOKEN, file_reader.line_number + 1))
+            elif consume_call_statement(FUNCTION_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
+                self.name = _parse_npe_function_statement(line, line_number=file_reader.line_number + 1)
+                binding_start_line_number = file_reader.line_number + 1
                 break
             else:
-                self._preamble += lines[line_number]
+                self._preamble += line
                 # raise ParseError("Unexpected tokens at line %d: %s" % (line_number, lines[line_number]))
 
         if binding_start_line_number < 0:
-            raise ParseError("Invalid binding file. Must begin with %s(<function_name>)." % BINDING_INIT_TOKEN)
+            raise ParseError("Invalid binding file. Must begin with %s(<function_name>)." % FUNCTION_TOKEN)
 
         log(LOG_INFO_VERBOSE, TermColors.OKGREEN + "NumpyEigen Function: " + TermColors.ENDC + self.name)
 
@@ -508,71 +547,71 @@ class NpeFunction(object):
 
         parsing_doc = False
         doc_lines = ""
-        for line_number in range(binding_start_line_number, len(lines)):
-            if parse_stmt_call(ARG_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
-                var_name, var_types, _ = self._parse_arg_statement(lines[line_number], line_number=line_number + 1,
+        for line in file_reader:
+            if consume_call_statement(ARG_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
+                var_name, var_types, _ = self._parse_arg_statement(line, line_number=file_reader.line_number + 1,
                                                                    is_default=False)
                 log(LOG_INFO_VERBOSE,
                     TermColors.OKGREEN + "NumpyEigen Arg: " + TermColors.ENDC + var_name + " - " + str(var_types))
 
-                self._parse_doc_statement(doc_lines, line_number=line_number + 1, skip=parsing_doc)
+                self._parse_doc_statement(doc_lines, line_number=file_reader.line_number + 1, skip=parsing_doc)
                 parsing_doc = False
-            elif parse_stmt_call(DEFAULT_ARG_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
+            elif consume_call_statement(DEFAULT_ARG_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
                 var_name, var_types, var_value = \
-                    self._parse_arg_statement(lines[line_number], line_number=line_number + 1, is_default=True)
+                    self._parse_arg_statement(line, line_number=file_reader.line_number + 1, is_default=True)
                 log(LOG_INFO_VERBOSE,
                     TermColors.OKGREEN + "NumpyEigen Default Arg: " + TermColors.ENDC + var_name + " - " +
                     str(var_types) + " - " + str(var_value))
 
                 # If we were parsing a multiline npe_doc, we've now reached the end so parse the whole statement
-                self._parse_doc_statement(doc_lines, line_number=line_number + 1, skip=parsing_doc)
+                self._parse_doc_statement(doc_lines, line_number=file_reader.line_number + 1, skip=parsing_doc)
                 parsing_doc = False
 
-            elif parse_stmt_call(DOC_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
+            elif consume_call_statement(DOC_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
                 if self._docstr != "":
                     raise ParseError(
-                        "Multiple `%s` statements for one function at line %d." % (DOC_TOKEN, line_number + 1))
+                        "Multiple `%s` statements for one function at line %d." % (DOC_TOKEN, file_reader.line_number + 1))
 
-                doc_lines += lines[line_number]
+                doc_lines += line
                 parsing_doc = True
 
-            elif parse_stmt_call(BEGIN_CODE_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
-                _parse_begin_code_statement(lines[line_number], line_number=line_number + 1)
-                code_start_line_number = line_number + 1
+            elif consume_call_statement(BEGIN_CODE_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
+                _parse_begin_code_statement(line, line_number=file_reader.line_number + 1)
+                code_start_line_number = file_reader.line_number + 1
 
                 # If we were parsing a multiline npe_doc, we've now reached the end so parse the whole statement
-                self._parse_doc_statement(doc_lines, line_number=line_number + 1, skip=parsing_doc)
+                self._parse_doc_statement(doc_lines, line_number=file_reader.line_number + 1, skip=parsing_doc)
                 break
 
             elif parsing_doc:
                 # If we're parsing a multiline doc string, accumulate the line
-                doc_lines += lines[line_number]
+                doc_lines += line
                 continue
 
-            elif len(lines[line_number].strip()) == 0:
+            elif len(line.strip()) == 0:
                 # Ignore newlines and whitespace
                 continue
 
-            elif lines[line_number].strip().lower().startswith(COMMENT_TOKEN):
+            elif line.strip().lower().startswith(COMMENT_TOKEN):
                 # Ignore commented lines
                 continue
 
             else:
-                raise ParseError("Unexpected tokens at line %d: %s" % (line_number + 1, lines[line_number]))
+                raise ParseError("Unexpected tokens at line %d: %s" % (file_reader.line_number + 1, line))
 
         if code_start_line_number < 0:
             raise ParseError("Invalid binding file. Must does not contain a %s() statement." % BEGIN_CODE_TOKEN)
 
         reached_end_token = False
-        for line_number in range(code_start_line_number, len(lines)):
-            if parse_stmt_call(END_CODE_TOKEN, lines[line_number], line_number=line_number + 1, throw=False):
-                _parse_end_code_statement(lines[line_number], line_number=line_number + 1)
+        for line in file_reader:
+            if consume_call_statement(END_CODE_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
+                _parse_end_code_statement(line, line_number=file_reader.line_number + 1)
                 reached_end_token = True
             elif not reached_end_token:
-                self._source_code += lines[line_number]
-            elif reached_end_token and len(lines[line_number].strip()) != 0:
+                self._source_code += line
+            elif reached_end_token and len(line.strip()) != 0:
                 raise ParseError("Expected end of file after %s(). Line %d: %s" %
-                                 (END_CODE_TOKEN, line_number, lines[line_number]))
+                                 (END_CODE_TOKEN, file_reader.line_number + 1, line))
 
         if not reached_end_token:
             raise ParseError("Unexpected EOF. Binding file must end with a %s() statement." % END_CODE_TOKEN)
@@ -604,7 +643,46 @@ class NpeFunction(object):
                 arg.is_dense = is_dense_type(self._input_type_groups[group_idx].types[0])
 
 
-def codegen_function(fun, out_file):
+class NpeAST(object):
+    def __init__(self, file_reader):
+        self._file_name = file_reader.file_name
+        self._preamble = [""]
+        self.children = []
+
+    def _parse(self, file_reader: NpeFileReader):
+
+        while True:
+            line = file_reader.peekline()
+            if len(line) == 0:
+                break
+
+            if len(line.strip()) == 0:
+                continue
+            elif consume_call_statement(ARG_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
+                raise ParseError("Got unexpected `%s`  at line %d" %
+                                 (ARG_TOKEN, file_reader.line_number + 1))
+            elif consume_call_statement(DEFAULT_ARG_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
+                raise ParseError("Got unexpected `%s`  at line %d" %
+                                 (DEFAULT_ARG_TOKEN, file_reader.line_number + 1))
+            elif consume_call_statement(BEGIN_CODE_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
+                raise ParseError("Got unexpected `%s`  at line %d" %
+                                 (BEGIN_CODE_TOKEN, file_reader.line_number + 1))
+            elif consume_call_statement(END_CODE_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
+                raise ParseError("Got unexpected `%s`  at line %d" %
+                                 (END_CODE_TOKEN, file_reader.line_number + 1))
+            elif consume_call_statement(DTYPE_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
+                raise ParseError("Got unexpected `%s`  at line %d" %
+                                 (DTYPE_TOKEN, file_reader.line_number + 1))
+            elif consume_call_statement(DOC_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
+                raise ParseError("Got unexpected `%s`  at line %d" %
+                                 (DOC_TOKEN, file_reader.line_number + 1))
+            elif consume_call_statement(FUNCTION_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
+                self.children = NpeFunction(file_reader)
+            else:
+                self._preamble[-1] += file_reader.readline()
+
+
+def codegen_ast(fun, out_file):
     PRIVATE_ID_PREFIX = "_NPE_PY_BINDING_"
     PRIVATE_NAMESPACE = "npe::detail"
     STORAGE_ORDER_ENUM = "StorageOrder"
@@ -671,6 +749,10 @@ def codegen_function(fun, out_file):
         out_file.write(out_str)
 
     def write_declaration():
+        # ast = NpeAST(None)
+        #
+        # for child in ast.children:
+        #     if type(child) == NpeFunction:
         out_file.write(fun._preamble + "\n")
 
         write_code_function_definition()
@@ -913,19 +995,20 @@ if __name__ == "__main__":
 
     CPP_COMMAND = args.cpp_cmd
     verbosity_level = args.verbosity_level
+    input_file_name = args.file
 
     with open(args.file, 'r') as f:
         line_list = f.readlines()
 
     try:
-        input_file_name = args.file
-        f = NpeFunction(line_list)
+        with NpeFileReader(args.file) as infile:
+            f = NpeFunction(infile)
 
         with open(args.output, 'w+') as outfile:
             FOR_REAL_DEFINE = "__NPE_FOR_REAL__"
             outfile.write("#define " + FOR_REAL_DEFINE + "\n")
             outfile.write("#include <npe.h>\n")
-            codegen_function(f, outfile)
+            codegen_ast(f, outfile)
     except SemanticError as e:
         # TODO: Pretty printer
         log(LOG_ERROR, TermColors.FAIL + TermColors.BOLD + "NumpyEigen Semantic Error: " +

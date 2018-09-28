@@ -54,7 +54,7 @@ ARG_TOKEN = "npe_arg"
 DEFAULT_ARG_TOKEN = "npe_default_arg"
 BEGIN_CODE_TOKEN = "npe_begin_code"
 END_CODE_TOKEN = "npe_end_code"
-BINDING_INIT_TOKEN = "npe_function"
+FUNCTION_TOKEN = "npe_function"
 DTYPE_TOKEN = "npe_dtype"
 DOC_TOKEN = "npe_doc"
 COMMENT_TOKEN = "//"
@@ -405,7 +405,7 @@ class NpeFunction(object):
         parse_eol_token(line.strip(), line_number=line_number)
 
     def parse_binding_init_statement(self, line, line_number):
-        global BINDING_INIT_TOKEN
+        global FUNCTION_TOKEN
 
         tokens = tokenize_npe_line(BINDING_INIT_TOKEN, line, line_number)
         if len(tokens) > 1:
@@ -418,7 +418,7 @@ class NpeFunction(object):
         return binding_name
 
     def frontend_pass(self, lines):
-        global ARG_TOKEN, BEGIN_CODE_TOKEN, END_CODE_TOKEN, BINDING_INIT_TOKEN
+        global ARG_TOKEN, BEGIN_CODE_TOKEN, END_CODE_TOKEN, FUNCTION_TOKEN
 
         binding_start_line_number = -1
 
