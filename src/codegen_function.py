@@ -622,7 +622,7 @@ class NpeAST(object):
         self.children = []
         self._parse(file_reader)
 
-    def _parse(self, file_reader: NpeFileReader):
+    def _parse(self, file_reader):
 
         _preamble = ""
         while True:
@@ -661,7 +661,7 @@ class NpeAST(object):
                 _preamble += file_reader.readline()
 
 
-def codegen_ast(ast: NpeAST, out_file):
+def codegen_ast(ast, out_file):
     PRIVATE_ID_PREFIX = "_NPE_PY_BINDING_"
     PRIVATE_NAMESPACE = "npe::detail"
     STORAGE_ORDER_ENUM = "StorageOrder"
