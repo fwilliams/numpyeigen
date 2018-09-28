@@ -6,19 +6,9 @@ import sys
 import tempfile
 import subprocess
 
-
-class TermColors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
-
-# TODO: Check that your compiler supports __float128
+"""
+Global constants used by NumpyEigen
+"""
 NUMPY_ARRAY_TYPES_TO_CPP = {
     # Dense types
     'dense_f32': ('float', 'f32', 'float32'),
@@ -51,7 +41,6 @@ NUMPY_ARRAY_TYPES_TO_CPP = {
     'sparse_c64': ('std::complex<float>', 'c64', 'complex64'),
     'sparse_c128': ('std::complex<double>', 'c128', 'complex128'),
     'sparse_c256': ('std::complex<__float128>', 'c256', 'complex256')}
-
 NUMPY_ARRAY_TYPES = list(NUMPY_ARRAY_TYPES_TO_CPP.keys())
 NUMPY_SCALAR_TYPES = list(set([v[2] for v in NUMPY_ARRAY_TYPES_TO_CPP.values()]))
 MATCHES_TOKEN = "npe_matches"
@@ -60,17 +49,31 @@ DEFAULT_ARG_TOKEN = "npe_default_arg"
 BEGIN_CODE_TOKEN = "npe_begin_code"
 END_CODE_TOKEN = "npe_end_code"
 FUNCTION_TOKEN = "npe_function"
-DTYPE_TOKEN = "npe_dtype"
 DOC_TOKEN = "npe_doc"
 COMMENT_TOKEN = "//"
-
-CPP_COMMAND = None  # Name of the command to run for the C preprocessor. Set at input.
 
 LOG_DEBUG = 3
 LOG_INFO = 1
 LOG_INFO_VERBOSE = 2
 LOG_ERROR = 0
+
+
+"""
+Global Variables set at runtime
+"""
+cpp_command = None  # Name of the command to run for the C preprocessor. Set at input.
 verbosity_level = 1  # Integer representing the level of verbosity 0 = only log errors, 1 = normal, 2 = verbose
+
+
+class TermColors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 
 class ParseError(Exception):
@@ -101,7 +104,7 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
         tmpf = tempfile.NamedTemporaryFile(mode="w+", suffix=".cc")
         tmpf.write(input_str)
         tmpf.flush()
-        cmd = CPP_COMMAND + " -w " + tmpf.name
+        cmd = cpp_command + " -w " + tmpf.name
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         cpp_output, cpp_err = p.communicate()
         tmpf.close()
@@ -265,8 +268,7 @@ class NpeFileReader(object):
         self.file.seek(pos)
         return line
 
-    # to allow using in 'with' statements
-    def __enter__(self):
+    def __enter__(self): # To allow using in 'with' statements
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -278,6 +280,9 @@ class NpeFileReader(object):
             raise StopIteration()
         else:
             return self.line
+
+    def next(self):  # Python 2.7 compatibility
+        return self.__next__()
 
     def __iter__(self):
         return self
@@ -652,9 +657,6 @@ class NpeAST(object):
             elif consume_call_statement(END_CODE_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
                 raise ParseError("Got unexpected `%s`  at line %d" %
                                  (END_CODE_TOKEN, file_reader.line_number + 1))
-            elif consume_call_statement(DTYPE_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
-                raise ParseError("Got unexpected `%s`  at line %d" %
-                                 (DTYPE_TOKEN, file_reader.line_number + 1))
             elif consume_call_statement(DOC_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
                 raise ParseError("Got unexpected `%s`  at line %d" %
                                  (DOC_TOKEN, file_reader.line_number + 1))
@@ -949,8 +951,8 @@ def codegen_ast(ast, out_file):
         out_file.write(");\n")
 
     FOR_REAL_DEFINE = "__NPE_FOR_REAL__"
-    outfile.write("#define " + FOR_REAL_DEFINE + "\n")
-    outfile.write("#include <npe.h>\n")
+    out_file.write("#define " + FOR_REAL_DEFINE + "\n")
+    out_file.write("#include <npe.h>\n")
 
     for child in ast.children:
         out_file.write(child.preamble + "\n")
@@ -975,7 +977,9 @@ def codegen_ast(ast, out_file):
     out_file.write("\n")
 
 
-if __name__ == "__main__":
+def main():
+    global cpp_command
+    global verbosity_level
 
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("file", type=str)
@@ -987,9 +991,8 @@ if __name__ == "__main__":
 
     args = arg_parser.parse_args()
 
-    CPP_COMMAND = args.cpp_cmd
+    cpp_command = args.cpp_cmd
     verbosity_level = args.verbosity_level
-    input_file_name = args.file
 
     with open(args.file, 'r') as f:
         line_list = f.readlines()
@@ -1010,3 +1013,8 @@ if __name__ == "__main__":
         log(LOG_ERROR, TermColors.FAIL + TermColors.BOLD + "NumpyEigen Syntax Error: " +
             TermColors.ENDC + TermColors.ENDC + str(e), file=sys.stderr)
         sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
+

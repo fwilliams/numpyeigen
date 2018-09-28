@@ -59,7 +59,7 @@ DTYPE_TOKEN = "npe_dtype"
 DOC_TOKEN = "npe_doc"
 COMMENT_TOKEN = "//"
 
-CPP_COMMAND = None  # Name of the command to run for the C preprocessor. Set at input.
+cpp_command = None  # Name of the command to run for the C preprocessor. Set at input.
 
 LOG_DEBUG = 3
 LOG_INFO = 1
@@ -85,7 +85,7 @@ def run_cpp(input_str):
     tmpf = tempfile.NamedTemporaryFile(mode="w+", suffix=".cc")
     tmpf.write(input_str)
     tmpf.flush()
-    cmd = CPP_COMMAND + " -w " + tmpf.name
+    cmd = cpp_command + " -w " + tmpf.name
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, err = p.communicate()
     tmpf.close()
