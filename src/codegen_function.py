@@ -253,9 +253,11 @@ class NpeFileReader(object):
         return self.file.readline()
 
     def peekline(self):
+        if self.file.closed:
+            return ""
         pos = self.file.tell()
         line = self.readline()
-        f.seek(pos)
+        self.file.seek(pos)
         return line
 
     # to allow using in 'with' statements
@@ -312,7 +314,7 @@ class NpeFunction(object):
         self._argument_name_to_group = {}  # Dictionary mapping input variable names to type groups
         self._argument_names = []          # List of input variable names in order
         self._arguments = {}       # Dictionary mapping variable names to types
-        self._source_code = ""             # The source code of the binding
+        self.source_code = ""             # The source code of the binding
         self._preamble = ""                # The code that comes before npe_* statements
         self._docstr = ""                  # Function documentation
 
@@ -607,11 +609,9 @@ class NpeFunction(object):
             if consume_call_statement(END_CODE_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
                 _parse_end_code_statement(line, line_number=file_reader.line_number + 1)
                 reached_end_token = True
+                break
             elif not reached_end_token:
-                self._source_code += line
-            elif reached_end_token and len(line.strip()) != 0:
-                raise ParseError("Expected end of file after %s(). Line %d: %s" %
-                                 (END_CODE_TOKEN, file_reader.line_number + 1, line))
+                self.source_code += line
 
         if not reached_end_token:
             raise ParseError("Unexpected EOF. Binding file must end with a %s() statement." % END_CODE_TOKEN)
@@ -645,18 +645,21 @@ class NpeFunction(object):
 
 class NpeAST(object):
     def __init__(self, file_reader):
-        self._file_name = file_reader.file_name
-        self._preamble = [""]
+        self.input_file_name = file_reader.file_name
         self.children = []
+        self._parse(file_reader)
 
     def _parse(self, file_reader: NpeFileReader):
 
+        _preamble = ""
         while True:
             line = file_reader.peekline()
+
             if len(line) == 0:
                 break
 
             if len(line.strip()) == 0:
+                _preamble += file_reader.readline()
                 continue
             elif consume_call_statement(ARG_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
                 raise ParseError("Got unexpected `%s`  at line %d" %
@@ -677,12 +680,15 @@ class NpeAST(object):
                 raise ParseError("Got unexpected `%s`  at line %d" %
                                  (DOC_TOKEN, file_reader.line_number + 1))
             elif consume_call_statement(FUNCTION_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
-                self.children = NpeFunction(file_reader)
+                self.children.append(NpeFunction(file_reader))
+                assert len(self.children[-1]._preamble) == 0
+                self.children[-1]._preamble = _preamble
+                _preamble = ""
             else:
-                self._preamble[-1] += file_reader.readline()
+                _preamble += file_reader.readline()
 
 
-def codegen_ast(fun, out_file):
+def codegen_ast(ast: NpeAST, out_file):
     PRIVATE_ID_PREFIX = "_NPE_PY_BINDING_"
     PRIVATE_NAMESPACE = "npe::detail"
     STORAGE_ORDER_ENUM = "StorageOrder"
@@ -743,24 +749,13 @@ def codegen_ast(fun, out_file):
     def write_type_id_getter(var_name):
         out_str = "const int " + type_id_var(var_name) + " = "
         type_name = type_name_var(var_name)
-        storate_order_name = storage_order_var(var_name)
+        storage_order_name = storage_order_var(var_name)
         is_sparse = PRIVATE_NAMESPACE + "::is_sparse<decltype(" + var_name + ")>::value"
-        out_str += PRIVATE_NAMESPACE + "::get_type_id(" + is_sparse + ", " + type_name + ", " + storate_order_name + ");\n"
+        out_str += PRIVATE_NAMESPACE + "::get_type_id(" + is_sparse + ", " + type_name + ", " + \
+            storage_order_name + ");\n"
         out_file.write(out_str)
 
-    def write_declaration():
-        # ast = NpeAST(None)
-        #
-        # for child in ast.children:
-        #     if type(child) == NpeFunction:
-        out_file.write(fun._preamble + "\n")
-
-        write_code_function_definition()
-
-        # TODO: Use the function name properly
-        func_name = "pybind_output_fun_" + os.path.basename(input_file_name).replace(".", "_")
-        out_file.write("void %s(pybind11::module& m) {\n" % func_name)
-        out_file.write('m.def(')
+    def write_function_switch_header(fun):
         out_file.write('"%s"' % fun.name)
         out_file.write(", [](")
 
@@ -815,7 +810,7 @@ def codegen_ast(fun, out_file):
                 out_str += next_token
             out_str += 'throw std::invalid_argument("Invalid type (%s) for argument \'%s\'. ' \
                        'Expected one of %s.");\n' % (
-                       pretty_group_types[0], group_var_names[0], pretty_group_types)
+                           pretty_group_types[0], group_var_names[0], pretty_group_types)
             out_str += "}\n"
             out_file.write(out_str)
 
@@ -837,84 +832,7 @@ def codegen_ast(fun, out_file):
 
             out_file.write(out_str)
 
-    def write_code_block(combo):
-        out_file.write("{\n")
-        for group_id in range(len(combo)):
-            type_prefix = combo[group_id][0]
-            type_suffix = combo[group_id][1]
-            for arg in fun.argument_groups[group_id].arguments:
-                cpp_type = NUMPY_ARRAY_TYPES_TO_CPP[type_prefix][0]
-                storage_order_enum = storage_order_for_suffix(type_suffix)
-                aligned_enum = aligned_enum_for_suffix(type_suffix)
-
-                out_file.write("typedef " + cpp_type + " Scalar_" + arg.name + ";\n")
-                if is_sparse_type(combo[group_id][0]):
-                    eigen_type = "Eigen::SparseMatrix<" + cpp_type + ", " + \
-                                 storage_order_enum + ", int>"
-                    out_file.write("typedef " + eigen_type + " Matrix_%s" % arg.name + ";\n")
-                    out_file.write("#if EIGEN_WORLD_VERSION == 3 && EIGEN_MAJOR_VERSION <= 2\n")
-                    out_file.write("typedef Eigen::MappedSparseMatrix<" + cpp_type + ", " +
-                                   storage_order_enum + ", int> Map_" + arg.name + ";\n")
-                    out_file.write("#elif (EIGEN_WORLD_VERSION == 3 && "
-                                   "EIGEN_MAJOR_VERSION > 2) || (EIGEN_WORLD_VERSION > 3)\n")
-                    out_file.write("typedef Eigen::Map<Matrix_" + arg.name + "> Map_" + arg.name + ";\n")
-                    out_file.write("#endif\n")
-
-                else:
-                    eigen_type = "Eigen::Matrix<" + cpp_type + ", " + "Eigen::Dynamic, " + "Eigen::Dynamic, " + \
-                                 storage_order_enum + ">"
-                    out_file.write("typedef " + eigen_type + " Matrix_%s" % arg.name + ";\n")
-                    out_file.write("typedef Eigen::Map<" + eigen_type + ", " +
-                                   aligned_enum + "> Map_" + arg.name + ";\n")
-
-        call_str = "return callit"
-        template_str = "<"
-        for arg in fun.arguments:
-            if arg.is_numpy_type:
-                template_str += "Map_" + arg.name + ", Matrix_" + arg.name + ", Scalar_" + arg.name + ","
-        template_str = template_str[:-1] + ">("
-
-        call_str = call_str + template_str if fun.has_array_arguments else call_str + "("
-
-        for arg in fun.arguments:
-            if arg.is_numpy_type:
-                if not arg.is_sparse:
-                    call_str += "Map_" + arg.name + "((Scalar_" + arg.name + "*) " + arg.name + ".data(), " + \
-                                arg.name + "_shape_0, " + arg.name + "_shape_1),"
-                else:
-                    call_str += arg.name + ".as_eigen<Matrix_" + arg.name + ">(),"
-            else:
-                call_str += arg.name + ","
-
-        call_str = call_str[:-1] + ");\n"
-        out_file.write(call_str)
-        # out_file.write(binding_source_code + "\n")
-        out_file.write("}\n")
-
-    def write_code_function_definition():
-        template_str = "template <"
-        for arg in fun.arguments:
-            if arg.is_numpy_type:
-                template_str += "typename " + MAP_TYPE_PREFIX + arg.name + ","
-                template_str += "typename " + MATRIX_TYPE_PREFIX + arg.name + ","
-                template_str += "typename " + SCALAR_TYPE_PREFIX + arg.name + ","
-        template_str = template_str[:-1] + ">\n"
-        if fun.has_array_arguments:
-            out_file.write(template_str)
-        out_file.write("static auto callit(")
-
-        argument_str = ""
-        for arg in fun.arguments:
-            if arg.is_numpy_type:
-                argument_str += "%s%s %s," % (MAP_TYPE_PREFIX, arg.name, arg.name)
-            else:
-                argument_str += arg.name_or_type[0] + " " + arg.name + ","
-        argument_str = argument_str[:-1] + ") {\n"
-        out_file.write(argument_str)
-        out_file.write(fun._source_code)
-        out_file.write("}\n")
-
-    def write_body():
+    def write_function_switch_body(fun):
         expanded_type_groups = [itertools.product(group.types, STORAGE_ORDER_SUFFIXES) for group in fun.argument_groups]
         group_combos = itertools.product(*expanded_type_groups)
 
@@ -944,7 +862,7 @@ def codegen_ast(fun, out_file):
 
                 out_str += " {\n"
                 out_file.write(out_str)
-                write_code_block(combo)
+                write_switch_branch(fun, combo)
                 out_file.write("}")
                 branch_count += 1
             out_file.write(" else {\n")
@@ -957,12 +875,89 @@ def codegen_ast(fun, out_file):
                                            "File a github issue at https://github.com/fwilliams/numpyeigen"
             for _ in group_combos:
                 out_file.write("{\n")
-                out_file.write(fun._source_code + "\n")
+                out_file.write(fun.source_code + "\n")
                 out_file.write("}\n")
         out_file.write("\n")
         out_file.write("}")
 
-    def write_end():
+    def write_switch_branch(fun, combo):
+        out_file.write("{\n")
+        for group_id in range(len(combo)):
+            type_prefix = combo[group_id][0]
+            type_suffix = combo[group_id][1]
+            for arg in fun.argument_groups[group_id].arguments:
+                cpp_type = NUMPY_ARRAY_TYPES_TO_CPP[type_prefix][0]
+                storage_order_enum = storage_order_for_suffix(type_suffix)
+                aligned_enum = aligned_enum_for_suffix(type_suffix)
+
+                out_file.write("typedef " + cpp_type + " Scalar_" + arg.name + ";\n")
+                if is_sparse_type(combo[group_id][0]):
+                    eigen_type = "Eigen::SparseMatrix<" + cpp_type + ", " + \
+                                 storage_order_enum + ", int>"
+                    out_file.write("typedef " + eigen_type + " Matrix_%s" % arg.name + ";\n")
+                    out_file.write("#if EIGEN_WORLD_VERSION == 3 && EIGEN_MAJOR_VERSION <= 2\n")
+                    out_file.write("typedef Eigen::MappedSparseMatrix<" + cpp_type + ", " +
+                                   storage_order_enum + ", int> Map_" + arg.name + ";\n")
+                    out_file.write("#elif (EIGEN_WORLD_VERSION == 3 && "
+                                   "EIGEN_MAJOR_VERSION > 2) || (EIGEN_WORLD_VERSION > 3)\n")
+                    out_file.write("typedef Eigen::Map<Matrix_" + arg.name + "> Map_" + arg.name + ";\n")
+                    out_file.write("#endif\n")
+
+                else:
+                    eigen_type = "Eigen::Matrix<" + cpp_type + ", " + "Eigen::Dynamic, " + "Eigen::Dynamic, " + \
+                                 storage_order_enum + ">"
+                    out_file.write("typedef " + eigen_type + " Matrix_%s" % arg.name + ";\n")
+                    out_file.write("typedef Eigen::Map<" + eigen_type + ", " +
+                                   aligned_enum + "> Map_" + arg.name + ";\n")
+
+        call_str = "return callit_" + fun.name
+        template_str = "<"
+        for arg in fun.arguments:
+            if arg.is_numpy_type:
+                template_str += "Map_" + arg.name + ", Matrix_" + arg.name + ", Scalar_" + arg.name + ","
+        template_str = template_str[:-1] + ">("
+
+        call_str = call_str + template_str if fun.has_array_arguments else call_str + "("
+
+        for arg in fun.arguments:
+            if arg.is_numpy_type:
+                if not arg.is_sparse:
+                    call_str += "Map_" + arg.name + "((Scalar_" + arg.name + "*) " + arg.name + ".data(), " + \
+                                arg.name + "_shape_0, " + arg.name + "_shape_1),"
+                else:
+                    call_str += arg.name + ".as_eigen<Matrix_" + arg.name + ">(),"
+            else:
+                call_str += arg.name + ","
+
+        call_str = call_str[:-1] + ");\n"
+        out_file.write(call_str)
+        # out_file.write(binding_source_code + "\n")
+        out_file.write("}\n")
+
+    def write_function_definition(fun):
+        template_str = "template <"
+        for arg in fun.arguments:
+            if arg.is_numpy_type:
+                template_str += "typename " + MAP_TYPE_PREFIX + arg.name + ","
+                template_str += "typename " + MATRIX_TYPE_PREFIX + arg.name + ","
+                template_str += "typename " + SCALAR_TYPE_PREFIX + arg.name + ","
+        template_str = template_str[:-1] + ">\n"
+        if fun.has_array_arguments:
+            out_file.write(template_str)
+        out_file.write("static auto callit_%s(" % fun.name)
+
+        argument_str = ""
+        for arg in fun.arguments:
+            if arg.is_numpy_type:
+                argument_str += "%s%s %s," % (MAP_TYPE_PREFIX, arg.name, arg.name)
+            else:
+                argument_str += arg.name_or_type[0] + " " + arg.name + ","
+        argument_str = argument_str[:-1] + ") {\n"
+        out_file.write(argument_str)
+        out_file.write(fun.source_code)
+        out_file.write("}\n")
+
+    def write_function_switch_end(fun):
         if len(fun.docstring) > 0:
             out_file.write(", " + fun.docstring)
 
@@ -973,12 +968,32 @@ def codegen_ast(fun, out_file):
 
         out_file.write(arg_list)
         out_file.write(");\n")
-        out_file.write("}\n")
-        out_file.write("\n")
 
-    write_declaration()
-    write_body()
-    write_end()
+    FOR_REAL_DEFINE = "__NPE_FOR_REAL__"
+    outfile.write("#define " + FOR_REAL_DEFINE + "\n")
+    outfile.write("#include <npe.h>\n")
+
+    for child in ast.children:
+        out_file.write(child._preamble + "\n")
+        if type(child) == NpeFunction:
+            write_function_definition(child)
+        else:
+            raise RuntimeError("What in the actual fuck?")
+
+    func_name = "pybind_output_fun_" + os.path.basename(ast.input_file_name).replace(".", "_")
+    out_file.write("void %s(pybind11::module& m) {\n" % func_name)
+
+    for child in ast.children:
+        out_file.write('m.def(')
+        if type(child) == NpeFunction:
+            write_function_switch_header(child)
+            write_function_switch_body(child)
+            write_function_switch_end(child)
+        else:
+            raise RuntimeError("What in the actual fuck?")
+
+    out_file.write("}\n")
+    out_file.write("\n")
 
 
 if __name__ == "__main__":
@@ -1002,13 +1017,10 @@ if __name__ == "__main__":
 
     try:
         with NpeFileReader(args.file) as infile:
-            f = NpeFunction(infile)
+            ast = NpeAST(infile)
 
         with open(args.output, 'w+') as outfile:
-            FOR_REAL_DEFINE = "__NPE_FOR_REAL__"
-            outfile.write("#define " + FOR_REAL_DEFINE + "\n")
-            outfile.write("#include <npe.h>\n")
-            codegen_ast(f, outfile)
+            codegen_ast(ast, outfile)
     except SemanticError as e:
         # TODO: Pretty printer
         log(LOG_ERROR, TermColors.FAIL + TermColors.BOLD + "NumpyEigen Semantic Error: " +

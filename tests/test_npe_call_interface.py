@@ -89,7 +89,16 @@ class TestNpeCallInterface(unittest.TestCase):
             threw = True
         self.assertTrue(threw)
 
-
+    def test_multiple_functions_per_file(self):
+        a = np.random.rand(10, 10)
+        b = np.random.rand(10, 10)
+        ma1 = npe_test.matrix_add(a, b)
+        ma2 = npe_test.matrix_add2(a, b)
+        ma3 = npe_test.matrix_add3(a, b)
+        print(ma1, ma2, ma3)
+        self.assertTrue(np.array_equal(ma1, ma2))
+        self.assertTrue(np.array_equal(ma2, ma3))
+        self.assertTrue(np.array_equal(ma3, ma1))
 
 
 if __name__ == '__main__':
