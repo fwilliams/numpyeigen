@@ -268,7 +268,7 @@ class NpeFileReader(object):
         self.file.seek(pos)
         return line
 
-    def __enter__(self): # To allow using in 'with' statements
+    def __enter__(self):  # To allow using in 'with' statements
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -988,19 +988,14 @@ def main():
     arg_parser.add_argument("-v", "--verbosity-level", type=int, default=LOG_INFO,
                             help="How verbose is the output. < 0 = silent, "
                                  "0 = only errors, 1 = normal, 2 = verbose, > 3 = debug")
-
     args = arg_parser.parse_args()
 
     cpp_command = args.cpp_cmd
     verbosity_level = args.verbosity_level
 
-    with open(args.file, 'r') as f:
-        line_list = f.readlines()
-
     try:
         with NpeFileReader(args.file) as infile:
             ast = NpeAST(infile)
-
         with open(args.output, 'w+') as outfile:
             codegen_ast(ast, outfile)
     except SemanticError as e:
@@ -1017,4 +1012,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
