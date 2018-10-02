@@ -153,7 +153,7 @@ public:
 // writeable lets you turn off the writeable flag for the array.
 template <typename Type, typename = enable_if_t<is_eigen_sparse<Type>::value>>
 handle eigen_sparse_array_cast(Type* src, handle parent = none(), bool writable = true) {
-  bool rowMajor = Type::Flags | Eigen::RowMajor;
+  bool rowMajor = Type::Flags & Eigen::RowMajor;
 
   array data = array(src->nonZeros(), src->valuePtr(), parent);
   data.flags() &= ~detail::npy_api::NPY_ARRAY_OWNDATA_;
