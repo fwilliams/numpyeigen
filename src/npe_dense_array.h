@@ -58,7 +58,7 @@ pybind11::handle eigen_ref_array(Type &src, pybind11::handle parent = pybind11::
 // array that references the encapsulated data with a python-side reference to the capsule to tie
 // its destruction to that of any dependent python objects.  Const-ness is determined by whether or
 // not the Type of the pointer given is const.
-template <typename props, typename Type, typename = std::enable_if_t<is_eigen_dense_map<Type>::value>>
+template <typename props, typename Type, typename = std::enable_if<is_eigen_dense_map<Type>::value, void>>
 pybind11::handle eigen_encapsulate_dense_map(Type *src, bool squeeze = true) {
     pybind11::capsule base(src, [](void *o) {
       delete static_cast<Type *>(o);
@@ -72,7 +72,7 @@ pybind11::handle eigen_encapsulate_dense_map(Type *src, bool squeeze = true) {
 // array that references the encapsulated data with a python-side reference to the capsule to tie
 // its destruction to that of any dependent python objects.  Const-ness is determined by whether or
 // not the Type of the pointer given is const.
-template <typename props, typename Type, typename = std::enable_if_t<is_eigen_dense<Type>::value>>
+template <typename props, typename Type, typename = std::enable_if<is_eigen_dense<Type>::value, void>>
 pybind11::handle eigen_encapsulate_dense(Type *src, bool squeeze = true) {
    pybind11::capsule base(src, [](void *o) {
       delete static_cast<Type *>(o);
