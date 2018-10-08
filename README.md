@@ -35,7 +35,7 @@ Don't forget to `git clone --recursive`!
 
 
 ## Example
-See the repository [TODO: Example repo](https://github.com/fwilliams/numpyeigen/issues/9) for a fully 
+See the [Example Project Repository](https://github.com/fwilliams/NumpyEigen-Example-Project) for a fully 
 running example project.
 
 When compiled, the following code will generate a function `foo(a, b, c, d, e, f)` callable from Python. 
