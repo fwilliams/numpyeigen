@@ -1,7 +1,7 @@
 [submodule "external/pybind11"]
 	path = external/pybind11
 	url = https://github.com/fwilliams/pybind11.git
-	branch = "numpy-hacks"
+	branch = "numpy-hacks2"
 [submodule "external/eigen"]
 	path = external/eigen
 	url = https://github.com/eigenteam/eigen-git-mirror.git
