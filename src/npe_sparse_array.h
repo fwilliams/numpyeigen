@@ -68,6 +68,14 @@ struct sparse_array : pybind11::object {
     return this->attr("nnz").cast<int>();
   }
 
+  // We expose a flags() method like numpy to determine if the sparse array is CSR or CSC
+  // this makes the generated code a bit simpler since it can use the same code as dense arrays
+  // Unfortunately, this means we need to maintain our own flags bitmask and set it manually on
+  // the C++ side. This method updates the _flags bitmask.
+  void hack_update_flags() {
+    _flags = (col_major() ? NPY_ARRAY_F_CONTIGUOUS : NPY_ARRAY_C_CONTIGUOUS);
+  }
+
   template <typename T>
 #if EIGEN_WORLD_VERSION == 3 && EIGEN_MAJOR_VERSION <= 2
   Eigen::MappedSparseMatrix<typename T::Scalar, T::Options, typename T::StorageIndex> as_eigen() {
@@ -88,7 +96,6 @@ struct sparse_array : pybind11::object {
   }
 
 private:
-  friend class pybind11::detail::type_caster<npe::sparse_array>;
   int _flags = 0;
 };
 
@@ -125,7 +132,7 @@ public:
       }
 
       value = pybind11::reinterpret_borrow<npe::sparse_array>(src);
-      value._flags |= (value.col_major() ? NPY_ARRAY_F_CONTIGUOUS : NPY_ARRAY_C_CONTIGUOUS);
+      value.hack_update_flags();
 
     } catch (pybind11::cast_error) {
       return false;

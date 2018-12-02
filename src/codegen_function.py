@@ -304,6 +304,10 @@ class NpeArgument(object):
     def is_numpy_type(self):
         return self.is_sparse or self.is_dense
 
+    @property
+    def is_nullable(self):
+        return self.is_matches and self.default_value is not None
+
     def __repr__(self):
         return str(self.__dict__)
 
@@ -323,9 +327,9 @@ class NpeFunction(object):
         self._input_type_groups = []       # Set of allowed types for each group of variables
         self._argument_name_to_group = {}  # Dictionary mapping input variable names to type groups
         self._argument_names = []          # List of input variable names in order
-        self._arguments = {}       # Dictionary mapping variable names to types
-        self.source_code = ""             # The source code of the binding
-        self.preamble = ""                # The code that comes before npe_* statements
+        self._arguments = {}               # Dictionary mapping variable names to types
+        self.source_code = ""              # The source code of the binding
+        self.preamble = ""                 # The code that comes before npe_* statements
         self._docstr = ""                  # Function documentation
 
         self._parse(file_reader)
@@ -340,6 +344,9 @@ class NpeFunction(object):
         for arg_name in self._argument_names:
             arg_meta = self._arguments[arg_name]
             yield arg_meta
+
+    def argument(self, argname):
+        return self._arguments[argname]
 
     @property
     def array_arguments(self):
@@ -402,9 +409,18 @@ class NpeFunction(object):
         tokens = tokenize_npe_line(stmt_token, line.strip(), line_number)
 
         var_name = tokens[0]
-        var_types = tokens[1:]
         validate_identifier_name(var_name)
+
+        var_types = tokens[1:]
+        if len(var_types) == 0:
+            raise ParseError('%s("%s") got no type arguments' % (stmt_token, var_name))
+
+        # We allow npe_default_arg(a, npe_matches(b))
+        # in which case we want to handle this as a normal matches statement and write out the default arg later
         var_value = var_types.pop() if is_default else None
+        if var_value is not None and var_value.startswith(MATCHES_TOKEN):
+            _parse_matches_statement(var_value, line_number_=line_number)
+            var_types.append(var_value)
 
         var_meta = NpeArgument(name=var_name,
                                is_matches=False,
@@ -687,6 +703,14 @@ def codegen_ast(ast, out_file):
     MATRIX_TYPE_PREFIX = "npe_Matrix_"
     SCALAR_TYPE_PREFIX = "npe_Scalar_"
 
+    def cast_arg(var):
+        if var.is_dense:
+            return "static_cast<pybind11::array&>(%s)" % var.name
+        elif var.is_sparse:
+            return "static_cast<npe::sparse_array&>(%s)" % var.name
+        else:
+            raise AssertionError("This should never happen!")
+
     def type_name_var(var_name):
         return PRIVATE_ID_PREFIX + var_name + "_type_s"
 
@@ -717,21 +741,22 @@ def codegen_ast(ast, out_file):
     def type_char_for_numpy_type(np_type):
         return PRIVATE_NAMESPACE + "::" + TYPE_CHAR_ENUM + "::char_" + NUMPY_ARRAY_TYPES_TO_CPP[np_type][1]
 
-    def write_flags_getter(var_name):
-        storage_order_var_name = storage_order_var(var_name)
+    def write_flags_getter(arg):
+        storage_order_var_name = storage_order_var(arg.name)
         row_major = PRIVATE_NAMESPACE + "::RowMajor"
         col_major = PRIVATE_NAMESPACE + "::ColMajor"
         no_order = PRIVATE_NAMESPACE + "::NoOrder"
         out_str = "const " + PRIVATE_NAMESPACE + "::" + STORAGE_ORDER_ENUM + " " + storage_order_var_name + " = "
-        out_str += "(" + var_name + ".flags() & NPY_ARRAY_F_CONTIGUOUS) ? " + col_major + " : "
-        out_str += "(" + var_name + ".flags() & NPY_ARRAY_C_CONTIGUOUS ? " + row_major + " : " + no_order + ");\n"
+        out_str += "(" + cast_arg(arg) + ".flags() & NPY_ARRAY_F_CONTIGUOUS) ? " + col_major + " : "
+        out_str += "(" + cast_arg(arg) + ".flags() & NPY_ARRAY_C_CONTIGUOUS ? " + row_major + " : " + no_order + ");\n"
         out_file.write(out_str)
 
-    def write_type_id_getter(var_name):
-        out_str = "const int " + type_id_var(var_name) + " = "
-        type_name = type_name_var(var_name)
-        storage_order_name = storage_order_var(var_name)
-        is_sparse = PRIVATE_NAMESPACE + "::is_sparse<decltype(" + var_name + ")>::value"
+    def write_type_id_getter(arg):
+        out_str = "const int " + type_id_var(arg.name) + " = "
+        type_name = type_name_var(arg.name)
+        storage_order_name = storage_order_var(arg.name)
+        is_sparse = PRIVATE_NAMESPACE + "::is_sparse<std::remove_reference<decltype(" + \
+                    cast_arg(arg) + ")>::type>::value"
         out_str += PRIVATE_NAMESPACE + "::get_type_id(" + is_sparse + ", " + type_name + ", " + \
             storage_order_name + ");\n"
         out_file.write(out_str)
@@ -743,11 +768,14 @@ def codegen_ast(ast, out_file):
         # Write the argument list
         i = 0
         for arg in fun.arguments:
+            prefix = "npe::detail::maybe_none<" if arg.is_nullable else ""
+            suffix = "> " if arg.is_nullable else " "
+
             if arg.is_sparse:
-                out_file.write("npe::sparse_array ")
+                out_file.write(prefix + "npe::sparse_array" + suffix)
                 out_file.write(arg.name)
             elif arg.is_dense:
-                out_file.write("pybind11::array ")
+                out_file.write(prefix + "pybind11::array" + suffix)
                 out_file.write(arg.name)
             else:
                 assert len(arg.name_or_type) == 1
@@ -760,38 +788,51 @@ def codegen_ast(ast, out_file):
 
         # Declare variables used to determine the type at runtime
         for arg in fun.array_arguments:
-            out_file.write("const char %s = %s.dtype().type();\n" % (type_name_var(arg.name), arg.name))
+            out_file.write("const char %s = %s.dtype().type();\n" % (type_name_var(arg.name), cast_arg(arg)))
             out_file.write("ssize_t %s_shape_0 = 0;\n" % arg.name)
             out_file.write("ssize_t %s_shape_1 = 0;\n" % arg.name)
-            out_file.write("if (%s.ndim() == 1) {\n" % arg.name)
-            out_file.write("%s_shape_0 = %s.shape()[0];\n" % (arg.name, arg.name))
-            out_file.write("%s_shape_1 = %s.shape()[0] == 0 ? 0 : 1;\n" % (arg.name, arg.name))
-            out_file.write("} else if (%s.ndim() == 2) {\n" % arg.name)
-            out_file.write("%s_shape_0 = %s.shape()[0];\n" % (arg.name, arg.name))
-            out_file.write("%s_shape_1 = %s.shape()[1];\n" % (arg.name, arg.name))
-            out_file.write("} else if (%s.ndim() > 2) {\n" % arg.name)
+            out_file.write("if (%s.ndim() == 1) {\n" % cast_arg(arg))
+            out_file.write("%s_shape_0 = %s.shape()[0];\n" % (arg.name, cast_arg(arg)))
+            out_file.write("%s_shape_1 = %s.shape()[0] == 0 ? 0 : 1;\n" % (arg.name, cast_arg(arg)))
+            out_file.write("} else if (%s.ndim() == 2) {\n" % cast_arg(arg))
+            out_file.write("%s_shape_0 = %s.shape()[0];\n" % (arg.name, cast_arg(arg)))
+            out_file.write("%s_shape_1 = %s.shape()[1];\n" % (arg.name, cast_arg(arg)))
+            out_file.write("} else if (%s.ndim() > 2) {\n" % cast_arg(arg))
             out_file.write("  throw std::invalid_argument(\"Argument " + arg.name +
                            " has invalid number of dimensions. Must be 1 or 2.\");\n")
             out_file.write("}\n")
 
-            write_flags_getter(arg.name)
-            write_type_id_getter(arg.name)
+            write_flags_getter(arg)
+            write_type_id_getter(arg)
 
         # Ensure the types in each group match
         for group_id in range(fun.num_type_groups):
             group_var_names = [vm.name for vm in fun.argument_groups[group_id].arguments]
+            first_non_nullable = None
+            for var_name in group_var_names:
+                arg = fun.argument(var_name)
+                if not arg.is_nullable:
+                    first_non_nullable = arg
+                    break
+            assert first_non_nullable is not None, "What in the actual fuck?"
+
             group_types = fun.argument_groups[group_id].types
             pretty_group_types = [NUMPY_ARRAY_TYPES_TO_CPP[gt][2] for gt in group_types]
 
             out_str = "if ("
             for i in range(len(group_types)):
                 type_name = group_types[i]
-                out_str += type_name_var(group_var_names[0]) + " != " + type_char_for_numpy_type(type_name)
+                out_str += type_name_var(first_non_nullable.name) + " != " + type_char_for_numpy_type(type_name)
                 next_token = " && " if i < len(group_types) - 1 else ") {\n"
                 out_str += next_token
-            out_str += 'throw std::invalid_argument("Invalid type (%s) for argument \'%s\'. ' \
-                       'Expected one of %s.");\n' % (
-                           pretty_group_types[0], group_var_names[0], pretty_group_types)
+
+            out_str += 'std::string err_msg = std::string("Invalid type (") + ' \
+                       '%s::type_to_str(%s) + ' \
+                       'std::string(") for argument \'%s\'. Expected one of %s.");\n' % \
+                       (PRIVATE_NAMESPACE, type_name_var(first_non_nullable.name),
+                        first_non_nullable.name, pretty_group_types)
+            out_str += 'throw std::invalid_argument(err_msg);\n'
+
             out_str += "}\n"
             out_file.write(out_str)
 
@@ -799,17 +840,22 @@ def codegen_ast(ast, out_file):
             if len(group_var_names) == 1:
                 continue
 
-            for i in range(1, len(group_var_names)):
-                out_str = "if ("
-                out_str += type_id_var(group_var_names[0]) + " != " + type_id_var(group_var_names[i]) + ") {\n"
+            for i in range(len(group_var_names)):
+                arg = fun.argument(group_var_names[i])
+                out_str = "if (!" + arg.name + ".is_none) {\n" if arg.is_nullable else ""
+                out_str += "if ("
+                out_str += type_id_var(first_non_nullable.name) + " != " + type_id_var(group_var_names[i])
+                out_str += ") {\n"
+                # TODO: Print row/column major information here as well (#38)
                 out_str += 'std::string err_msg = std::string("Invalid type (") + %s::type_to_str(%s) + ' \
                            'std::string(") for argument \'%s\'. Expected it to match argument \'%s\' ' \
                            'which is of type ") + %s::type_to_str(%s) + std::string(".");\n' \
                            % (PRIVATE_NAMESPACE, type_name_var(group_var_names[i]), group_var_names[i],
-                              group_var_names[0], PRIVATE_NAMESPACE, type_name_var(group_var_names[0]))
+                              first_non_nullable.name, PRIVATE_NAMESPACE, type_name_var(first_non_nullable.name))
                 out_str += 'throw std::invalid_argument(err_msg);\n'
 
                 out_str += "}\n"
+                out_str += "}\n" if arg.is_nullable else ""
 
             out_file.write(out_str)
 
@@ -896,17 +942,29 @@ def codegen_ast(ast, out_file):
         for arg in fun.arguments:
             if arg.is_numpy_type:
                 template_str += "Map_" + arg.name + ", Matrix_" + arg.name + ", Scalar_" + arg.name + ","
+
         template_str = template_str[:-1] + ">("
 
         call_str = call_str + template_str if fun.has_array_arguments else call_str + "("
 
         for arg in fun.arguments:
             if arg.is_numpy_type:
+                map_str = ""
+                if arg.is_nullable:
+                    map_str = arg.name + ".is_none ? Map_" + arg.name
+                    if arg.is_sparse:
+                        map_str += "(0, 0, 0, nullptr, nullptr, nullptr) : "
+                    else:
+                        map_str += "(nullptr, 0, 0) : "
+
                 if not arg.is_sparse:
-                    call_str += "Map_" + arg.name + "((Scalar_" + arg.name + "*) " + arg.name + ".data(), " + \
-                                arg.name + "_shape_0, " + arg.name + "_shape_1),"
+                    map_str += "Map_" + arg.name + "((Scalar_" + arg.name + "*) " + cast_arg(arg) + ".data(), " + \
+                              arg.name + "_shape_0, " + arg.name + "_shape_1),"
                 else:
-                    call_str += arg.name + ".as_eigen<Matrix_" + arg.name + ">(),"
+                    map_str += arg.name + ".as_eigen<Matrix_" + arg.name + ">(),"
+
+                call_str += map_str
+
             else:
                 call_str += arg.name + ","
 
@@ -945,7 +1003,11 @@ def codegen_ast(ast, out_file):
         arg_list = ""
         for arg in fun.arguments:
             arg_list += ", pybind11::arg(\"" + arg.name + "\")"
-            arg_list += "=" + arg.default_value if arg.default_value else ""
+
+            if arg.is_nullable:
+                arg_list += "=" + 'pybind11::none()'
+            elif arg.default_value is not None:
+                arg_list += "=" + arg.default_value
 
         out_file.write(arg_list)
         out_file.write(");\n")

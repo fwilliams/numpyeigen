@@ -1,6 +1,8 @@
 ﻿#ifndef BINDING_UTILS_H
 #define BINDING_UTILS_H
 
+#include <pybind11/pybind11.h>
+#include <pybind11/pytypes.h>
 #include <pybind11/eigen.h>
 #include <npe_sparse_array.h>
 #include <npe_dense_array.h>
@@ -8,6 +10,7 @@
 
 
 namespace npe {
+
 template <typename T> using is_eigen_dense_map = pybind11::detail::is_eigen_dense_map<T>;
 template <typename T> using is_eigen_dense = pybind11::detail::is_eigen_dense_plain<T>;
 template <typename T> using is_eigen_sparse = pybind11::detail::is_eigen_sparse<T>;
@@ -45,5 +48,88 @@ pybind11::object move(T, bool squeeze = true /*unused for other types */) {
 }
 
 
-}
+namespace detail {
+
+template <typename T>
+struct maybe_none : public T {
+  bool is_none = false;
+};
+
+} // namespace detail
+} // namespace npe
+
+
+namespace pybind11 {
+namespace detail {
+
+template <>
+struct type_caster<npe::detail::maybe_none<pybind11::array>> {
+public:
+  PYBIND11_TYPE_CASTER(npe::detail::maybe_none<pybind11::array>, _("numpy.array | None"));
+
+  bool load(handle src, bool arg) {
+    if (!src.is_none()) {
+      pybind11::detail::type_caster<pybind11::array> subcaster;
+
+      bool ret = subcaster.load(src, arg);
+      if (!ret) {
+        return ret;
+      }
+      static_cast<pybind11::array&>(value) = *subcaster;
+      value.is_none = false;
+    } else {
+      value.is_none = true;
+    }
+
+    return true;
+  }
+
+  static handle cast(npe::detail::maybe_none<pybind11::array> mn, return_value_policy policy, handle parent) {
+    if (mn.is_none) {
+      return pybind11::none();
+    } else {
+      return pybind11::detail::type_caster<pybind11::array>::cast(static_cast<pybind11::array&>(mn), policy, parent);
+    }
+  }
+};
+
+
+template <>
+struct type_caster<npe::detail::maybe_none<npe::sparse_array>> {
+public:
+  PYBIND11_TYPE_CASTER(npe::detail::maybe_none<npe::sparse_array>, _("scipy.csr_matrix | scipy.csc_matrix | None"));
+
+  bool load(handle src, bool arg) {
+    if (!src.is_none()) {
+      pybind11::detail::type_caster<npe::sparse_array> subcaster;
+
+      bool ret = subcaster.load(src, arg);
+      if (!ret) {
+        return ret;
+      }
+      static_cast<npe::sparse_array&>(value) = *subcaster;
+      value.is_none = false;
+    } else {
+      object sparse_module = module::import("scipy.sparse");
+      object matrix_type = sparse_module.attr("csr_matrix");
+      static_cast<npe::sparse_array&>(value) = matrix_type(0);
+      static_cast<npe::sparse_array&>(value).hack_update_flags();
+      value.is_none = true;
+    }
+
+    return true;
+  }
+
+  static handle cast(npe::detail::maybe_none<npe::sparse_array> mn, return_value_policy policy, handle parent) {
+    if (mn.is_none) {
+      return pybind11::none();
+    } else {
+      return pybind11::detail::type_caster<npe::sparse_array>::cast(static_cast<npe::sparse_array&>(mn), policy, parent);
+    }
+  }
+};
+
+} // namespace detail
+} // namespace pybind11
+
 #endif // BINDING_UTILS_H

@@ -20,7 +20,8 @@ npe_add_module(numpyeigen_test
     docstring.cpp
     string_expr_docstring.cpp
     no_numpy.cpp
-    dtype.cpp)
+    dtype.cpp
+    default_matches.cpp)
 target_link_libraries(numpyeigen_test PRIVATE Eigen3::Eigen)
 
 # A vanilla pybind11 module used to write functions to compare against pyeigen
@@ -45,3 +46,5 @@ add_test(NAME test_1d_arrays
         COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_1d_arrays.py)
 add_test(NAME test_docstring
         COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_docstring.py)
+add_test(NAME test_default_matches
+        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_default_matches.py)
