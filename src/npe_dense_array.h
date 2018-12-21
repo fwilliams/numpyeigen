@@ -74,7 +74,7 @@ pybind11::handle eigen_encapsulate_dense_map(Type *src, bool squeeze = true) {
 // not the Type of the pointer given is const.
 template <typename props, typename Type, typename = std::enable_if<is_eigen_dense<Type>::value, void>>
 pybind11::handle eigen_encapsulate_dense(Type *src, bool squeeze = true) {
-   pybind11::capsule base(src, [](void *o) {
+    pybind11::capsule base(src, [](void *o) {
       delete static_cast<Type *>(o);
     });
     return eigen_ref_array<props>(*src, base, squeeze);
