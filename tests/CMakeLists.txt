@@ -48,3 +48,5 @@ add_test(NAME test_docstring
         COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_docstring.py)
 add_test(NAME test_default_matches
         COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_default_matches.py)
+add_test(NAME test_slices
+        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_slices.py)

@@ -299,6 +299,7 @@ class NpeArgument(object):
         self.default_value = default_value
         self.group = None
         self.matches_name = ""
+        self._is_nullable = False
 
     @property
     def is_numpy_type(self):
@@ -908,6 +909,7 @@ def codegen_ast(ast, out_file):
         out_file.write("}")
 
     def write_switch_branch(fun, combo):
+
         out_file.write("{\n")
         for group_id in range(len(combo)):
             type_prefix = combo[group_id][0]
@@ -934,8 +936,26 @@ def codegen_ast(ast, out_file):
                     eigen_type = "Eigen::Matrix<" + cpp_type + ", " + "Eigen::Dynamic, " + "Eigen::Dynamic, " + \
                                  storage_order_enum + ">"
                     out_file.write("typedef " + eigen_type + " Matrix_%s" % arg.name + ";\n")
-                    out_file.write("typedef Eigen::Map<" + eigen_type + ", " +
-                                   aligned_enum + "> Map_" + arg.name + ";\n")
+                    if type_suffix == STORAGE_ORDER_SUFFIX_XM:
+                        out_file.write("Eigen::Index " + arg.name + "_inner_stride = 0;\n")
+                        out_file.write("Eigen::Index " + arg.name + "_outer_stride = 0;\n")
+                        out_file.write("if (" + arg.name + ".ndim() == 1) {\n")
+                        out_file.write(arg.name + "_outer_stride = " + arg.name + ".strides(0) / sizeof(" +
+                                       cpp_type + ");\n")
+                        out_file.write("} else if (" + arg.name + ".ndim() == 2) {\n")
+                        out_file.write(arg.name + "_outer_stride = " + arg.name + ".strides(1) / sizeof(" +
+                                       cpp_type + ");\n")
+                        out_file.write(arg.name + "_inner_stride = " + arg.name + ".strides(0) / sizeof(" +
+                                       cpp_type + ");\n")
+                        out_file.write("}")
+                        # out_file.write('std::cout << "' + arg.name + ' strides = " << ' + arg.name +
+                        #                '_outer_stride << ", " << ' + arg.name + '_inner_stride << std::endl;')
+                        out_file.write("typedef Eigen::Map<" + eigen_type + ", " +
+                                       aligned_enum + ", Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>> Map_" +
+                                       arg.name + ";\n")
+                    else:
+                        out_file.write("typedef Eigen::Map<" + eigen_type + ", " +
+                                       aligned_enum + "> Map_" + arg.name + ";\n")
 
         call_str = "return callit_" + fun.name
         template_str = "<"
@@ -949,17 +969,24 @@ def codegen_ast(ast, out_file):
 
         for arg in fun.arguments:
             if arg.is_numpy_type:
+                stride_str = ""
+                if arg.group is not None:
+                    arg_suffix = combo[arg.group][1]
+                    if arg_suffix == STORAGE_ORDER_SUFFIX_XM:
+                        stride_str = ", Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>(" + \
+                                     arg.name + "_outer_stride, " + arg.name + "_inner_stride)"
+
                 map_str = ""
                 if arg.is_nullable:
                     map_str = arg.name + ".is_none ? Map_" + arg.name
                     if arg.is_sparse:
                         map_str += "(0, 0, 0, nullptr, nullptr, nullptr) : "
                     else:
-                        map_str += "(nullptr, 0, 0) : "
+                        map_str += "(nullptr, 0, 0" + stride_str + ") : "
 
                 if not arg.is_sparse:
                     map_str += "Map_" + arg.name + "((Scalar_" + arg.name + "*) " + cast_arg(arg) + ".data(), " + \
-                              arg.name + "_shape_0, " + arg.name + "_shape_1),"
+                              arg.name + "_shape_0, " + arg.name + "_shape_1" + stride_str + "),"
                 else:
                     map_str += arg.name + ".as_eigen<Matrix_" + arg.name + ">(),"
 
