@@ -18,7 +18,7 @@ include(numpyeigenDownloadExternal)
 ################################################################################
 
 
-if(NOT TARGET Eigen3::Eigen AND ${NPE_WITH_EIGEN})
+if(${NPE_WITH_EIGEN})
 	numpyeigen_download_eigen()
 endif()
 
