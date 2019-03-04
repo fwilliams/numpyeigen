@@ -21,7 +21,7 @@ install:
   - set PATH=%PYTHON%;%PATH%
   - "python --version"
   - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
-  - "%CMD_IN_ENV% pip install numpy"
+  - "python -m pip install numpy"
   - "python -c \"import numpy as np;print(np.get_include())\""
 build:
   parallel: true

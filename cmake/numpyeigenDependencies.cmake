@@ -18,7 +18,7 @@ include(numpyeigenDownloadExternal)
 ################################################################################
 
 
-if(${NPE_WITH_EIGEN})
+if(NOT ${NPE_WITH_EIGEN})
 	numpyeigen_download_eigen()
 endif()
 
