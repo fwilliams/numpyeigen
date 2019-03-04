@@ -20,3 +20,8 @@ pyigl.config
 pyigl.creator
 pyigl.files
 pyigl.includes
+
+
+
+external
+bin
