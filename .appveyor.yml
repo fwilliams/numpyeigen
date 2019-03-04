@@ -17,9 +17,10 @@ environment:
     PYTHON_VERSION: "2.7.x" # currently 2.7.9
     PYTHON_ARCH: "64"
 install:
+  - set PATH=%PYTHON%;%PATH%
   - "python --version"
-  - "python -m pip install numpy"
-  - "python -m pip install sympy"
+  - "%CMD_IN_ENV% pip install numpy"
+  - "%CMD_IN_ENV% pip install sympy"
 build:
   parallel: true
 build_script:
@@ -27,7 +28,7 @@ build_script:
   - cd c:\projects\npe
   - mkdir build
   - cd build
-  - cmake -DCMAKE_BUILD_TYPE=%config% -G "Visual Studio 15 2017 x64" ../
+  - cmake -DCMAKE_BUILD_TYPE=%config% -G "Visual Studio 15 2017 Win64" ../
   - set MSBuildLogger="C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
   - set MSBuildOptions=/v:m /p:Configuration=%config% /logger:%MSBuildLogger%
   - msbuild %MSBuildOptions% NumpyEigen.sln
