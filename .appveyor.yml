@@ -17,8 +17,9 @@ environment:
     PYTHON_VERSION: "2.7.x" # currently 2.7.9
     PYTHON_ARCH: "64"
 install:
-  - "%PYTHON%\\python.exe -m pip install numpy"
-  - "%PYTHON%\\python.exe -m pip install sympy"
+  - "python --version"
+  - "python -m pip install numpy"
+  - "python -m pip install sympy"
 build:
   parallel: true
 build_script:
