@@ -1,6 +1,6 @@
 version: 1.0.{build}
 os: Visual Studio 2017
-platform: ARM
+platform: x64
 clone_folder: C:\projects\npe
 shallow_clone: true
 branches:
@@ -9,7 +9,13 @@ branches:
 environment:
   matrix:
   - config: Debug
-    PYTHON: "C:\\Python35"
+  - PYTHON: "C:\\Python36-x64"
+    PYTHON_VERSION: "3.6.x" # currently 3.6.5
+    PYTHON_ARCH: "64"
+
+  - PYTHON: "C:\\Python27-x64"
+    PYTHON_VERSION: "2.7.x" # currently 2.7.9
+    PYTHON_ARCH: "64"
 install:
   - "%PYTHON%\\python.exe -m pip install numpy"
   - "%PYTHON%\\python.exe -m pip install sympy"
@@ -20,7 +26,7 @@ build_script:
   - cd c:\projects\npe
   - mkdir build
   - cd build
-  - cmake -DCMAKE_BUILD_TYPE=%config% -G "Visual Studio 15 2017 ARM" ../
+  - cmake -DCMAKE_BUILD_TYPE=%config% -G "Visual Studio 15 2017 x64" ../
   - set MSBuildLogger="C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
   - set MSBuildOptions=/v:m /p:Configuration=%config% /logger:%MSBuildLogger%
   - msbuild %MSBuildOptions% NumpyEigen.sln
