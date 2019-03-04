@@ -1,0 +1,29 @@
+version: 1.0.{build}
+os: Visual Studio 2017
+platform: x64
+clone_folder: C:\projects\npe
+shallow_clone: true
+branches:
+  only:
+    - master
+environment:
+  matrix:
+  - config: Debug
+    # PYTHON: "C:\\Python35"
+install:
+  # - "%PYTHON%\\python.exe -m pip install numpy"
+  # - "%PYTHON%\\python.exe -m pip install sympy"
+build:
+  parallel: true
+build_script:
+  # - set PATH=%PYTHON%;%PATH%
+  - cd c:\projects\npe
+  - mkdir build
+  - cd build
+  - cmake -DCMAKE_BUILD_TYPE=%config% -G "Visual Studio 15 2017 Win64" ../
+  - set MSBuildLogger="C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+  - set MSBuildOptions=/v:m /p:Configuration=%config% /logger:%MSBuildLogger%
+  - msbuild %MSBuildOptions% NumpyEigen.sln
+
+test_script:
+  - ctest -C %config% --verbose --output-on-failure -j 2
