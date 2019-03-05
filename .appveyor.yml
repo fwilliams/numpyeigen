@@ -32,7 +32,7 @@ build_script:
   - cd c:\projects\npe
   - mkdir build
   - cd build
-  - cmake -DCMAKE_BUILD_TYPE=%config% -G "Visual Studio 15 2017 Win64" -DNPE_PYTHON_EXECUTABLE=%PYTHON%.exe ../
+  - cmake -DCMAKE_BUILD_TYPE=%config% -G "Visual Studio 15 2017 Win64" -DNPE_PYTHON_EXECUTABLE=python ../
   - set MSBuildLogger="C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
   - set MSBuildOptions=/v:m /p:Configuration=%config% /logger:%MSBuildLogger%
   - msbuild %MSBuildOptions% NumpyEigen.sln
