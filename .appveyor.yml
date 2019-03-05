@@ -8,7 +8,7 @@ branches:
     - master
 environment:
   matrix:
-  - config: Debug
+  - config: Release
     PYTHON: "C:\\Python36-x64"
     PYTHON_VERSION: "3.6.x" # currently 3.6.8
     PYTHON_ARCH: "64"
