@@ -10,19 +10,20 @@ environment:
   matrix:
   - config: Debug
     PYTHON: "C:\\Python36-x64"
-    PYTHON_VERSION: "3.6.x" # currently 3.6.5
+    PYTHON_VERSION: "3.6.x" # currently 3.6.8
     PYTHON_ARCH: "64"
 
-  - config: Debug
-    PYTHON: "C:\\Python27-x64"
-    PYTHON_VERSION: "2.7.x" # currently 2.7.9
-    PYTHON_ARCH: "64"
+  # - config: Debug
+  #   PYTHON: "C:\\Python27-x64"
+  #   PYTHON_VERSION: "2.7.x" # currently 2.7.15
+  #   PYTHON_ARCH: "64"
 install:
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "python --version"
   - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
   - "python -m pip install numpy"
   - "python -c \"import numpy as np;import sys;print(np.get_include())\""
+  - "C:\\Python36-x64 -c \"import numpy as np;import sys;sys.stdout.write(np.get_include())\""
   # - "dir C:\\Python36-x64\\lib\\site-packages\\numpy\\core\\include"
   # - "dir C:\\Python36-x64\\lib\\site-packages\\numpy\\core\\include\\numpy"
 build:
