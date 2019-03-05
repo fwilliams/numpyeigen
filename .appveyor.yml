@@ -9,7 +9,7 @@ branches:
 environment:
   matrix:
   - config: Debug
-    PYTHON: "C:\\Python36-x64.exe"
+    PYTHON: "C:\\Python36-x64"
     PYTHON_VERSION: "3.6.x" # currently 3.6.8
     PYTHON_ARCH: "64"
 
@@ -33,7 +33,7 @@ build_script:
   - cd c:\projects\npe
   - mkdir build
   - cd build
-  - cmake -DCMAKE_BUILD_TYPE=%config% -G "Visual Studio 15 2017 Win64" -DNPE_PYTHON_EXECUTABLE=%PYTHON% ../
+  - cmake -DCMAKE_BUILD_TYPE=%config% -G "Visual Studio 15 2017 Win64" -DNPE_PYTHON_EXECUTABLE=%PYTHON%.exe ../
   - set MSBuildLogger="C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
   - set MSBuildOptions=/v:m /p:Configuration=%config% /logger:%MSBuildLogger%
   - msbuild %MSBuildOptions% NumpyEigen.sln
