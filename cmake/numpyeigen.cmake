@@ -121,6 +121,9 @@ elseif(NPE_PYTHON_VERSION)
 endif()
 # Include the bundled pybind11
 
+if(NOT PYTHON_EXECUTABLE)
+  set(PYTHON_EXECUTABLE "python")
+endif()
 
 
 # Get the path to the Python header files
