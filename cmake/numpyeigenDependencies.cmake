@@ -19,7 +19,10 @@ include(numpyeigenDownloadExternal)
 
 
 if(NOT ${NPE_WITH_EIGEN})
+	MESSAGE(STATUS "Downloading eigen")
 	numpyeigen_download_eigen()
+else()
+	MESSAGE(STATUS "Using eigen at ${NPE_WITH_EIGEN}")
 endif()
 
 if(NOT TARGET pybind11::module)
