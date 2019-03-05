@@ -138,6 +138,11 @@ execute_process(
 
 message(STATUS "sadasda ${PYTHON_EXECUTABLE} sd ${NPE_NUMPY_INCLUDE_DIR}")
 
+if(UNIX AND NOT APPLE)
+  LIST(APPEND NPE_EXTRA_CXX_FLAGS "-fPIC")
+endif()
+
+
 add_library(npe "${NPE_ROOT_DIR}/src/npe_typedefs.cpp")
 target_include_directories(npe PUBLIC "${NPE_ROOT_DIR}/src" ${NPE_PYTHON_INCLUDE_DIR} ${NPE_NUMPY_INCLUDE_DIR})
 target_compile_options(npe PUBLIC ${NPE_EXTRA_CXX_FLAGS})
