@@ -5,6 +5,7 @@ import os
 import sys
 import tempfile
 import subprocess
+import platform
 
 """
 Global constants used by NumpyEigen
@@ -104,7 +105,8 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
         tmpf = tempfile.NamedTemporaryFile(mode="w+", suffix=".cc")
         tmpf.write(input_str)
         tmpf.flush()
-        cmd = cpp_command + " -w " + tmpf.name
+        cmd = cpp_command + " " + tmpf.name
+        print(cmd)
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         cpp_output, cpp_err = p.communicate()
         tmpf.close()
@@ -1080,6 +1082,11 @@ def main():
     args = arg_parser.parse_args()
 
     cpp_command = args.cpp_cmd
+
+    if platform.system() == 'Windows':
+        print("Windows detected, chaning all - with /")
+        cpp_command = cpp_command.replace("-", "/")
+
     verbosity_level = args.verbosity_level
 
     try:
