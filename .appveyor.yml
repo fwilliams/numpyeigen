@@ -38,4 +38,5 @@ build_script:
   - msbuild %MSBuildOptions% NumpyEigen.sln
 
 test_script:
+  - "python -m pip install scipy"
   - ctest -C %config% --verbose --output-on-failure -j 2
