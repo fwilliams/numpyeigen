@@ -5,7 +5,7 @@ import os
 import sys
 import tempfile
 import subprocess
-
+import platform
 """
 Global constants used by NumpyEigen
 """
@@ -1082,11 +1082,15 @@ def main():
 
     args = arg_parser.parse_args()
 
+
     cpp_command = args.cpp_cmd
+
+    if platform.system() == 'Windows':
+        cpp_command = "\"" + cpp_command + "\""
 
     arg_str = ' '.join(args.string)
 
-    cpp_command += arg_str
+    cpp_command += " " + arg_str
 
     print(cpp_command)
     verbosity_level = args.verbosity_level
