@@ -6,6 +6,8 @@ import sys
 import tempfile
 import subprocess
 
+import platform
+
 """
 Global constants used by NumpyEigen
 """
@@ -101,17 +103,17 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
     :return:
     """
     def run_cpp(input_str):
-        try:
-            tmpf = tempfile.NamedTemporaryFile(mode="w+", suffix=".cc")
-            tmpf.write(input_str)
-            tmpf.flush()
-            filename = tmpf.name
-        except:
+        if platform.system() == 'Windows':
             filename = "tmp.cc"
             tmpf = open(filename, "w")
             tmpf.write(input_str)
             tmpf.flush()
             tmpf.close()
+        else:
+            tmpf = tempfile.NamedTemporaryFile(mode="w+", suffix=".cc")
+            tmpf.write(input_str)
+            tmpf.flush()
+            filename = tmpf.name
 
         cmd = cpp_command + " " + filename
         print(cmd)
