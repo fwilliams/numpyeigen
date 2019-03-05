@@ -202,7 +202,7 @@ function(npe_add_module target_name)
 
   # NumpyEigen uses the C preprocessor for parsing. Here we find a valid command to invoke the C preprocessor
   if (MSVC)
-    set(C_PREPROCESSOR_CMD "\"${CMAKE_CXX_COMPILER}\" -EP")
+    set(C_PREPROCESSOR_CMD "\"${CMAKE_CXX_COMPILER}\" /EP")
   else()
     set(C_PREPROCESSOR_CMD "\"${CMAKE_CXX_COMPILER}\" -w -E")
   endif()
@@ -216,7 +216,7 @@ function(npe_add_module target_name)
     set(bound_function_source_filename "${CMAKE_CURRENT_BINARY_DIR}/${name}.out.cpp")
     add_custom_command(OUTPUT ${bound_function_source_filename}
       DEPENDS ${binding_source} ${NPE_SRC_DIR}/codegen_function.py ${NPE_SRC_DIR}/codegen_module.py
-      COMMAND ${PYTHON_EXECUTABLE} ${NPE_SRC_DIR}/codegen_function.py ${binding_source} \"${C_PREPROCESSOR_CMD}\" -o ${bound_function_source_filename}
+      COMMAND ${PYTHON_EXECUTABLE} ${NPE_SRC_DIR}/codegen_function.py ${binding_source} ${C_PREPROCESSOR_CMD} -o ${bound_function_source_filename}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
     list(APPEND function_sources "${bound_function_source_filename}")
