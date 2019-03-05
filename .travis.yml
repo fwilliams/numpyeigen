@@ -5,9 +5,9 @@ python:
   - "3.6"
 os:
   - linux
-  - os: osx
-    osx_image: xcode8.3
-    compiler: clang
+  # - os: osx
+  #   osx_image: xcode8.3
+  #   compiler: clang
 addons:
   apt:
     packages:
