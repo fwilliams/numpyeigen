@@ -120,7 +120,7 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         cpp_output, cpp_err = p.communicate()
         tmpf.close()
-        return cpp_output.decode('utf-8'), cpp_err
+        return cpp_output.decode('utf-8'), cpp_err, filename
 
     cpp_str = "#define %s(arg, ...) arg %s %s(__VA_ARGS__)" % (stmt_token, split_token, stmt_token)
 
@@ -130,7 +130,7 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
 
     tokens = []
     for i in range(max_iters):
-        output, err = run_cpp(cpp_input_str)
+        output, err, filename = run_cpp(cpp_input_str)
 
         if err:
             raise ParseError("Invalid code at line %d:\nCPP Error message:\n%s" %
@@ -141,6 +141,12 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
         parsed_string = ""
         for out_line in output:
             if str(out_line).strip().startswith("#"):
+                continue
+            elif str(out_line).strip().startswith("Microsoft (R)"):
+                continue
+            elif str(out_line).strip().startswith("Copyright (C) Microsoft Corporation"):
+                continue
+            elif str(out_line).strip() == filename:
                 continue
             else:
                 parsed_string += str(out_line) + "\n"

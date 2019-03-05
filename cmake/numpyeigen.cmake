@@ -131,10 +131,18 @@ execute_process(
   COMMAND ${PYTHON_EXECUTABLE} -c "from sysconfig import get_paths;import sys;sys.stdout.write(get_paths()['include'])"
   OUTPUT_VARIABLE NPE_PYTHON_INCLUDE_DIR)
 
+if(NOT NPE_PYTHON_INCLUDE_DIR)
+  MESSAGE(FATAL_ERROR "Unable to find python include dir")
+endif()
+
 # Get the path to the Numpy header files
 execute_process(
   COMMAND ${PYTHON_EXECUTABLE} -c "import numpy as np;import sys;sys.stdout.write(np.get_include())"
   OUTPUT_VARIABLE NPE_NUMPY_INCLUDE_DIR)
+
+if(NOT NPE_NUMPY_INCLUDE_DIR)
+  MESSAGE(FATAL_ERROR "Unable to find numpy include dir")
+endif()
 
 message(STATUS "sadasda ${PYTHON_EXECUTABLE} sd ${NPE_NUMPY_INCLUDE_DIR}")
 
