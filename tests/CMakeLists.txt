@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.2)
 project(NumpyEigenTests)
 
-set(NPE_WITH_EIGEN ON)
-set(NPE_PYTHON_EXECUTABLE "python")
+# set(NPE_WITH_EIGEN ON)
+# set(NPE_PYTHON_EXECUTABLE "python")
 
 # A module for writing bindings with our framework
 npe_add_module(numpyeigen_test
@@ -38,16 +38,16 @@ target_include_directories(numpyeigen_helpers PRIVATE ${NPE_ROOT_DIR}/src ${PYTH
 
 
 add_test(NAME test_dense_bindings
-         COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_dense_binding.py)
+         COMMAND ${NPE_PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_dense_binding.py)
 add_test(NAME test_sparse_bindings
-        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_sparse_binding.py)
+        COMMAND ${NPE_PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_sparse_binding.py)
 add_test(NAME test_npe_call_interface
-        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_npe_call_interface.py)
+        COMMAND ${NPE_PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_npe_call_interface.py)
 add_test(NAME test_1d_arrays
-        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_1d_arrays.py)
+        COMMAND ${NPE_PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_1d_arrays.py)
 add_test(NAME test_docstring
-        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_docstring.py)
+        COMMAND ${NPE_PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_docstring.py)
 add_test(NAME test_default_matches
-        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_default_matches.py)
+        COMMAND ${NPE_PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_default_matches.py)
 add_test(NAME test_slices
-        COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test_slices.py)
+        COMMAND ${NPE_PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_slices.py)
