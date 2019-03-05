@@ -18,7 +18,7 @@ include(numpyeigenDownloadExternal)
 ################################################################################
 
 
-if(NOT ${NPE_WITH_EIGEN})
+if(NOT NPE_WITH_EIGEN)
 	MESSAGE(STATUS "Downloading eigen")
 	numpyeigen_download_eigen()
 else()
