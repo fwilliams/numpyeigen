@@ -5,7 +5,7 @@ import os
 import sys
 import tempfile
 import subprocess
-import platform
+
 """
 Global constants used by NumpyEigen
 """
@@ -101,17 +101,18 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
     :return:
     """
     def run_cpp(input_str):
-        if platform.system() == 'Windows':
-            filename = "tmp.cc"
-            tmpf = open(mode="w+", filename)
-            tmpf.write(input_str)
-            tmpf.flush()
-            tmpf.close()
-        else:
+        try:
             tmpf = tempfile.NamedTemporaryFile(mode="w+", suffix=".cc")
             tmpf.write(input_str)
             tmpf.flush()
             filename = tmpf.name
+        except:
+            filename = "tmp.cc"
+            tmpf = open(filename, "w")
+            tmpf.write(input_str)
+            tmpf.flush()
+            tmpf.close()
+
         cmd = cpp_command + " " + filename
         print(cmd)
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -1086,17 +1087,15 @@ def main():
     arg_parser.add_argument("-v", "--verbosity-level", type=int, default=LOG_INFO,
                             help="How verbose is the output. < 0 = silent, "
                                  "0 = only errors, 1 = normal, 2 = verbose, > 3 = debug")
-    arg_parser.add_argument('string', help='Input String', nargs='*')
+    arg_parser.add_argument('--nargs', help='Input String', nargs='*', type=str)
 
     args = arg_parser.parse_args()
 
 
     cpp_command = args.cpp_cmd
+    cpp_command = "\"" + cpp_command + "\""
 
-    if platform.system() == 'Windows':
-        cpp_command = "\"" + cpp_command + "\""
-
-    arg_str = ' '.join(args.string)
+    arg_str = ' '.join(args.nargs)
 
     cpp_command += " " + arg_str
 

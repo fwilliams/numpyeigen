@@ -202,12 +202,12 @@ function(npe_add_module target_name)
 
   # NumpyEigen uses the C preprocessor for parsing. Here we find a valid command to invoke the C preprocessor
   if (MSVC)
-    set(C_PREPROCESSOR_CMD "\"${CMAKE_CXX_COMPILER}\" /EP")
+    set(C_PREPROCESSOR_CMD_FLAGS "/EP")
   else()
-    set(C_PREPROCESSOR_CMD "\"${CMAKE_CXX_COMPILER}\" -w -E")
+    set(C_PREPROCESSOR_CMD_FLAGS "-w -E")
   endif()
 
-  message(STATUS "bla ${C_PREPROCESSOR_CMD}")
+  message(STATUS "bla ${C_PREPROCESSOR_CMD_FLAGS}")
 
   # For each binding source file add a "target" which runs the NumpyEigen compiler when the binding code changes
   foreach(binding_source ${npe_add_module_BINDING_SOURCES})
@@ -216,7 +216,7 @@ function(npe_add_module target_name)
     set(bound_function_source_filename "${CMAKE_CURRENT_BINARY_DIR}/${name}.out.cpp")
     add_custom_command(OUTPUT ${bound_function_source_filename}
       DEPENDS ${binding_source} ${NPE_SRC_DIR}/codegen_function.py ${NPE_SRC_DIR}/codegen_module.py
-      COMMAND ${PYTHON_EXECUTABLE} ${NPE_SRC_DIR}/codegen_function.py ${binding_source} ${C_PREPROCESSOR_CMD} -o ${bound_function_source_filename}
+      COMMAND ${PYTHON_EXECUTABLE} ${NPE_SRC_DIR}/codegen_function.py ${binding_source} \"${CMAKE_CXX_COMPILER}\" -o ${bound_function_source_filename} --nargs ${C_PREPROCESSOR_CMD_FLAGS}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
     list(APPEND function_sources "${bound_function_source_filename}")
