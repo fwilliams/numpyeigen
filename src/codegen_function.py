@@ -1079,14 +1079,19 @@ def main():
     arg_parser.add_argument("-v", "--verbosity-level", type=int, default=LOG_INFO,
                             help="How verbose is the output. < 0 = silent, "
                                  "0 = only errors, 1 = normal, 2 = verbose, > 3 = debug")
+    # arg_parser.add_argument(nargs='+', ...)
     args = arg_parser.parse_args()
 
     cpp_command = args.cpp_cmd
 
+
     if platform.system() == 'Windows':
         print("Windows detected, chaning all - with /")
         cpp_command = cpp_command.replace("-", "/")
+    else:
+        cpp_command = cpp_command.replace("\\", "")
 
+    print(cpp_command)
     verbosity_level = args.verbosity_level
 
     try:
