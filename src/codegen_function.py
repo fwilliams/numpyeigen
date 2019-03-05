@@ -64,6 +64,7 @@ LOG_ERROR = 0
 Global Variables set at runtime
 """
 cpp_command = None  # Name of the command to run for the C preprocessor. Set at input.
+cpp_path = None #Path to the executable
 verbosity_level = 1  # Integer representing the level of verbosity 0 = only log errors, 1 = normal, 2 = verbose
 
 
@@ -115,9 +116,13 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
             tmpf.flush()
             filename = tmpf.name
 
-        cmd = cpp_command + " " + filename
+        cmd = []
+        for c in cpp_command:
+            cmd.append(c)
+        # cpp_command + " " + filename
+        cmd.append(filename)
         print(cmd)
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, executable=cpp_path)
         cpp_output, cpp_err = p.communicate()
         tmpf.close()
         return cpp_output.decode('utf-8'), cpp_err, filename
@@ -1086,6 +1091,7 @@ def codegen_ast(ast, out_file):
 
 def main():
     global cpp_command
+    global cpp_path
     global verbosity_level
 
     arg_parser = argparse.ArgumentParser()
@@ -1099,13 +1105,23 @@ def main():
 
     args = arg_parser.parse_args()
 
+    head, tail = os.path.split(args.cpp_cmd)
 
-    cpp_command = args.cpp_cmd
-    cpp_command = "\"" + cpp_command + "\""
+    cpp_path = args.cpp_cmd
+    # cpp_path = "\"" + cpp_path + "\""
+    print("cpp_path", cpp_path)
 
-    arg_str = ' '.join(args.nargs)
+    # cpp_command = tail
+    # cpp_command = "\"" + cpp_command + "\""
 
-    cpp_command += " " + arg_str
+    cpp_command = []
+    for tmp in args.nargs:
+        for t in tmp.split(" "):
+            cpp_command.append(t)
+
+    # arg_str = ' '.join(args.nargs)
+
+    # cpp_command += " " + arg_str
 
     print(cpp_command)
     verbosity_level = args.verbosity_level

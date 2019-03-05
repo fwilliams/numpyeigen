@@ -229,7 +229,7 @@ function(npe_add_module target_name)
     set(bound_function_source_filename "${CMAKE_CURRENT_BINARY_DIR}/${name}.out.cpp")
     add_custom_command(OUTPUT ${bound_function_source_filename}
       DEPENDS ${binding_source} ${NPE_SRC_DIR}/codegen_function.py ${NPE_SRC_DIR}/codegen_module.py
-      COMMAND ${PYTHON_EXECUTABLE} ${NPE_SRC_DIR}/codegen_function.py ${binding_source} \"${CMAKE_CXX_COMPILER}\" -o ${bound_function_source_filename} --nargs ${C_PREPROCESSOR_CMD_FLAGS}
+      COMMAND ${PYTHON_EXECUTABLE} ${NPE_SRC_DIR}/codegen_function.py ${binding_source} ${CMAKE_CXX_COMPILER} -o ${bound_function_source_filename} --nargs ${C_PREPROCESSOR_CMD_FLAGS}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
     list(APPEND function_sources "${bound_function_source_filename}")
