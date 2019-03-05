@@ -133,6 +133,7 @@ execute_process(
   COMMAND ${PYTHON_EXECUTABLE} -c "import numpy as np;import sys;sys.stdout.write(np.get_include())"
   OUTPUT_VARIABLE NPE_NUMPY_INCLUDE_DIR)
 
+message(STATUS "sadasda sd ${NPE_NUMPY_INCLUDE_DIR}")
 
 add_library(npe "${NPE_ROOT_DIR}/src/npe_typedefs.cpp")
 target_include_directories(npe PUBLIC "${NPE_ROOT_DIR}/src" ${NPE_PYTHON_INCLUDE_DIR} ${NPE_NUMPY_INCLUDE_DIR})

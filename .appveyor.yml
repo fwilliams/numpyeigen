@@ -23,6 +23,8 @@ install:
   - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
   - "python -m pip install numpy"
   - "python -c \"import numpy as np;print(np.get_include())\""
+  - "dir C:\Python36-x64\lib\site-packages\numpy\core\include"
+  - "dir C:\Python36-x64\lib\site-packages\numpy\core\include\numpy"
 build:
   parallel: true
 build_script:
