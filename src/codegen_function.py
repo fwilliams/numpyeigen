@@ -116,13 +116,11 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
             tmpf.flush()
             filename = tmpf.name
 
-        cmd = []
+        cmd = [filename]
         for c in cpp_command:
             cmd.append(c)
-        # cpp_command + " " + filename
-        cmd.append(filename)
-        print(cmd)
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, executable=cpp_path)
+
+        p = subprocess.Popen([' '.join(cmd)], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, executable=cpp_path)
         cpp_output, cpp_err = p.communicate()
         tmpf.close()
         return cpp_output.decode('utf-8'), cpp_err, filename
@@ -137,7 +135,7 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
     for i in range(max_iters):
         output, err, filename = run_cpp(cpp_input_str)
 
-        if err:
+        if err and len(err) > 140:
             raise ParseError("Invalid code at line %d:\nCPP Error message:\n%s" %
                              (line_number, err.decode("utf-8")))
 
@@ -1108,22 +1106,13 @@ def main():
     head, tail = os.path.split(args.cpp_cmd)
 
     cpp_path = args.cpp_cmd
-    # cpp_path = "\"" + cpp_path + "\""
-    print("cpp_path", cpp_path)
 
-    # cpp_command = tail
-    # cpp_command = "\"" + cpp_command + "\""
 
     cpp_command = []
     for tmp in args.nargs:
         for t in tmp.split(" "):
             cpp_command.append(t)
 
-    # arg_str = ' '.join(args.nargs)
-
-    # cpp_command += " " + arg_str
-
-    print(cpp_command)
     verbosity_level = args.verbosity_level
 
     try:
