@@ -244,7 +244,7 @@ function(npe_add_module target_name)
 
   # Register the generated C++ code for the module as a pybind11 module so it gets compiled
   add_library(${target_name} MODULE ${module_source_filename} ${function_sources})
-  target_link_libraries(${target_name} PRIVATE npe)
+  target_link_libraries(${target_name} PUBLIC npe)
   set_target_properties(${target_name} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
 
