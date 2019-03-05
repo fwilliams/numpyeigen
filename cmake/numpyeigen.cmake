@@ -202,7 +202,7 @@ function(npe_add_module target_name)
 
   # NumpyEigen uses the C preprocessor for parsing. Here we find a valid command to invoke the C preprocessor
   if (MSVC)
-    set(C_PREPROCESSOR_CMD "\"${CMAKE_CXX_COMPILER}\" /E")
+    set(C_PREPROCESSOR_CMD "\"${CMAKE_CXX_COMPILER}\" /P")
   else()
     set(C_PREPROCESSOR_CMD "\"${CMAKE_CXX_COMPILER}\" -w -E")
   endif()
