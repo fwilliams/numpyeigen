@@ -37,19 +37,19 @@ endif()
 target_include_directories(numpyeigen_helpers PRIVATE ${NPE_ROOT_DIR}/src ${PYTHON_INCLUDE_DIR} ${NP_INCLUDE_DIR})
 
 
-MESSAGE(STATUS "test asdasd ${NPE_PYTHON_EXECUTABLE}")
+MESSAGE(STATUS "test asdasd ${PYTHON_EXECUTABLE}")
 
 add_test(NAME test_dense_bindings
-         COMMAND ${NPE_PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_dense_binding.py)
+         COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_dense_binding.py)
 add_test(NAME test_sparse_bindings
-        COMMAND ${NPE_PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_sparse_binding.py)
+        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_sparse_binding.py)
 add_test(NAME test_npe_call_interface
-        COMMAND ${NPE_PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_npe_call_interface.py)
+        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_npe_call_interface.py)
 add_test(NAME test_1d_arrays
-        COMMAND ${NPE_PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_1d_arrays.py)
+        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_1d_arrays.py)
 add_test(NAME test_docstring
-        COMMAND ${NPE_PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_docstring.py)
+        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_docstring.py)
 add_test(NAME test_default_matches
-        COMMAND ${NPE_PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_default_matches.py)
+        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_default_matches.py)
 add_test(NAME test_slices
-        COMMAND ${NPE_PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_slices.py)
+        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_slices.py)
