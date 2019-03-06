@@ -36,9 +36,6 @@ else()
 endif()
 target_include_directories(numpyeigen_helpers PRIVATE ${NPE_ROOT_DIR}/src ${PYTHON_INCLUDE_DIR} ${NP_INCLUDE_DIR})
 
-
-MESSAGE(STATUS "test asdasd ${PYTHON_EXECUTABLE}")
-
 add_test(NAME test_dense_bindings
          COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_dense_binding.py)
 add_test(NAME test_sparse_bindings

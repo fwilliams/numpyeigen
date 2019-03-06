@@ -144,8 +144,6 @@ if(NOT NPE_NUMPY_INCLUDE_DIR)
   MESSAGE(FATAL_ERROR "Unable to find numpy include dir")
 endif()
 
-message(STATUS "sadasda ${PYTHON_EXECUTABLE} sd ${NPE_NUMPY_INCLUDE_DIR}")
-
 if(UNIX AND NOT APPLE)
   LIST(APPEND NPE_EXTRA_CXX_FLAGS "-fPIC")
 endif()

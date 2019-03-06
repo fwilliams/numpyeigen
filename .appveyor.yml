@@ -39,4 +39,5 @@ build_script:
 
 test_script:
   - "python -m pip install scipy"
+  - copy tests\%config%\*.pyd .\
   - ctest -C %config% --verbose --output-on-failure -j 2
