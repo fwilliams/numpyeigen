@@ -5,6 +5,9 @@ python:
   - "3.6"
 os:
   - linux
+    env:
+    - CC=gcc CXX=g++
+    - CC=clang CXX=clang++ CXXFLAGS="-stdlib=libc++"
   # - osx
   #   osx_image: xcode8.3
   #   compiler: clang
@@ -12,9 +15,7 @@ addons:
   apt:
     packages:
     - libc++-dev
-env:
-  - CC=gcc CXX=g++
-  - CC=clang CXX=clang++ CXXFLAGS="-stdlib=libc++"
+
 install:
   - pip install scipy
 script:
