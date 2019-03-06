@@ -218,8 +218,6 @@ function(npe_add_module target_name)
     set(C_PREPROCESSOR_CMD_FLAGS "-w -E")
   endif()
 
-  message(STATUS "bla ${C_PREPROCESSOR_CMD_FLAGS}")
-
   # For each binding source file add a "target" which runs the NumpyEigen compiler when the binding code changes
   foreach(binding_source ${npe_add_module_BINDING_SOURCES})
     get_filename_component(name ${binding_source} NAME_WE)
