@@ -13,7 +13,7 @@ environment:
     PYTHON_VERSION: "3.6.x" # currently 3.6.8
     PYTHON_ARCH: "64"
 
-  # - config: Debug
+  # - config: Release
   #   PYTHON: "C:\\Python27-x64.exe"
   #   PYTHON_VERSION: "2.7.x" # currently 2.7.15
   #   PYTHON_ARCH: "64"
@@ -40,5 +40,5 @@ build_script:
 test_script:
   - "python -m pip install scipy"
   - cd c:\projects\npe\build
-  - copy tests\%config%\*.pyd .\
+  - copy tests\%config%\*.pyd .\tests\
   - ctest -C %config% --verbose --output-on-failure -j 2
