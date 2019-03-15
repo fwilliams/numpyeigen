@@ -6,8 +6,8 @@ matrices to [Eigen](https://www.google.com/search?client=ubuntu&channel=fs&q=eig
 with zero copy overhead while taking advantage of Eigen's expression template system for maximum performance.
 
 [Eigen](https://www.google.com/search?client=ubuntu&channel=fs&q=eigen&ie=utf-8&oe=utf-8) is a C++ numerical 
-linear algebra librry. It uses expression templates to pick the fastest numerical algorithms for a given set of input 
-types. NumPy and SciPy are librarieis exposing fast numerical routines in Python. 
+linear algebra library. It uses expression templates to pick the fastest numerical algorithms for a given set of input 
+types. NumPy and SciPy are libraries exposing fast numerical routines in Python. 
 
 Since type information in Python is only available at runtime, it is not easy to write bindings which accept 
 multiple NumPy or SciPy types, have zero copy overhead, and can make use of the fastest numerical kernels in Eigen. 
