@@ -5,6 +5,9 @@ import os
 import sys
 import tempfile
 import subprocess
+import re
+
+import platform
 
 """
 Global constants used by NumpyEigen
@@ -62,6 +65,7 @@ LOG_ERROR = 0
 Global Variables set at runtime
 """
 cpp_command = None  # Name of the command to run for the C preprocessor. Set at input.
+cpp_path = None  # Path to the executable
 verbosity_level = 1  # Integer representing the level of verbosity 0 = only log errors, 1 = normal, 2 = verbose
 
 
@@ -101,14 +105,36 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
     :return:
     """
     def run_cpp(input_str):
-        tmpf = tempfile.NamedTemporaryFile(mode="w+", suffix=".cc")
-        tmpf.write(input_str)
-        tmpf.flush()
-        cmd = cpp_command + " -w " + tmpf.name
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if platform.system() == 'Windows':
+            filename = "tmp.cc"
+            tmpf = open(filename, "w")
+            tmpf.write(input_str)
+            tmpf.flush()
+            tmpf.close()
+        else:
+            tmpf = tempfile.NamedTemporaryFile(mode="w+", suffix=".cc")
+            tmpf.write(input_str)
+            tmpf.flush()
+            filename = tmpf.name
+
+        cmd = [filename]
+        for c in cpp_command:
+            cmd.append(c)
+
+        if platform.system() == 'Windows':
+            cmd = [' '.join(cmd)]
+
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, executable=cpp_path)
         cpp_output, cpp_err = p.communicate()
+
+        cpp_err = cpp_err.decode("utf-8")
+        cpp_err = re.sub(r'(Microsoft \(R\)).+', '', cpp_err)
+        cpp_err = re.sub(r'(Copyright \(C\)).+', '', cpp_err)
+        cpp_err = re.sub(r'('+filename+')', '', cpp_err)
+        cpp_err = cpp_err.strip()
+
         tmpf.close()
-        return cpp_output.decode('utf-8'), cpp_err
+        return cpp_output.decode('utf-8'), cpp_err, filename
 
     cpp_str = "#define %s(arg, ...) arg %s %s(__VA_ARGS__)" % (stmt_token, split_token, stmt_token)
 
@@ -118,17 +144,23 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
 
     tokens = []
     for i in range(max_iters):
-        output, err = run_cpp(cpp_input_str)
+        output, err, filename = run_cpp(cpp_input_str)
 
         if err:
             raise ParseError("Invalid code at line %d:\nCPP Error message:\n%s" %
-                             (line_number, err.decode("utf-8")))
+                             (line_number, err))
 
         output = output.split('\n')
 
         parsed_string = ""
         for out_line in output:
             if str(out_line).strip().startswith("#"):
+                continue
+            elif str(out_line).strip().startswith("Microsoft (R)"):
+                continue
+            elif str(out_line).strip().startswith("Copyright (C) Microsoft Corporation"):
+                continue
+            elif str(out_line).strip() == filename:
                 continue
             else:
                 parsed_string += str(out_line) + "\n"
@@ -1068,6 +1100,7 @@ def codegen_ast(ast, out_file):
 
 def main():
     global cpp_command
+    global cpp_path
     global verbosity_level
 
     arg_parser = argparse.ArgumentParser()
@@ -1077,9 +1110,20 @@ def main():
     arg_parser.add_argument("-v", "--verbosity-level", type=int, default=LOG_INFO,
                             help="How verbose is the output. < 0 = silent, "
                                  "0 = only errors, 1 = normal, 2 = verbose, > 3 = debug")
+    arg_parser.add_argument('--c-preprocessor-args', help='Input String', nargs='*', type=str)
+
     args = arg_parser.parse_args()
 
-    cpp_command = args.cpp_cmd
+    head, tail = os.path.split(args.cpp_cmd)
+
+    cpp_path = args.cpp_cmd
+
+
+    cpp_command = []
+    for tmp in args.c_preprocessor_args:
+        for t in tmp.split(" "):
+            cpp_command.append(t)
+
     verbosity_level = args.verbosity_level
 
     try:
