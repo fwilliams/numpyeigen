@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
 project(NumpyEigenTests)
 
-# set(NPE_WITH_EIGEN ON)
-# set(NPE_PYTHON_EXECUTABLE "python")
-
 # A module for writing bindings with our framework
 npe_add_module(numpyeigen_test
   BINDING_SOURCES

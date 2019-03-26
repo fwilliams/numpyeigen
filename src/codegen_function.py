@@ -65,7 +65,7 @@ LOG_ERROR = 0
 Global Variables set at runtime
 """
 cpp_command = None  # Name of the command to run for the C preprocessor. Set at input.
-cpp_path = None #Path to the executable
+cpp_path = None  # Path to the executable
 verbosity_level = 1  # Integer representing the level of verbosity 0 = only log errors, 1 = normal, 2 = verbose
 
 
@@ -1110,7 +1110,7 @@ def main():
     arg_parser.add_argument("-v", "--verbosity-level", type=int, default=LOG_INFO,
                             help="How verbose is the output. < 0 = silent, "
                                  "0 = only errors, 1 = normal, 2 = verbose, > 3 = debug")
-    arg_parser.add_argument('--nargs', help='Input String', nargs='*', type=str)
+    arg_parser.add_argument('--c-preprocessor-args', help='Input String', nargs='*', type=str)
 
     args = arg_parser.parse_args()
 
@@ -1120,7 +1120,7 @@ def main():
 
 
     cpp_command = []
-    for tmp in args.nargs:
+    for tmp in args.c_preprocessor_args:
         for t in tmp.split(" "):
             cpp_command.append(t)
 

@@ -203,10 +203,6 @@ function(npe_add_module target_name)
     message(FATAL_ERROR "No Python interpreter is defined. We expect the variable PYTHON_EXECUTABLE to be set!")
   endif()
 
-  # You can globally set extra C++ flags to pass when compiling the module
-  # if(NOT NPE_EXTRA_CXX_FLAGS)
-  #   set(NPE_EXTRA_CXX_FLAGS "")
-  # endif()
 
   # Directory containing NumpyEigen source code
   set(NPE_SRC_DIR "${NPE_ROOT_DIR}/src")
@@ -225,7 +221,7 @@ function(npe_add_module target_name)
     set(bound_function_source_filename "${CMAKE_CURRENT_BINARY_DIR}/${name}.out.cpp")
     add_custom_command(OUTPUT ${bound_function_source_filename}
       DEPENDS ${binding_source} ${NPE_SRC_DIR}/codegen_function.py ${NPE_SRC_DIR}/codegen_module.py
-      COMMAND ${PYTHON_EXECUTABLE} ${NPE_SRC_DIR}/codegen_function.py ${binding_source} ${CMAKE_CXX_COMPILER} -o ${bound_function_source_filename} --nargs ${C_PREPROCESSOR_CMD_FLAGS}
+      COMMAND ${PYTHON_EXECUTABLE} ${NPE_SRC_DIR}/codegen_function.py ${binding_source} ${CMAKE_CXX_COMPILER} -o ${bound_function_source_filename} --c-preprocessor-args ${C_PREPROCESSOR_CMD_FLAGS}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
     list(APPEND function_sources "${bound_function_source_filename}")
@@ -242,19 +238,5 @@ function(npe_add_module target_name)
   add_library(${target_name} MODULE ${module_source_filename} ${function_sources})
   target_link_libraries(${target_name} PUBLIC npe)
   set_target_properties(${target_name} PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}")
-
-
-
-  # pybind11_add_module(${target_name} SHARED ${module_source_filename} ${NPE_SRC_DIR}/npe_typedefs.cpp ${function_sources})
-  # target_include_directories(${target_name} PUBLIC ${NPE_SRC_DIR} ${NPE_PYTHON_INCLUDE_DIR} ${NPE_NUMPY_INCLUDE_DIR})
-  # target_compile_options(${target_name} PUBLIC ${NPE_EXTRA_CXX_FLAGS})
-
-  # # If you set NPE_WITH_EIGEN, then we compile against the bundled version of Eigen
-  # target_link_libraries(${target_name} PUBLIC Eigen3::Eigen)
-
-  # # We require C++ 14 for auto return types
-  # set_target_properties(${target_name} PROPERTIES
-  #   CXX_STANDARD 14
-  #   CXX_STANDARD_REQUIRED ON)
 endfunction()
 
