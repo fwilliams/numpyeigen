@@ -12,6 +12,7 @@ numpyeigen.files
 numpyeigen.config
 *.
 .idea/
+
 libigl-python-bindings-experiments.config
 libigl-python-bindings-experiments.creator
 libigl-python-bindings-experiments.files
