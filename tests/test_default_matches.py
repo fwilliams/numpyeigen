@@ -77,6 +77,7 @@ class TestDefaultMatches(unittest.TestCase):
     def test_none_2(self):
         if platform.system() == 'Windows':
             print("Warning skipping test on windows")
+            return
 
         a = np.random.rand(25, 25).astype(np.float32)
         b = np.random.rand(22, 21).astype(np.float32)
