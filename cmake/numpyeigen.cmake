@@ -163,7 +163,11 @@ if(TARGET Eigen3::Eigen)
   # If an imported target already exists, use it
   target_link_libraries(npe PUBLIC Eigen3::Eigen)
 else()
-  target_include_directories(npe PUBLIC ${NUMPYEIGEN_EXTERNAL}/eigen)
+  if(NPE_WITH_EIGEN)
+    target_include_directories(npe PUBLIC ${NPE_WITH_EIGEN})
+  else()
+    target_include_directories(npe PUBLIC ${NUMPYEIGEN_EXTERNAL}/eigen)
+  endif()
 endif()
 
 target_link_libraries(npe PUBLIC pybind11::module)
