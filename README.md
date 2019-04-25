@@ -1,4 +1,4 @@
-# NumpyEigen - Fast zero-overhead bindings between NumPy and Eigen ![Build Status](https://travis-ci.com/fwilliams/numpyeigen.svg?branch=master)
+# NumpyEigen - Fast zero-overhead bindings between NumPy and Eigen [![Build Status](https://travis-ci.com/fwilliams/numpyeigen.svg?branch=master)](https://travis-ci.com/fwilliams/numpyeigen) [![Build status](https://ci.appveyor.com/api/projects/status/hsavlpy5gm767rj5?svg=true)](https://ci.appveyor.com/project/fwilliams/numpyeigen)
 
 **NumpyEigen** makes it easy to transparently convert [NumPy](http://www.numpy.org/) 
 dense arrays and [SciPy](https://docs.scipy.org/doc/scipy/reference/sparse.html) sparse 
