@@ -30,8 +30,7 @@ NumpyEigen comes built-in with [CMake](https://cmake.org/) tools to integrate wi
 ### Minimal Dependencies
 NumpyEigen only requires the system to have a valid C++ 14 (or later) compiler and a running Python interpreter with version >= 2.7. 
 
-NumpyEigen uses [pybind11](https://github.com/pybind/pybind11) under the hood which is included as a submodule. 
-Don't forget to `git clone --recursive`!
+NumpyEigen uses [pybind11](https://github.com/pybind/pybind11) under the hood which is included automatically by the cmake project. 
 
 
 ## Example
@@ -52,12 +51,12 @@ npe_function(foo)
 // The arguments to foo are as follows:
 // Each of these are transparently converted from numpy types to appropriate Eigen::Map types
 // wiith zero copy overhead.
-npe_arg(a, dense_f64, dense_f32)      // a is a numpy array with dtype either float or double
-npe_arg(b, matches(a))                // b is a numpy array whose type has to match a
-npe_arg(c, dense_i32, dense_i64)      // c is a numpy array whose type is either int32 or int64
-npe_arg(d, std::string)               // d is a string
-npe_arg(f, sparse_f32, sparse_f64)    // f is a sparse matrix whose data is either float32 or float64
-npe_arg(e, int)                       // e is an int
+npe_arg(a, dense_double, dense_float)   // a is a numpy array with dtype either float or double
+npe_arg(b, matches(a))                  // b is a numpy array whose type has to match a
+npe_arg(c, dense_int, dense_long)       // c is a numpy array whose type is either int or long
+npe_arg(d, std::string)                 // d is a string
+npe_arg(f, sparse_float, sparse_double) // f is a sparse matrix whose data is either float or double
+npe_arg(e, int)                         // e is an int
 
 // NumpyEigen supports doc strings which are expression evaluating to C strings or std::string types
 npe_doc("A function which computes various values from input matrices")
