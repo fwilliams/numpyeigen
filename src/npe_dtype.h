@@ -16,11 +16,13 @@ enum DtypeType {
   type_i16     = 'h',
   type_i32     = 'i',
   type_i64     = 'l',
+  type_i128    = 'q',
 
   type_u8      = 'B',
   type_u16     = 'H',
   type_u32     = 'I',
   type_u64     = 'L',
+  type_u128    = 'Q',
 
   type_c64     = 'F',
   type_c128    = 'D',

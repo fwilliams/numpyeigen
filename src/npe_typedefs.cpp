@@ -15,6 +15,7 @@ const std::string npe::detail::type_to_str(char type_char) {
     return "float64";
   case char_f128:
     return "float128";
+
   case char_i8:
     return "int8";
   case char_i16:
@@ -23,6 +24,8 @@ const std::string npe::detail::type_to_str(char type_char) {
     return "int32";
   case char_i64:
     return "int64";
+  case char_i128:
+    return "int128";
   case char_u8:
     return "uint8";
   case char_u16:
@@ -31,6 +34,8 @@ const std::string npe::detail::type_to_str(char type_char) {
     return "uint32";
   case char_u64:
     return "uint64";
+  case char_u128:
+    return "uint128";
 
   case char_c64:
     return "complex64";
@@ -73,6 +78,8 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return dense_i32_cm;
       case char_i64:
         return dense_i64_cm;
+      case char_i128:
+        return dense_i128_cm;
       case char_u8:
         return dense_u8_cm;
       case char_u16:
@@ -81,6 +88,8 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return dense_u32_cm;
       case char_u64:
         return dense_u64_cm;
+      case char_u128:
+        return dense_u128_cm;
       case char_c64:
         return dense_c64_cm;
       case char_c128:
@@ -105,6 +114,8 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return dense_i32_rm;
       case char_i64:
         return dense_i64_rm;
+      case char_i128:
+        return dense_i128_rm;
       case char_u8:
         return dense_u8_rm;
       case char_u16:
@@ -113,6 +124,8 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return dense_u32_rm;
       case char_u64:
         return dense_u64_rm;
+      case char_u128:
+        return dense_u128_rm;
       case char_c64:
         return dense_c64_rm;
       case char_c128:
@@ -137,6 +150,8 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return dense_i32_x;
       case char_i64:
         return dense_i64_x;
+      case char_i128:
+        return dense_i128_x;
       case char_u8:
         return dense_u8_x;
       case char_u16:
@@ -145,6 +160,8 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return dense_u32_x;
       case char_u64:
         return dense_u64_x;
+      case char_u128:
+        return dense_u128_x;
       case char_c64:
         return dense_c64_x;
       case char_c128:
@@ -175,6 +192,8 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return sparse_i32_cm;
       case char_i64:
         return sparse_i64_cm;
+      case char_i128:
+        return sparse_i128_cm;
       case char_u8:
         return sparse_u8_cm;
       case char_u16:
@@ -183,6 +202,8 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return sparse_u32_cm;
       case char_u64:
         return sparse_u64_cm;
+      case char_u128:
+        return sparse_u128_cm;
       case char_c64:
         return sparse_c64_cm;
       case char_c128:
@@ -207,6 +228,8 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return sparse_i32_rm;
       case char_i64:
         return sparse_i64_rm;
+      case char_i128:
+        return sparse_i128_rm;
       case char_u8:
         return sparse_u8_rm;
       case char_u16:
@@ -215,6 +238,8 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return sparse_u32_rm;
       case char_u64:
         return sparse_u64_rm;
+      case char_u128:
+        return sparse_u128_rm;
       case char_c64:
         return sparse_c64_rm;
       case char_c128:

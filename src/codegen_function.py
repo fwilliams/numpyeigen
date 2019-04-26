@@ -9,41 +9,46 @@ import re
 
 import platform
 
+
 """
 Global constants used by NumpyEigen
 """
 NUMPY_ARRAY_TYPES_TO_CPP = {
     # Dense types
-    'dense_f32': ('float', 'f32', 'float32'),
-    'dense_f64': ('double', 'f64', 'float64'),
-    'dense_f128': ('__float128', 'f128', 'float128'),
-    'dense_i8': ('std::int8_t', 'i8', 'int8'),
-    'dense_i16': ('std::int16_t', 'i16', 'int16'),
-    'dense_i32': ('std::int32_t', 'i32', 'int32'),
-    'dense_i64': ('std::int64_t', 'i64', 'int64'),
-    'dense_u8': ('std::uint8_t', 'u8', 'uint8'),
-    'dense_u16': ('std::uint16_t', 'u16', 'uint16'),
-    'dense_u32': ('std::uint32_t', 'u32', 'uint32'),
-    'dense_u64': ('std::uint64_t', 'u64', 'uint64'),
-    'dense_c64': ('std::complex<float>', 'c64', 'complex64'),
-    'dense_c128': ('std::complex<double>', 'c128', 'complex128'),
-    'dense_c256': ('std::complex<__float128>', 'c256', 'complex256'),
+    'dense_f32': ('npy_float', 'f32', 'float32'),
+    'dense_f64': ('npy_double', 'f64', 'float64'),
+    'dense_f128': ('npy_longdouble', 'f128', 'float128'),
+    'dense_i8': ('npy_byte', 'i8', 'int8'),
+    'dense_i16': ('npy_short', 'i16', 'int16'),
+    'dense_i32': ('npy_int', 'i32', 'int32'),
+    'dense_i64': ('npy_long', 'i64', 'int64'),
+    'dense_i128': ('npy_longlong', 'i128', 'int128'),
+    'dense_u8': ('npy_ubyte', 'u8', 'uint8'),
+    'dense_u16': ('npy_ushort', 'u16', 'uint16'),
+    'dense_u32': ('npy_int', 'u32', 'uint32'),
+    'dense_u64': ('npy_ulong', 'u64', 'uint64'),
+    'dense_u128': ('npy_ulonglong', 'u128', 'uint128'),
+    'dense_c64': ('npy_complex64', 'c64', 'complex64'),
+    'dense_c128': ('npy_complex128', 'c128', 'complex128'),
+    'dense_c256': ('npy_complex256', 'c256', 'complex256'),
 
     # Sparse types
-    'sparse_f32': ('float', 'f32', 'float32'),
-    'sparse_f64': ('double', 'f64', 'float64'),
-    'sparse_f128': ('__float128', 'f128', 'float128'),
-    'sparse_i8': ('std::int8_t', 'i8', 'int8'),
-    'sparse_i16': ('std::int16_t', 'i16', 'int16'),
-    'sparse_i32': ('std::int32_t', 'i32', 'int32'),
-    'sparse_i64': ('std::int64_t', 'i64', 'int64'),
-    'sparse_u8': ('std::uint8_t', 'u8', 'uint8'),
-    'sparse_u16': ('std::uint16_t', 'u16', 'uint16'),
-    'sparse_u32': ('std::uint32_t', 'u32', 'uint32'),
-    'sparse_u64': ('std::uint64_t', 'u64', 'uint64'),
-    'sparse_c64': ('std::complex<float>', 'c64', 'complex64'),
-    'sparse_c128': ('std::complex<double>', 'c128', 'complex128'),
-    'sparse_c256': ('std::complex<__float128>', 'c256', 'complex256')}
+    'sparse_f32': ('npy_float', 'f32', 'float32'),
+    'sparse_f64': ('npy_double', 'f64', 'float64'),
+    'sparse_f128': ('npy_longdouble', 'f128', 'float128'),
+    'sparse_i8': ('npy_byte', 'i8', 'int8'),
+    'sparse_i16': ('npy_short', 'i16', 'int16'),
+    'sparse_i32': ('npy_int', 'i32', 'int32'),
+    'sparse_i64': ('npy_long', 'i64', 'int64'),
+    'sparse_i128': ('npy_longlong', 'i128', 'int128'),
+    'sparse_u8': ('npy_ubyte', 'u8', 'uint8'),
+    'sparse_u16': ('npy_ushort', 'u16', 'uint16'),
+    'sparse_u32': ('npy_uint', 'u32', 'uint32'),
+    'sparse_u64': ('npy_ulong', 'u64', 'uint64'),
+    'sparse_u128': ('npy_ulonglong', 'u128', 'uint128'),
+    'sparse_c64': ('npy_complex64', 'c64', 'complex64'),
+    'sparse_c128': ('npy_complex128', 'c128', 'complex128'),
+    'sparse_c256': ('npy_complex256', 'c256', 'complex256')}
 NUMPY_ARRAY_TYPES = list(NUMPY_ARRAY_TYPES_TO_CPP.keys())
 NUMPY_SCALAR_TYPES = list(set([v[2] for v in NUMPY_ARRAY_TYPES_TO_CPP.values()]))
 MATCHES_TOKEN = "npe_matches"
