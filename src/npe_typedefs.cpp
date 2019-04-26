@@ -7,34 +7,34 @@ const std::string npe::detail::type_to_str(char type_char) {
   using namespace npe::detail;
 
   switch(type_char) {
-  case char_f16:
+  case char_half:
     return "float16";
-  case char_f32:
+  case char_float:
     return "float32";
-  case char_f64:
+  case char_double:
     return "float64";
-  case char_f128:
+  case char_longdouble:
     return "float128";
 
-  case char_i8:
+  case char_byte:
     return "int8";
-  case char_i16:
+  case char_short:
     return "int16";
-  case char_i32:
+  case char_int:
     return "int32";
-  case char_i64:
+  case char_long:
     return "int64";
-  case char_i128:
+  case char_longlong:
     return "int128";
-  case char_u8:
+  case char_ubyte:
     return "uint8";
-  case char_u16:
+  case char_ushort:
     return "uint16";
-  case char_u32:
+  case char_uint:
     return "uint32";
-  case char_u64:
+  case char_ulong:
     return "uint64";
-  case char_u128:
+  case char_ulonglong:
     return "uint128";
 
   case char_c64:
@@ -66,30 +66,30 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
     switch(so) {
     case ColMajor:
       switch (typechar) {
-      case char_f32:
-        return dense_f32_cm;
-      case char_f64:
-        return dense_f64_cm;
-      case char_i8:
-        return dense_i8_cm;
-      case char_i16:
-        return dense_i16_cm;
-      case char_i32:
-        return dense_i32_cm;
-      case char_i64:
-        return dense_i64_cm;
-      case char_i128:
-        return dense_i128_cm;
-      case char_u8:
-        return dense_u8_cm;
-      case char_u16:
-        return dense_u16_cm;
-      case char_u32:
-        return dense_u32_cm;
-      case char_u64:
-        return dense_u64_cm;
-      case char_u128:
-        return dense_u128_cm;
+      case char_float:
+        return dense_float_cm;
+      case char_double:
+        return dense_double_cm;
+      case char_byte:
+        return dense_byte_cm;
+      case char_short:
+        return dense_short_cm;
+      case char_int:
+        return dense_int_cm;
+      case char_long:
+        return dense_long_cm;
+      case char_longlong:
+        return dense_longlong_cm;
+      case char_ubyte:
+        return dense_ubyte_cm;
+      case char_ushort:
+        return dense_ushort_cm;
+      case char_uint:
+        return dense_uint_cm;
+      case char_ulong:
+        return dense_ulong_cm;
+      case char_ulonglong:
+        return dense_ulonglong_cm;
       case char_c64:
         return dense_c64_cm;
       case char_c128:
@@ -102,30 +102,30 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
       }
     case RowMajor:
       switch (typechar) {
-      case char_f32:
-        return dense_f32_rm;
-      case char_f64:
-        return dense_f64_rm;
-      case char_i8:
-        return dense_i8_rm;
-      case char_i16:
-        return dense_i16_rm;
-      case char_i32:
-        return dense_i32_rm;
-      case char_i64:
-        return dense_i64_rm;
-      case char_i128:
-        return dense_i128_rm;
-      case char_u8:
-        return dense_u8_rm;
-      case char_u16:
-        return dense_u16_rm;
-      case char_u32:
-        return dense_u32_rm;
-      case char_u64:
-        return dense_u64_rm;
-      case char_u128:
-        return dense_u128_rm;
+      case char_float:
+        return dense_float_rm;
+      case char_double:
+        return dense_double_rm;
+      case char_byte:
+        return dense_byte_rm;
+      case char_short:
+        return dense_short_rm;
+      case char_int:
+        return dense_int_rm;
+      case char_long:
+        return dense_long_rm;
+      case char_longlong:
+        return dense_longlong_rm;
+      case char_ubyte:
+        return dense_ubyte_rm;
+      case char_ushort:
+        return dense_ushort_rm;
+      case char_uint:
+        return dense_uint_rm;
+      case char_ulong:
+        return dense_ulong_rm;
+      case char_ulonglong:
+        return dense_ulonglong_rm;
       case char_c64:
         return dense_c64_rm;
       case char_c128:
@@ -138,30 +138,30 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
       }
     case NoOrder:
       switch (typechar) {
-      case char_f32:
-        return dense_f32_x;
-      case char_f64:
-        return dense_f64_x;
-      case char_i8:
-        return dense_i8_x;
-      case char_i16:
-        return dense_i16_x;
-      case char_i32:
-        return dense_i32_x;
-      case char_i64:
-        return dense_i64_x;
-      case char_i128:
-        return dense_i128_x;
-      case char_u8:
-        return dense_u8_x;
-      case char_u16:
-        return dense_u16_x;
-      case char_u32:
-        return dense_u32_x;
-      case char_u64:
-        return dense_u64_x;
-      case char_u128:
-        return dense_u128_x;
+      case char_float:
+        return dense_float_x;
+      case char_double:
+        return dense_double_x;
+      case char_byte:
+        return dense_byte_x;
+      case char_short:
+        return dense_short_x;
+      case char_int:
+        return dense_int_x;
+      case char_long:
+        return dense_long_x;
+      case char_longlong:
+        return dense_longlong_x;
+      case char_ubyte:
+        return dense_ubyte_x;
+      case char_ushort:
+        return dense_ushort_x;
+      case char_uint:
+        return dense_uint_x;
+      case char_ulong:
+        return dense_ulong_x;
+      case char_ulonglong:
+        return dense_ulonglong_x;
       case char_c64:
         return dense_c64_x;
       case char_c128:
@@ -180,30 +180,30 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
     switch(so) {
     case ColMajor:
       switch (typechar) {
-      case char_f32:
-        return sparse_f32_cm;
-      case char_f64:
-        return sparse_f64_cm;
-      case char_i8:
-        return sparse_i8_cm;
-      case char_i16:
-        return sparse_i16_cm;
-      case char_i32:
-        return sparse_i32_cm;
-      case char_i64:
-        return sparse_i64_cm;
-      case char_i128:
-        return sparse_i128_cm;
-      case char_u8:
-        return sparse_u8_cm;
-      case char_u16:
-        return sparse_u16_cm;
-      case char_u32:
-        return sparse_u32_cm;
-      case char_u64:
-        return sparse_u64_cm;
-      case char_u128:
-        return sparse_u128_cm;
+      case char_float:
+        return sparse_float_cm;
+      case char_double:
+        return sparse_double_cm;
+      case char_byte:
+        return sparse_byte_cm;
+      case char_short:
+        return sparse_short_cm;
+      case char_int:
+        return sparse_int_cm;
+      case char_long:
+        return sparse_long_cm;
+      case char_longlong:
+        return sparse_longlong_cm;
+      case char_ubyte:
+        return sparse_ubyte_cm;
+      case char_ushort:
+        return sparse_ushort_cm;
+      case char_uint:
+        return sparse_uint_cm;
+      case char_ulong:
+        return sparse_ulong_cm;
+      case char_ulonglong:
+        return sparse_ulonglong_cm;
       case char_c64:
         return sparse_c64_cm;
       case char_c128:
@@ -216,30 +216,30 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
       }
     case RowMajor:
       switch (typechar) {
-      case char_f32:
-        return sparse_f32_rm;
-      case char_f64:
-        return sparse_f64_rm;
-      case char_i8:
-        return sparse_i8_rm;
-      case char_i16:
-        return sparse_i16_rm;
-      case char_i32:
-        return sparse_i32_rm;
-      case char_i64:
-        return sparse_i64_rm;
-      case char_i128:
-        return sparse_i128_rm;
-      case char_u8:
-        return sparse_u8_rm;
-      case char_u16:
-        return sparse_u16_rm;
-      case char_u32:
-        return sparse_u32_rm;
-      case char_u64:
-        return sparse_u64_rm;
-      case char_u128:
-        return sparse_u128_rm;
+      case char_float:
+        return sparse_float_rm;
+      case char_double:
+        return sparse_double_rm;
+      case char_byte:
+        return sparse_byte_rm;
+      case char_short:
+        return sparse_short_rm;
+      case char_int:
+        return sparse_int_rm;
+      case char_long:
+        return sparse_long_rm;
+      case char_longlong:
+        return sparse_longlong_rm;
+      case char_ubyte:
+        return sparse_ubyte_rm;
+      case char_ushort:
+        return sparse_ushort_rm;
+      case char_uint:
+        return sparse_uint_rm;
+      case char_ulong:
+        return sparse_ulong_rm;
+      case char_ulonglong:
+        return sparse_ulonglong_rm;
       case char_c64:
         return sparse_c64_rm;
       case char_c128:

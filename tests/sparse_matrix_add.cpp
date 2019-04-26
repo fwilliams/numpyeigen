@@ -5,7 +5,7 @@
 #include <npe.h>
 
 npe_function(sparse_matrix_add)
-npe_arg(a, sparse_f64, sparse_f32)
+npe_arg(a, sparse_double, sparse_float)
 npe_arg(b, npe_matches(a))
 npe_begin_code()
 

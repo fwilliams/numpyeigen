@@ -3,7 +3,7 @@
 #include <npe.h>
 
 npe_function(default_matches_1)
-npe_arg(a, dense_f64, dense_f32)
+npe_arg(a, dense_double, dense_float)
 npe_arg(b, npe_matches(a))
 npe_default_arg(c, npe_matches(b))
 npe_begin_code()
@@ -22,10 +22,10 @@ npe_end_code()
 
 
 npe_function(default_matches_2)
-npe_arg(a, dense_f64, dense_f32)
+npe_arg(a, dense_double, dense_float)
 npe_arg(b, npe_matches(a))
 npe_default_arg(c, npe_matches(a))
-npe_arg(d, dense_i64, dense_i32)
+npe_arg(d, dense_long, dense_int)
 npe_default_arg(e, npe_matches(d))
 npe_default_arg(f, npe_matches(e))
 npe_begin_code()
@@ -47,10 +47,10 @@ npe_end_code()
 
 
 npe_function(default_matches_3)
-npe_arg(a, sparse_f64, sparse_f32)
+npe_arg(a, sparse_double, sparse_float)
 npe_arg(b, npe_matches(a))
 npe_default_arg(c, npe_matches(a))
-npe_arg(d, dense_i64, dense_i32)
+npe_arg(d, dense_long, dense_int)
 npe_default_arg(e, npe_matches(d))
 npe_default_arg(f, npe_matches(e))
 npe_begin_code()

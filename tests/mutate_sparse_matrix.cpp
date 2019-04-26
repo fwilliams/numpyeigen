@@ -5,7 +5,7 @@
 #include <npe.h>
 
 npe_function(mutate_sparse_matrix)
-npe_arg(a, sparse_f64, sparse_f32)
+npe_arg(a, sparse_double, sparse_float)
 npe_begin_code()
 
 a.coeffRef(0, 0) = 2.0;

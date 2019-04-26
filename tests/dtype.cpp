@@ -2,8 +2,8 @@
 
 npe_function(test_dtype)
 
-npe_arg(a, dense_f32)
-npe_default_arg(dtype, npe::dtype, "float64")
+npe_arg(a, dense_float)
+npe_default_arg(dtype, npe::dtype, "double")
 
 npe_begin_code()
 

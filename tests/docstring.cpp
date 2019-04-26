@@ -10,7 +10,7 @@ string...
 )";
 
 npe_function(docstring)
-npe_arg(a, dense_f64, dense_f32)
+npe_arg(a, dense_double, dense_float)
 
 // This is a comment
 

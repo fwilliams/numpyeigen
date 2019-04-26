@@ -29,51 +29,68 @@ static_assert(EIGEN_WORLD_VERSION >= 3 || EIGEN_WORLD_VERSION == 3 && EIGEN_MAJO
 namespace npe {
   namespace detail {
 
-    typedef Eigen::Matrix<std::double_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_f64;
-    typedef Eigen::Matrix<std::float_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_f32;
-    typedef Eigen::Matrix<std::int8_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_i8;
-    typedef Eigen::Matrix<std::int16_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_i16;
-    typedef Eigen::Matrix<std::int32_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_i32;
-    typedef Eigen::Matrix<std::int64_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_i64;
-    typedef Eigen::Matrix<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_u8;
-    typedef Eigen::Matrix<std::uint16_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_u16;
-    typedef Eigen::Matrix<std::uint32_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_u32;
-    typedef Eigen::Matrix<std::uint64_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_u64;
+    typedef Eigen::Matrix<npy_double, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_double;
+    typedef Eigen::Matrix<npy_float, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_float;
 
-    typedef Eigen::Matrix<std::double_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_f64;
-    typedef Eigen::Matrix<std::float_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_f32;
-    typedef Eigen::Matrix<std::int8_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_i8;
-    typedef Eigen::Matrix<std::int16_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_i16;
-    typedef Eigen::Matrix<std::int32_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_i32;
-    typedef Eigen::Matrix<std::int64_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_i64;
-    typedef Eigen::Matrix<std::uint8_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_u8;
-    typedef Eigen::Matrix<std::uint16_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_u16;
-    typedef Eigen::Matrix<std::uint32_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_u32;
-    typedef Eigen::Matrix<std::uint64_t, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_u64;
+    typedef Eigen::Matrix<npy_byte, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_byte;
+    typedef Eigen::Matrix<npy_short, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_short;
+    typedef Eigen::Matrix<npy_int, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_int;
+    typedef Eigen::Matrix<npy_long, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_long;
+    typedef Eigen::Matrix<npy_longlong, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_longlong;
+
+    typedef Eigen::Matrix<npy_ubyte, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_ubyte;
+    typedef Eigen::Matrix<npy_ushort, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_ushort;
+    typedef Eigen::Matrix<npy_uint, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_uint;
+    typedef Eigen::Matrix<npy_ulong, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_ulong;
+    typedef Eigen::Matrix<npy_ulonglong, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_dense_ulonglong;
 
 
-    typedef Eigen::Map<npe_Matrix_dense_f64, Eigen::Aligned> sparse_f64;
-    typedef Eigen::Map<npe_Matrix_dense_f32, Eigen::Aligned> sparse_f32;
-    typedef Eigen::Map<npe_Matrix_dense_i8, Eigen::Aligned> sparse_i8;
-    typedef Eigen::Map<npe_Matrix_dense_i16, Eigen::Aligned> sparse_i16;
-    typedef Eigen::Map<npe_Matrix_dense_i32, Eigen::Aligned> sparse_i32;
-    typedef Eigen::Map<npe_Matrix_dense_i64, Eigen::Aligned> sparse_i64;
-    typedef Eigen::Map<npe_Matrix_dense_u8, Eigen::Aligned> sparse_u8;
-    typedef Eigen::Map<npe_Matrix_dense_u16, Eigen::Aligned> sparse_u16;
-    typedef Eigen::Map<npe_Matrix_dense_u32, Eigen::Aligned> sparse_u32;
-    typedef Eigen::Map<npe_Matrix_dense_u64, Eigen::Aligned> sparse_u64;
+    typedef Eigen::Matrix<npy_double, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_double;
+    typedef Eigen::Matrix<npy_float, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_float;
+
+    typedef Eigen::Matrix<npy_byte, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_byte;
+    typedef Eigen::Matrix<npy_short, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_short;
+    typedef Eigen::Matrix<npy_int, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_int;
+    typedef Eigen::Matrix<npy_long, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_long;
+    typedef Eigen::Matrix<npy_longlong, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_longlong;
+
+    typedef Eigen::Matrix<npy_ubyte, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_ubyte;
+    typedef Eigen::Matrix<npy_ushort, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_ushort;
+    typedef Eigen::Matrix<npy_uint, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_uint;
+    typedef Eigen::Matrix<npy_ulong, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_ulong;
+    typedef Eigen::Matrix<npy_ulonglong, Eigen::Dynamic, Eigen::Dynamic> npe_Matrix_sparse_ulonglong;
 
 
-    typedef Eigen::Map<npe_Matrix_sparse_f64, Eigen::Aligned> dense_f64;
-    typedef Eigen::Map<npe_Matrix_sparse_f32, Eigen::Aligned> dense_f32;
-    typedef Eigen::Map<npe_Matrix_sparse_i8, Eigen::Aligned> dense_i8;
-    typedef Eigen::Map<npe_Matrix_sparse_i16, Eigen::Aligned> dense_i16;
-    typedef Eigen::Map<npe_Matrix_sparse_i32, Eigen::Aligned> dense_i32;
-    typedef Eigen::Map<npe_Matrix_sparse_i64, Eigen::Aligned> dense_i64;
-    typedef Eigen::Map<npe_Matrix_sparse_u8, Eigen::Aligned> dense_u8;
-    typedef Eigen::Map<npe_Matrix_sparse_u16, Eigen::Aligned> dense_u16;
-    typedef Eigen::Map<npe_Matrix_sparse_u32, Eigen::Aligned> dense_u32;
-    typedef Eigen::Map<npe_Matrix_sparse_u64, Eigen::Aligned> dense_u64;
+
+    typedef Eigen::Map<npe_Matrix_dense_double, Eigen::Aligned> sparse_double;
+    typedef Eigen::Map<npe_Matrix_dense_float, Eigen::Aligned> sparse_float;
+
+    typedef Eigen::Map<npe_Matrix_dense_byte, Eigen::Aligned> sparse_byte;
+    typedef Eigen::Map<npe_Matrix_dense_short, Eigen::Aligned> sparse_short;
+    typedef Eigen::Map<npe_Matrix_dense_int, Eigen::Aligned> sparse_int;
+    typedef Eigen::Map<npe_Matrix_dense_long, Eigen::Aligned> sparse_long;
+    typedef Eigen::Map<npe_Matrix_dense_longlong, Eigen::Aligned> sparse_longlong;
+
+    typedef Eigen::Map<npe_Matrix_dense_ubyte, Eigen::Aligned> sparse_ubyte;
+    typedef Eigen::Map<npe_Matrix_dense_ushort, Eigen::Aligned> sparse_ushort;
+    typedef Eigen::Map<npe_Matrix_dense_uint, Eigen::Aligned> sparse_uint;
+    typedef Eigen::Map<npe_Matrix_dense_ulong, Eigen::Aligned> sparse_ulong;
+    typedef Eigen::Map<npe_Matrix_dense_ulonglong, Eigen::Aligned> sparse_ulonglong;
+
+
+
+    typedef Eigen::Map<npe_Matrix_sparse_double, Eigen::Aligned> dense_double;
+    typedef Eigen::Map<npe_Matrix_sparse_float, Eigen::Aligned> dense_float;
+    typedef Eigen::Map<npe_Matrix_sparse_byte, Eigen::Aligned> dense_byte;
+    typedef Eigen::Map<npe_Matrix_sparse_short, Eigen::Aligned> dense_short;
+    typedef Eigen::Map<npe_Matrix_sparse_int, Eigen::Aligned> dense_int;
+    typedef Eigen::Map<npe_Matrix_sparse_long, Eigen::Aligned> dense_long;
+    typedef Eigen::Map<npe_Matrix_sparse_long, Eigen::Aligned> dense_longlong;
+    typedef Eigen::Map<npe_Matrix_sparse_ubyte, Eigen::Aligned> dense_ubyte;
+    typedef Eigen::Map<npe_Matrix_sparse_ushort, Eigen::Aligned> dense_ushort;
+    typedef Eigen::Map<npe_Matrix_sparse_uint, Eigen::Aligned> dense_uint;
+    typedef Eigen::Map<npe_Matrix_sparse_ulong, Eigen::Aligned> dense_ulong;
+    typedef Eigen::Map<npe_Matrix_sparse_ulonglong, Eigen::Aligned> dense_ulonglong;
   }
 
 }

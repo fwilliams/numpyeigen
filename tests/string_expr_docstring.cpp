@@ -7,7 +7,7 @@
 const std::string docstr = "this is the docstr";
 
 npe_function(string_expr_docstring)
-npe_arg(a, dense_f64, dense_f32)
+npe_arg(a, dense_double, dense_float)
 
 // This is a comment
 
