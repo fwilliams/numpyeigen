@@ -906,7 +906,7 @@ def codegen_ast(ast, out_file):
         if fun.has_array_arguments:
             for combo in group_combos:
                 if_or_elseif = "if " if branch_count == 0 else " else if "
-                if platform.system() == "Windows":
+                if platform.system() == "Windows":  # Windows has a branch limit so we don't use else if
                     if_or_elseif = "if"
 
                 out_str = if_or_elseif + "("
@@ -935,7 +935,7 @@ def codegen_ast(ast, out_file):
 
             throw_err = 'throw std::invalid_argument("This should never happen but clearly it did. ' \
                         'File a github issue at https://github.com/fwilliams/numpyeigen");\n'
-            if platform.system() != "Windows":
+            if platform.system() != "Windows":  # Windows has a branch limit so we don't do else if
                 out_file.write(" else {\n")
                 out_file.write(throw_err)
                 out_file.write("}\n")
