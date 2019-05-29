@@ -906,8 +906,10 @@ def codegen_ast(ast, out_file):
         if fun.has_array_arguments:
             for combo in group_combos:
                 if_or_elseif = "if " if branch_count == 0 else " else if "
-                out_str = if_or_elseif + "("
+                if platform.system() == "Windows":
+                    if_or_elseif = "if"
 
+                out_str = if_or_elseif + "("
                 skip = False
                 for group_id in range(len(combo)):
                     # Sparse types only have column (csc) and row (csr) matrix types,
@@ -930,10 +932,15 @@ def codegen_ast(ast, out_file):
                 write_switch_branch(fun, combo)
                 out_file.write("}")
                 branch_count += 1
-            out_file.write(" else {\n")
-            out_file.write('throw std::invalid_argument("This should never happen but clearly it did. '
-                           'File a github issue at https://github.com/fwilliams/numpyeigen");\n')
-            out_file.write("}\n")
+
+            throw_err = 'throw std::invalid_argument("This should never happen but clearly it did. ' \
+                        'File a github issue at https://github.com/fwilliams/numpyeigen");\n'
+            if platform.system() != "Windows":
+                out_file.write(" else {\n")
+                out_file.write(throw_err)
+                out_file.write("}\n")
+            else:
+                out_file.write(throw_err)
         else:
             group_combos = list(group_combos)
             assert len(group_combos) == 1, "This should never happen but clearly it did. " \
