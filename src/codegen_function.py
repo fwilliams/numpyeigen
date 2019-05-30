@@ -59,6 +59,7 @@ END_CODE_TOKEN = "npe_end_code"
 FUNCTION_TOKEN = "npe_function"
 DOC_TOKEN = "npe_doc"
 COMMENT_TOKEN = "//"
+SPARSE_MATCHES_TOKEN = "npe_sparse_like"
 
 LOG_DEBUG = 3
 LOG_INFO = 1
@@ -438,7 +439,7 @@ class NpeFunction(object):
             line_ = consume_token(line_.strip(), '(', line_number=line_number_).strip()
             if not line_.endswith(')'):
                 # TODO: Pretty error message
-                raise ParseError("Missing ')' for matches() token at line %d" % line_number_)
+                raise ParseError("Missing ')' for %s() token at line %d" % (MATCHES_TOKEN, line_number_))
 
             return line_[:-1]
 
