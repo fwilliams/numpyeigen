@@ -8,6 +8,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
+#include <pybind11/iostream.h>
 #include <numpy/npy_common.h>
 
 #include <npe_utils.h>

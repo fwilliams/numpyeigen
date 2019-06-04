@@ -15,7 +15,8 @@ npe_add_module(numpyeigen_test
     string_expr_docstring.cpp
     no_numpy.cpp
     dtype.cpp
-    default_matches.cpp)
+    default_matches.cpp
+    redirect_io.cpp)
 
 # A vanilla pybind11 module used to write functions to compare against pyeigen
 execute_process(COMMAND python -c "import numpy as np;import sys;sys.stdout.write(np.get_include())"

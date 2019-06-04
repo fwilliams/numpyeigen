@@ -330,6 +330,7 @@ class NpeArgument(object):
     def __init__(self, name, is_matches, name_or_type, line_number, default_value):
         self.name = name
         self.is_matches = is_matches
+        self.scalar_matches_only = False
         self.name_or_type = name_or_type
         self.line_number = line_number
         self.is_sparse = False
@@ -426,20 +427,19 @@ class NpeFunction(object):
     def _parse_arg_statement(self, line, line_number, is_default):
         global NUMPY_ARRAY_TYPES, MATCHES_TOKEN, ARG_TOKEN
 
-        def _parse_matches_statement(line_, line_number_):
+        def _parse_matches_statement(line_, line_number_, matches_token_=MATCHES_TOKEN):
             """
             Parse a matches(<type>) statement, returning the the type inside the parentheses
             :param line_: The current line being parsed
             :param line_number_: The number of the line in the file being parsed
             :return: The name of the type inside the matches statement as a string
             """
-            global MATCHES_TOKEN
 
-            line_ = consume_token(line_.strip(), MATCHES_TOKEN, line_number=line_number_, case_sensitive=False)
+            line_ = consume_token(line_.strip(), matches_token_, line_number=line_number_, case_sensitive=False)
             line_ = consume_token(line_.strip(), '(', line_number=line_number_).strip()
             if not line_.endswith(')'):
                 # TODO: Pretty error message
-                raise ParseError("Missing ')' for %s() token at line %d" % (MATCHES_TOKEN, line_number_))
+                raise ParseError("Missing ')' for %s() token at line %d" % (matches_token_, line_number_))
 
             return line_[:-1]
 
@@ -497,8 +497,9 @@ class NpeFunction(object):
         else:
             assert len(var_types) == 1
 
-            if var_types[0].startswith(MATCHES_TOKEN):
+            if var_types[0].startswith(MATCHES_TOKEN) or var_types[0].startswith(SPARSE_MATCHES_TOKEN):
                 var_meta.is_matches = True
+                var_meta.scalar_matches_only = var_types[0].startswith(SPARSE_MATCHES_TOKEN)
 
                 # If the type was enforcing a match on another type, then handle that case
                 matches_name = _parse_matches_statement(var_types[0], line_number_=line_number)
@@ -824,6 +825,15 @@ def codegen_ast(ast, out_file):
             next_token = ", " if i < fun.num_args - 1 else ") {\n"
             out_file.write(next_token)
             i += 1
+        if fun.num_args == 0:
+            out_file.write(") {\n")
+
+        out_file.write("#ifdef __NPE_REDIRECT_IO__\n")
+        out_file.write('pybind11::scoped_ostream_redirect __npe_redirect_stdout__(std::cout, '
+                       'pybind11::module::import("sys").attr("stdout"));\n')
+        out_file.write('pybind11::scoped_ostream_redirect __npe_redirect_stderr__(std::cerr, '
+                       'pybind11::module::import("sys").attr("stderr"));\n')
+        out_file.write("#endif\n")
 
         # Declare variables used to determine the type at runtime
         for arg in fun.array_arguments:
@@ -837,7 +847,7 @@ def codegen_ast(ast, out_file):
             out_file.write("%s_shape_0 = %s.shape()[0];\n" % (arg.name, cast_arg(arg)))
             out_file.write("%s_shape_1 = %s.shape()[1];\n" % (arg.name, cast_arg(arg)))
             out_file.write("} else if (%s.ndim() > 2) {\n" % cast_arg(arg))
-            out_file.write("  throw std::invalid_argument(\"Argument " + arg.name +
+            out_file.write("throw std::invalid_argument(\"Argument " + arg.name +
                            " has invalid number of dimensions. Must be 1 or 2.\");\n")
             out_file.write("}\n")
 
@@ -954,7 +964,6 @@ def codegen_ast(ast, out_file):
         out_file.write("}")
 
     def write_switch_branch(fun, combo):
-
         out_file.write("{\n")
         for group_id in range(len(combo)):
             type_prefix = combo[group_id][0]
