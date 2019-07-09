@@ -4,19 +4,20 @@ project(NumpyEigenTests)
 # A module for writing bindings with our framework
 npe_add_module(numpyeigen_test
   BINDING_SOURCES
-    mutate_matrix.cpp
-    matrix_add.cpp
-    binding_example.cpp
-    sparse_matrix_add.cpp
-    sparse_matrix_passthru.cpp
-    mutate_sparse_matrix.cpp
-    default_arg.cpp
-    docstring.cpp
-    string_expr_docstring.cpp
-    no_numpy.cpp
-    dtype.cpp
-    default_matches.cpp
-    redirect_io.cpp)
+  matrix_add.cpp
+  mutate_matrix.cpp
+  sparse_matrix_add.cpp
+  binding_example.cpp
+  mutate_sparse_matrix.cpp
+  sparse_matrix_passthru.cpp
+  docstring.cpp
+  default_arg.cpp
+  no_numpy.cpp
+  string_expr_docstring.cpp
+  redirect_io.cpp
+  dtype.cpp
+  default_matches.cpp
+  sparse_like.cpp)
 
 # A vanilla pybind11 module used to write functions to compare against pyeigen
 execute_process(COMMAND python -c "import numpy as np;import sys;sys.stdout.write(np.get_include())"

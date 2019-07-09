@@ -130,6 +130,38 @@ class TestSparseMatrixWrapper(unittest.TestCase):
 
         self.assertLess(median_nocopy*1e3, median_copy)
 
+    def test_sparse_like(self):
+        a = np.eye(100)
+        b1 = sp.diags([np.ones(100)], [0], format="csr")
+        b2 = sp.diags([np.ones(100)], [0], format="csr", dtype=np.float32)
+        c1 = sp.diags([np.ones(100)], [0], format="csc")
+        c2 = sp.diags([np.ones(100)], [0], format="csc", dtype=np.float32)
+
+        ret = npe_test.sparse_like_1(a, b1)
+        val = (ret - b1).todense()
+        self.assertEqual(np.linalg.norm(val), 0.0)
+
+        ret = npe_test.sparse_like_2(a, b1, c1)
+        val = (ret - b1).todense()
+        self.assertEqual(np.linalg.norm(val), 0.0)
+        val = (ret - c1).todense()
+        self.assertEqual(np.linalg.norm(val), 0.0)
+
+        ret = npe_test.sparse_like_3(a, b1, c1)
+        val = (ret - b1).todense()
+        self.assertEqual(np.linalg.norm(val), 0.0)
+        val = (ret - c1).todense()
+        self.assertEqual(np.linalg.norm(val), 0.0)
+
+        with self.assertRaises(ValueError):
+            npe_test.sparse_like_1(a, b2)
+            npe_test.sparse_like_2(a, b1, c2)
+            npe_test.sparse_like_2(a, b2, c1)
+            npe_test.sparse_like_2(a, b2, c2)
+            npe_test.sparse_like_3(a, b1, c2)
+            npe_test.sparse_like_3(a, b2, c1)
+            npe_test.sparse_like_3(a, b2, c2)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,14 +1,14 @@
 from __future__ import print_function
+
 import argparse
+import copy
 import itertools
 import os
+import platform
+import re
+import subprocess
 import sys
 import tempfile
-import subprocess
-import re
-
-import platform
-
 
 """
 Global constants used by NumpyEigen
@@ -502,7 +502,9 @@ class NpeFunction(object):
                 var_meta.scalar_matches_only = var_types[0].startswith(SPARSE_MATCHES_TOKEN)
 
                 # If the type was enforcing a match on another type, then handle that case
-                matches_name = _parse_matches_statement(var_types[0], line_number_=line_number)
+                matches_token = SPARSE_MATCHES_TOKEN if var_meta.scalar_matches_only else MATCHES_TOKEN
+                matches_name = _parse_matches_statement(var_types[0], line_number_=line_number,
+                                                        matches_token_=matches_token)
 
                 if matches_name in self._argument_name_to_group:
                     group_id = self._argument_name_to_group[matches_name]
@@ -676,9 +678,24 @@ class NpeFunction(object):
                 group_idx = self._argument_name_to_group[arg.name]
                 matches_name = arg.name_or_type[0]
                 if len(self._input_type_groups[group_idx].types) == 0:
+                    # TODO: Better error message here
                     raise SemanticError("Input Variable %s (line %d) was declared with type %s but was "
                                         "unmatched with a numpy type." %
                                         (arg.name, arg.line_number, matches_name))
+
+                if arg.scalar_matches_only:
+                    self._input_type_groups[group_idx].arguments.remove(arg)
+                    if len(self._input_type_groups[group_idx].arguments) == 0:
+                        log(LOG_DEBUG, TermColors.WARNING + "Empty Argument Group" + TermColors.ENDC)
+
+                    self._input_type_groups.append(copy.deepcopy(self._input_type_groups[group_idx]))
+                    group_idx = len(self._input_type_groups) - 1
+                    self._argument_name_to_group[arg.name] = group_idx
+                    self._input_type_groups[group_idx].arguments = [arg]
+                    arg.group = group_idx
+                    self._input_type_groups[group_idx].types = \
+                        [t.replace("dense_", "sparse_") for t in self._input_type_groups[group_idx].types]
+                    arg.matches_name = matches_name.replace("%s(" % SPARSE_MATCHES_TOKEN, "")[:-1]
                 arg.is_sparse = is_sparse_type(self._input_type_groups[group_idx].types[0])
                 arg.is_dense = is_dense_type(self._input_type_groups[group_idx].types[0])
 
@@ -850,6 +867,15 @@ def codegen_ast(ast, out_file):
             out_file.write("throw std::invalid_argument(\"Argument " + arg.name +
                            " has invalid number of dimensions. Must be 1 or 2.\");\n")
             out_file.write("}\n")
+
+            if arg.is_matches and arg.scalar_matches_only:
+                # TODO: Better error message here
+                out_file.write("if (!%s.dtype().is(%s.dtype())) {\n" % (arg.name, arg.matches_name))
+                out_file.write("throw std::invalid_argument(\"Argument `%s` is specified with `npe_sparse_like(%s)`, "
+                               "meaning the scalar types of `%s` and `%s` should match,"
+                               " however they differ.\");\n" %
+                               (arg.name, arg.matches_name, arg.name, arg.matches_name))
+                out_file.write("}\n")
 
             write_flags_getter(arg)
             write_type_id_getter(arg)
