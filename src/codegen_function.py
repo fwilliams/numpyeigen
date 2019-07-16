@@ -31,6 +31,7 @@ NUMPY_ARRAY_TYPES_TO_CPP = {
     'dense_c64': ('npy_complex64', 'c64', 'complex64'),
     'dense_c128': ('npy_complex128', 'c128', 'complex128'),
     'dense_c256': ('npy_complex256', 'c256', 'complex256'),
+    'dense_bool': ('npy_bool', 'bool', 'bool'),
 
     # Sparse types
     'sparse_float': ('npy_float', 'float', 'float32'),
@@ -48,7 +49,8 @@ NUMPY_ARRAY_TYPES_TO_CPP = {
     'sparse_ulonglong': ('npy_ulonglong', 'ulonglong', 'uint128'),
     'sparse_c64': ('npy_complex64', 'c64', 'complex64'),
     'sparse_c128': ('npy_complex128', 'c128', 'complex128'),
-    'sparse_c256': ('npy_complex256', 'c256', 'complex256')}
+    'sparse_c256': ('npy_complex256', 'c256', 'complex256'),
+    'sparse_bool': ('npy_bool', 'bool', 'bool')}
 NUMPY_ARRAY_TYPES = list(NUMPY_ARRAY_TYPES_TO_CPP.keys())
 NUMPY_SCALAR_TYPES = list(set([v[2] for v in NUMPY_ARRAY_TYPES_TO_CPP.values()]))
 MATCHES_TOKEN = "npe_matches"

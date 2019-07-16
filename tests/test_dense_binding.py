@@ -126,6 +126,25 @@ class TestDenseBindings(unittest.TestCase):
 
         self.assertLess(median_nocopy*1e3, median_copy)
 
+    def test_bool_array(self):
+        a = np.zeros(10, dtype=np.bool)
+        a[np.random.rand(10) > 0.5] = True
+        b = np.zeros(10, dtype=np.bool)
+        b[np.logical_not(a)] = True
+
+        c = npe_test.bool_array(a, b)
+
+        self.assertTrue(np.array_equal(c, np.ones(10, dtype=np.bool)))
+
+        a = np.zeros((10, 10), dtype=np.bool)
+        a[np.random.rand(10, 10) > 0.5] = True
+        b = np.zeros((10, 10), dtype=np.bool)
+        b[np.logical_not(a)] = True
+
+        c = npe_test.bool_array(a, b)
+
+        self.assertTrue(np.array_equal(c, np.ones((10, 10), dtype=np.bool)))
+
 
 if __name__ == '__main__':
     unittest.main()

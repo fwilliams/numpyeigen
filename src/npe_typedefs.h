@@ -45,6 +45,7 @@ enum NumpyTypeChar {
   char_bytes_ = 'S',
   char_unicode = 'U',
   char_void_ = 'V',
+  char_bool = '?',
 };
 
 enum NumpyTypeNum {
@@ -73,6 +74,7 @@ enum NumpyTypeNum {
   num_bytes_ = 18,
   num_unicode = 19,
   num_void_ = 20,
+  num_bool = 21,
 };
 
 enum TypeId {
@@ -215,6 +217,20 @@ enum TypeId {
   sparse_c64_x   = 93,
   sparse_c128_x  = 94,
   sparse_c256_x  = 95,
+
+  // Row major bools
+  dense_bool_rm = 96,
+  // Column major bools
+  dense_bool_cm = 97,
+  // Non contiguous bools
+  dense_bool_x = 98,
+
+  // Row major bools
+  sparse_bool_rm = 96,
+  // Column major bools
+  sparse_bool_cm = 97,
+  // Non contiguous bools
+  sparse_bool_x = 98,
 };
 
 enum StorageOrder {

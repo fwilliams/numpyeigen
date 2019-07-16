@@ -96,8 +96,10 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return dense_c128_cm;
       case char_c256:
         return dense_c256_cm;
+      case char_bool:
+        return dense_bool_cm;
       default:
-        cerr << "Bad Typechar" << endl;
+        cerr << "Bad Typechar '" << typechar << "'" << endl;
         return -1;
       }
     case RowMajor:
@@ -132,8 +134,10 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return dense_c128_rm;
       case char_c256:
         return dense_c256_rm;
+      case char_bool:
+        return dense_bool_rm;
       default:
-        cerr << "Bad Typechar" << endl;
+        cerr << "Bad Typechar '" << typechar << "'" << endl;
         return -1;
       }
     case NoOrder:
@@ -168,8 +172,10 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return dense_c128_x;
       case char_c256:
         return dense_c256_x;
+      case char_bool:
+        return dense_bool_x;
       default:
-        cerr << "Bad Typechar" << endl;
+        cerr << "Bad Typechar '" << typechar << "'" << endl;
         return -1;
       }
     default:
@@ -210,8 +216,10 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return sparse_c128_cm;
       case char_c256:
         return sparse_c256_cm;
+      case char_bool:
+        return sparse_bool_cm;
       default:
-        cerr << "Bad Typechar" << endl;
+        cerr << "Bad Typechar '" << typechar << "'" << endl;
         return -1;
       }
     case RowMajor:
@@ -246,8 +254,10 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return sparse_c128_rm;
       case char_c256:
         return sparse_c256_rm;
+      case char_bool:
+        return sparse_bool_rm;
       default:
-        cerr << "Bad Typechar" << endl;
+        cerr << "Bad Typechar '" << typechar << "'" << endl;
         return -1;
       }
     default:
