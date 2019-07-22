@@ -18,7 +18,6 @@ struct is_sparse<npe::sparse_array> {
   static const bool value = true;
 };
 
-
 enum NumpyTypeChar {
   char_half  = 'e',
   char_float  = 'f',
@@ -245,9 +244,10 @@ enum Alignment {
 };
 
 const std::string type_to_str(char type_char);
+const std::string storage_order_to_str(StorageOrder so);
 int get_type_id(bool is_sparse, char typechar, StorageOrder so);
 
-} // namespace pybind
-} // namespace igl
+} // namespace detail
+} // namespace npe
 
 #endif // BINDING_TYPEDEFS_H

@@ -744,7 +744,7 @@ class NpeAST(object):
                 _preamble += file_reader.readline()
 
 
-def codegen_ast(ast, out_file):
+def codegen_ast(ast, out_file, write_debug_prints=True):
     PRIVATE_ID_PREFIX = "_NPE_PY_BINDING_"
     PRIVATE_NAMESPACE = "npe::detail"
     STORAGE_ORDER_ENUM = "StorageOrder"
@@ -854,6 +854,9 @@ def codegen_ast(ast, out_file):
                        'pybind11::module::import("sys").attr("stderr"));\n')
         out_file.write("#endif\n")
 
+        if write_debug_prints:
+            out_file.write('std::cout << "Invocation of %s" << std::endl;\n' % fun.name)
+
         # Declare variables used to determine the type at runtime
         for arg in fun.array_arguments:
             out_file.write("const char %s = %s.dtype().type();\n" % (type_name_var(arg.name), cast_arg(arg)))
@@ -882,6 +885,23 @@ def codegen_ast(ast, out_file):
             write_flags_getter(arg)
             write_type_id_getter(arg)
 
+            if write_debug_prints:
+                out_file.write('std::cout << "- Argument: %s" << std::endl;\n' % arg.name)
+                out_file.write('std::cout << "   - shape: (" << %s << ", " << %s << ")" << std::endl;\n' %
+                               (str(arg.name + "_shape_0"), str(arg.name+ "_shape_1")))
+                out_file.write('std::cout << "   - shape: (" << %s << ", " << %s << ")" << std::endl;\n' %
+                               (str(arg.name + "_shape_0"), str(arg.name+ "_shape_1")))
+
+                storage_order_var_name = storage_order_var(arg.name)
+                out_file.write('std::cout << "   - " << %s::storage_order_to_str(%s) << std::endl;\n' %
+                               (PRIVATE_NAMESPACE, storage_order_var_name))
+
+                type_name = type_name_var(arg.name)
+                out_file.write('std::cout << "   - type char: " << %s << std::endl;\n' % type_name)
+
+        if write_debug_prints:
+            out_file.write('std::cout << "-------------------------------------------------------" << std::endl;\n')
+
         # Ensure the types in each group match
         for group_id in range(fun.num_type_groups):
             group_var_names = [vm.name for vm in fun.argument_groups[group_id].arguments]
@@ -903,10 +923,11 @@ def codegen_ast(ast, out_file):
                 next_token = " && " if i < len(group_types) - 1 else ") {\n"
                 out_str += next_token
 
-            out_str += 'std::string err_msg = std::string("Invalid type (") + ' \
-                       '%s::type_to_str(%s) + ' \
+            out_str += 'std::string err_msg = std::string("Invalid scalar type (") + ' \
+                       '%s::type_to_str(%s) + ", " + %s::storage_order_to_str(%s) + ' \
                        'std::string(") for argument \'%s\'. Expected one of %s.");\n' % \
                        (PRIVATE_NAMESPACE, type_name_var(first_non_nullable.name),
+                        PRIVATE_NAMESPACE, storage_order_var(first_non_nullable.name),
                         first_non_nullable.name, pretty_group_types)
             out_str += 'throw std::invalid_argument(err_msg);\n'
 
@@ -924,11 +945,16 @@ def codegen_ast(ast, out_file):
                 out_str += type_id_var(first_non_nullable.name) + " != " + type_id_var(group_var_names[i])
                 out_str += ") {\n"
                 # TODO: Print row/column major information here as well (#38)
-                out_str += 'std::string err_msg = std::string("Invalid type (") + %s::type_to_str(%s) + ' \
+                out_str += 'std::string err_msg = std::string("Invalid type (") + %s::type_to_str(%s) + ", " + ' \
+                           '%s::storage_order_to_str(%s) + ' \
                            'std::string(") for argument \'%s\'. Expected it to match argument \'%s\' ' \
-                           'which is of type ") + %s::type_to_str(%s) + std::string(".");\n' \
-                           % (PRIVATE_NAMESPACE, type_name_var(group_var_names[i]), group_var_names[i],
-                              first_non_nullable.name, PRIVATE_NAMESPACE, type_name_var(first_non_nullable.name))
+                           'which is of type (") + %s::type_to_str(%s) + ", " + %s::type_to_str(%s) + ' \
+                           'std::string(").");\n' \
+                           % (PRIVATE_NAMESPACE, type_name_var(group_var_names[i]),
+                              PRIVATE_NAMESPACE, storage_order_var(group_var_names[i]),
+                              group_var_names[i], first_non_nullable.name,
+                              PRIVATE_NAMESPACE, type_name_var(first_non_nullable.name),
+                              PRIVATE_NAMESPACE, storage_order_var(first_non_nullable.name))
                 out_str += 'throw std::invalid_argument(err_msg);\n'
 
                 out_str += "}\n"
@@ -1161,6 +1187,8 @@ def main():
                             help="How verbose is the output. < 0 = silent, "
                                  "0 = only errors, 1 = normal, 2 = verbose, > 3 = debug")
     arg_parser.add_argument('--c-preprocessor-args', help='Input String', nargs='*', type=str)
+    arg_parser.add_argument('--debug-trace', action='store_true',
+                            help='Print traces containing type information of variables passed into bound functions')
 
     args = arg_parser.parse_args()
 
@@ -1180,7 +1208,7 @@ def main():
         with NpeFileReader(args.file) as infile:
             ast = NpeAST(infile)
         with open(args.output, 'w+') as outfile:
-            codegen_ast(ast, outfile)
+            codegen_ast(ast, outfile, write_debug_prints=True)
     except SemanticError as e:
         # TODO: Pretty printer
         log(LOG_ERROR, TermColors.FAIL + TermColors.BOLD + "NumpyEigen Semantic Error: " +

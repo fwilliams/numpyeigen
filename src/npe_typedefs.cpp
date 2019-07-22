@@ -2,6 +2,19 @@
 
 #include <iostream>
 
+const std::string npe::detail::storage_order_to_str(npe::detail::StorageOrder so) {
+    using namespace npe::detail;
+    switch(so) {
+    case StorageOrder::RowMajor:
+        return std::string("Row Major");
+    case StorageOrder::ColMajor:
+        return std::string("Col Major");
+    case StorageOrder::NoOrder:
+        return std::string("No Major");
+    default:
+        return std::string("Corrupt Major");
+    }
+}
 
 const std::string npe::detail::type_to_str(char type_char) {
   using namespace npe::detail;
