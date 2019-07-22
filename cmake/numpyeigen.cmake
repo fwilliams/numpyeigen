@@ -198,7 +198,7 @@ set_target_properties(npe PROPERTIES
 # NOTE:This function assumes the variable NPE_ROOT_DIR is set to the root directory of NumpyEigen.
 #
 function(npe_add_module target_name)
-  set(options MODULE SHARED EXCLUDE_FROM_ALL NO_EXTRAS THIN_LTO)
+  set(options MODULE SHARED EXCLUDE_FROM_ALL NO_EXTRAS THIN_LTO DEBUG_TRACE)
   set(multiValueArgs BINDING_SOURCES)
   cmake_parse_arguments(npe_add_module "${options}" "" "${multiValueArgs}" ${ARGN})
 
@@ -223,9 +223,14 @@ function(npe_add_module target_name)
     get_filename_component(name ${binding_source} NAME_WE)
 
     set(bound_function_source_filename "${CMAKE_CURRENT_BINARY_DIR}/${name}.out.cpp")
+    set(debug_trace_arg "")
+    if (npe_add_module_DEBUG_TRACE)
+      set(debug_trace_arg "--debug-trace")
+    endif()
+
     add_custom_command(OUTPUT ${bound_function_source_filename}
       DEPENDS ${binding_source} ${NPE_SRC_DIR}/codegen_function.py ${NPE_SRC_DIR}/codegen_module.py
-      COMMAND ${PYTHON_EXECUTABLE} ${NPE_SRC_DIR}/codegen_function.py ${binding_source} ${CMAKE_CXX_COMPILER} -o ${bound_function_source_filename} --c-preprocessor-args ${C_PREPROCESSOR_CMD_FLAGS}
+      COMMAND ${PYTHON_EXECUTABLE} ${NPE_SRC_DIR}/codegen_function.py ${binding_source} ${CMAKE_CXX_COMPILER} -o ${bound_function_source_filename} ${debug_trace_arg} --c-preprocessor-args ${C_PREPROCESSOR_CMD_FLAGS}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
     list(APPEND function_sources "${bound_function_source_filename}")

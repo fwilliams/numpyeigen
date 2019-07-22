@@ -20,6 +20,79 @@ class Test1dArays(unittest.TestCase):
         self.assertTrue(np.array_equal(ret, expected))
         self.assertTrue(np.array_equal(a, expected))
 
+    def test_passing_1d_arrays_1(self):
+        a = np.ones(10)
+        v = np.ones([10, 10])
+        f = np.ones([10, 10], dtype=np.int)
+
+        retv, retp = npe_test.one_d_arg(v, f, a)
+        self.assertTrue(np.array_equal(retp, a))
+        self.assertTrue(np.array_equal(retv, v))
+
+        a = np.ones([10, 10])
+        v = np.ones([10, 10])
+        f = np.ones([10, 10], dtype=np.int)
+
+        retv, retp = npe_test.one_d_arg(v, f, a)
+        self.assertTrue(np.array_equal(retp, a))
+        self.assertTrue(np.array_equal(retv, v))
+
+    def test_passing_1d_arrays_2(self):
+        v = np.ones(10)
+        f = np.ones([10, 10], dtype=np.int)
+        p = np.ones(10)
+        q = np.ones(10)
+        r = np.ones(10)
+        s = np.ones(10)
+
+        retv, retp = npe_test.one_d_arg_big(v, f, p, q, r, s)
+        self.assertTrue(np.array_equal(retp, p))
+        self.assertTrue(np.array_equal(retv, v))
+
+        with self.assertRaises(ValueError):
+            v = np.ones(10, dtype=np.float32)
+            f = np.ones([10, 10], dtype=np.int)
+            p = np.ones(10)
+            q = np.ones(10)
+            r = np.ones(10)
+            s = np.ones(10)
+            npe_test.one_d_arg_big(v, f, p, q, r, s)
+
+        with self.assertRaises(ValueError):
+            v = np.ones(10)
+            f = np.ones([10, 10], dtype=np.int)
+            p = np.ones(10, dtype=np.float32)
+            q = np.ones(10)
+            r = np.ones(10)
+            s = np.ones(10)
+            npe_test.one_d_arg_big(v, f, p, q, r, s)
+
+        with self.assertRaises(ValueError):
+            v = np.ones(10)
+            f = np.ones([10, 10], dtype=np.int)
+            p = np.ones(10)
+            q = np.ones(10, dtype=np.float32)
+            r = np.ones(10)
+            s = np.ones(10)
+            npe_test.one_d_arg_big(v, f, p, q, r, s)
+
+        with self.assertRaises(ValueError):
+            v = np.ones(10)
+            f = np.ones([10, 10], dtype=np.int)
+            p = np.ones(10)
+            q = np.ones(10)
+            r = np.ones(10, dtype=np.float32)
+            s = np.ones(10)
+            npe_test.one_d_arg_big(v, f, p, q, r, s)
+
+        with self.assertRaises(ValueError):
+            v = np.ones(10)
+            f = np.ones([10, 10], dtype=np.int)
+            p = np.ones(10)
+            q = np.ones(10)
+            r = np.ones(10)
+            s = np.ones(10, dtype=np.float32)
+            npe_test.one_d_arg_big(v, f, p, q, r, s)
 
 if __name__ == '__main__':
     unittest.main()

@@ -938,29 +938,45 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
             if len(group_var_names) == 1:
                 continue
 
+            out_file.write("{\n")
+            out_file.write("int group_matched_type_id = %s;\n" % type_id_var(first_non_nullable.name))
+            out_file.write("bool found_non_1d = (%s_shape_0 != 1 && %s_shape_1 != 1);\n" %
+                           (first_non_nullable.name, first_non_nullable.name))
+            out_file.write('std::string match_to_name = "%s";\n' % first_non_nullable.name)
+            out_file.write('%s::StorageOrder match_so = %s;\n' %
+                           (PRIVATE_NAMESPACE, storage_order_var(first_non_nullable.name)))
+            out_file.write("char group_type_s = %s;\n" % type_name_var(first_non_nullable.name))
+
             for i in range(len(group_var_names)):
                 arg = fun.argument(group_var_names[i])
-                out_str = "if (!" + arg.name + ".is_none) {\n" if arg.is_nullable else ""
-                out_str += "if ("
-                out_str += type_id_var(first_non_nullable.name) + " != " + type_id_var(group_var_names[i])
-                out_str += ") {\n"
-                # TODO: Print row/column major information here as well (#38)
-                out_str += 'std::string err_msg = std::string("Invalid type (") + %s::type_to_str(%s) + ", " + ' \
-                           '%s::storage_order_to_str(%s) + ' \
-                           'std::string(") for argument \'%s\'. Expected it to match argument \'%s\' ' \
-                           'which is of type (") + %s::type_to_str(%s) + ", " + %s::type_to_str(%s) + ' \
+                exception_str = 'std::string err_msg = std::string("Invalid type (") + ' \
+                           '%s::type_to_str(%s) + ", " + %s::storage_order_to_str(%s) + ' \
+                           'std::string(") for argument \'%s\'. Expected it to match argument \'") + match_to_name + ' \
+                           'std::string("\' which is of type (") + ' \
+                           '%s::type_to_str(group_type_s) + ", " + %s::storage_order_to_str(match_so) + ' \
                            'std::string(").");\n' \
                            % (PRIVATE_NAMESPACE, type_name_var(group_var_names[i]),
                               PRIVATE_NAMESPACE, storage_order_var(group_var_names[i]),
-                              group_var_names[i], first_non_nullable.name,
-                              PRIVATE_NAMESPACE, type_name_var(first_non_nullable.name),
-                              PRIVATE_NAMESPACE, storage_order_var(first_non_nullable.name))
-                out_str += 'throw std::invalid_argument(err_msg);\n'
-
+                              arg.name, PRIVATE_NAMESPACE, PRIVATE_NAMESPACE) + \
+                           'throw std::invalid_argument(err_msg);\n'
+                out_str = "if (!" + arg.name + ".is_none) {\n" if arg.is_nullable else ""
+                out_str += "if (" + str(arg.name + "_shape_0") + " != 1 && " + str(arg.name + "_shape_1") + " != 1) {\n"
+                out_str += "if (!found_non_1d) {\n" + \
+                           "group_matched_type_id = " + type_id_var(arg.name) + ";\n" + \
+                           "found_non_1d = true;\n" + \
+                           'match_to_name = "' + arg.name + '";\n' + \
+                           "match_so = " + storage_order_var(arg.name) + ";\n" + \
+                           "group_type_s = " + type_name_var(arg.name) + ";\n" + \
+                           "\n}\n"
+                out_str += "if (" + type_id_var(arg.name) + " != group_matched_type_id) {\n"
+                out_str += exception_str
+                out_str += "}\n"
+                out_str += "} else if (group_type_s != %s) {\n" % type_name_var(arg.name)
+                out_str += exception_str
                 out_str += "}\n"
                 out_str += "}\n" if arg.is_nullable else ""
-
-            out_file.write(out_str)
+                out_file.write(out_str)
+            out_file.write("}\n")
 
     def write_function_switch_body(fun):
         expanded_type_groups = [itertools.product(group.types, STORAGE_ORDER_SUFFIXES) for group in fun.argument_groups]
@@ -1186,16 +1202,15 @@ def main():
     arg_parser.add_argument("-v", "--verbosity-level", type=int, default=LOG_INFO,
                             help="How verbose is the output. < 0 = silent, "
                                  "0 = only errors, 1 = normal, 2 = verbose, > 3 = debug")
-    arg_parser.add_argument('--c-preprocessor-args', help='Input String', nargs='*', type=str)
     arg_parser.add_argument('--debug-trace', action='store_true',
                             help='Print traces containing type information of variables passed into bound functions')
+    arg_parser.add_argument('--c-preprocessor-args', help='Input String', nargs='*', type=str)
 
     args = arg_parser.parse_args()
 
     head, tail = os.path.split(args.cpp_cmd)
 
     cpp_path = args.cpp_cmd
-
 
     cpp_command = []
     for tmp in args.c_preprocessor_args:
@@ -1208,7 +1223,7 @@ def main():
         with NpeFileReader(args.file) as infile:
             ast = NpeAST(infile)
         with open(args.output, 'w+') as outfile:
-            codegen_ast(ast, outfile, write_debug_prints=True)
+            codegen_ast(ast, outfile, write_debug_prints=args.debug_trace)
     except SemanticError as e:
         # TODO: Pretty printer
         log(LOG_ERROR, TermColors.FAIL + TermColors.BOLD + "NumpyEigen Semantic Error: " +
