@@ -21,34 +21,34 @@ const std::string npe::detail::type_to_str(char type_char) {
 
   switch(type_char) {
   case char_half:
-    return "float16";
+    return "half";
   case char_float:
-    return "float32";
+    return "float";
   case char_double:
-    return "float64";
+    return "double";
   case char_longdouble:
-    return "float128";
+    return "longdouble";
 
   case char_byte:
-    return "int8";
+    return "byte";
   case char_short:
-    return "int16";
+    return "short";
   case char_int:
-    return "int32";
+    return "int";
   case char_long:
-    return "int64";
+    return "long";
   case char_longlong:
-    return "int128";
+    return "longlong";
   case char_ubyte:
-    return "uint8";
+    return "ubyte";
   case char_ushort:
-    return "uint16";
+    return "ushort";
   case char_uint:
-    return "uint32";
+    return "uint";
   case char_ulong:
-    return "uint64";
+    return "ulong";
   case char_ulonglong:
-    return "uint128";
+    return "ulonglong";
 
   case char_c64:
     return "complex64";
