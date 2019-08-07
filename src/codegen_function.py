@@ -51,6 +51,7 @@ NUMPY_ARRAY_TYPES_TO_CPP = {
     'sparse_c128': ('npy_complex128', 'c128', 'complex128'),
     'sparse_c256': ('npy_complex256', 'c256', 'complex256'),
     'sparse_bool': ('npy_bool', 'bool', 'bool')}
+
 NUMPY_ARRAY_TYPES = list(NUMPY_ARRAY_TYPES_TO_CPP.keys())
 NUMPY_SCALAR_TYPES = list(set([v[2] for v in NUMPY_ARRAY_TYPES_TO_CPP.values()]))
 MATCHES_TOKEN = "npe_matches"
@@ -888,9 +889,7 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
             if write_debug_prints:
                 out_file.write('std::cout << "- Argument: %s" << std::endl;\n' % arg.name)
                 out_file.write('std::cout << "   - shape: (" << %s << ", " << %s << ")" << std::endl;\n' %
-                               (str(arg.name + "_shape_0"), str(arg.name+ "_shape_1")))
-                out_file.write('std::cout << "   - shape: (" << %s << ", " << %s << ")" << std::endl;\n' %
-                               (str(arg.name + "_shape_0"), str(arg.name+ "_shape_1")))
+                               (str(arg.name + "_shape_0"), str(arg.name + "_shape_1")))
 
                 storage_order_var_name = storage_order_var(arg.name)
                 out_file.write('std::cout << "   - " << %s::storage_order_to_str(%s) << std::endl;\n' %
@@ -898,6 +897,8 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
 
                 type_name = type_name_var(arg.name)
                 out_file.write('std::cout << "   - type char: " << %s << std::endl;\n' % type_name)
+                out_file.write('std::cout << "   - type name: " << %s::type_to_str(%s) << std::endl;\n' %
+                               (PRIVATE_NAMESPACE, type_name))
 
         if write_debug_prints:
             out_file.write('std::cout << "-------------------------------------------------------" << std::endl;\n')
@@ -949,16 +950,25 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
 
             for i in range(len(group_var_names)):
                 arg = fun.argument(group_var_names[i])
-                exception_str = 'std::string err_msg = std::string("Invalid type (") + ' \
-                           '%s::type_to_str(%s) + ", " + %s::storage_order_to_str(%s) + ' \
-                           'std::string(") for argument \'%s\'. Expected it to match argument \'") + match_to_name + ' \
-                           'std::string("\' which is of type (") + ' \
-                           '%s::type_to_str(group_type_s) + ", " + %s::storage_order_to_str(match_so) + ' \
-                           'std::string(").");\n' \
-                           % (PRIVATE_NAMESPACE, type_name_var(group_var_names[i]),
-                              PRIVATE_NAMESPACE, storage_order_var(group_var_names[i]),
-                              arg.name, PRIVATE_NAMESPACE, PRIVATE_NAMESPACE) + \
-                           'throw std::invalid_argument(err_msg);\n'
+                exception_str1 = 'std::string err_msg = std::string("Invalid type (") + ' \
+                                 '%s::type_to_str(%s) + ", " + %s::storage_order_to_str(%s) + ' \
+                                 'std::string(") for argument \'%s\'. Expected it to match argument \'") + ' \
+                                 'match_to_name + std::string("\' which is of type (") + ' \
+                                 '%s::type_to_str(group_type_s) + ", " + %s::storage_order_to_str(match_so) + ' \
+                                 'std::string(").");\n' \
+                                 % (PRIVATE_NAMESPACE, type_name_var(group_var_names[i]),
+                                    PRIVATE_NAMESPACE, storage_order_var(group_var_names[i]),
+                                    arg.name, PRIVATE_NAMESPACE, PRIVATE_NAMESPACE) + \
+                                 'throw std::invalid_argument(err_msg);\n'
+                exception_str2 = 'std::string err_msg = std::string("Invalid type (") + ' \
+                                 '%s::type_to_str(%s) + ", " + %s::storage_order_to_str(match_so) + ' \
+                                 'std::string(") for argument \'%s\'. Expected it to match argument \'") + ' \
+                                 'match_to_name + std::string("\' which is of type (") + ' \
+                                 '%s::type_to_str(group_type_s) + ", " +  %s::storage_order_to_str(match_so) + ' \
+                                 'std::string(").");\n' \
+                                 % (PRIVATE_NAMESPACE, type_name_var(group_var_names[i]),
+                                    PRIVATE_NAMESPACE, arg.name, PRIVATE_NAMESPACE, PRIVATE_NAMESPACE) + \
+                                 'throw std::invalid_argument(err_msg);\n'
                 out_str = "if (!" + arg.name + ".is_none) {\n" if arg.is_nullable else ""
                 out_str += "if (" + str(arg.name + "_shape_0") + " != 1 && " + str(arg.name + "_shape_1") + " != 1) {\n"
                 out_str += "if (!found_non_1d) {\n" + \
@@ -969,10 +979,10 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
                            "group_type_s = " + type_name_var(arg.name) + ";\n" + \
                            "\n}\n"
                 out_str += "if (" + type_id_var(arg.name) + " != group_matched_type_id) {\n"
-                out_str += exception_str
+                out_str += exception_str1
                 out_str += "}\n"
                 out_str += "} else if (group_type_s != %s) {\n" % type_name_var(arg.name)
-                out_str += exception_str
+                out_str += exception_str2
                 out_str += "}\n"
                 out_str += "}\n" if arg.is_nullable else ""
                 out_file.write(out_str)

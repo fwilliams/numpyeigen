@@ -87,20 +87,34 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return dense_byte_cm;
       case char_short:
         return dense_short_cm;
+#if _WIN64
+      static_assert(sizeof(int) == sizeof(long), "Expected sizeof(int) = sizeof(long) on 64 bit Windows");
+      case char_int:
+      case char_long:
+        return dense_int_cm;
+#else
       case char_int:
         return dense_int_cm;
       case char_long:
         return dense_long_cm;
+#endif
       case char_longlong:
         return dense_longlong_cm;
       case char_ubyte:
         return dense_ubyte_cm;
       case char_ushort:
         return dense_ushort_cm;
+#if _WIN64
+      static_assert(sizeof(unsigned int) == sizeof(unsigned long), "Expected sizeof(unsigned int) = sizeof(unsigned long) on 64 bit Windows");
+      case char_uint:
+      case char_ulong:
+        return dense_uint_cm;
+#else
       case char_uint:
         return dense_uint_cm;
       case char_ulong:
         return dense_ulong_cm;
+#endif
       case char_ulonglong:
         return dense_ulonglong_cm;
       case char_c64:
@@ -125,20 +139,35 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return dense_byte_rm;
       case char_short:
         return dense_short_rm;
+#if _WIN64
+      static_assert(sizeof(int) == sizeof(long), "Expected sizeof(int) = sizeof(long) on 64 bit Windows");
+      case char_int:
+      case char_long:
+        return dense_int_rm;
+#else
       case char_int:
         return dense_int_rm;
       case char_long:
         return dense_long_rm;
+#endif
       case char_longlong:
         return dense_longlong_rm;
       case char_ubyte:
         return dense_ubyte_rm;
       case char_ushort:
         return dense_ushort_rm;
+#if _WIN64
+      static_assert(sizeof(unsigned int) == sizeof(unsigned long), "Expected sizeof(unsigned int) = sizeof(unsigned long) on 64 bit Windows");
+      case char_uint:
+      case char_ulong:
+        return dense_uint_rm
+#else
       case char_uint:
         return dense_uint_rm;
       case char_ulong:
         return dense_ulong_rm;
+#endif
+
       case char_ulonglong:
         return dense_ulonglong_rm;
       case char_c64:
@@ -163,20 +192,34 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return dense_byte_x;
       case char_short:
         return dense_short_x;
+#if _WIN64
+      static_assert(sizeof(int) == sizeof(long), "Expected sizeof(int) = sizeof(long) on 64 bit Windows");
+      case char_int:
+      case char_long:
+        return dense_int_x;
+#else
       case char_int:
         return dense_int_x;
       case char_long:
         return dense_long_x;
+#endif
       case char_longlong:
         return dense_longlong_x;
       case char_ubyte:
         return dense_ubyte_x;
       case char_ushort:
         return dense_ushort_x;
+#if _WIN64
+      static_assert(sizeof(unsigned int) == sizeof(unsigned long), "Expected sizeof(unsigned int) = sizeof(unsigned long) on 64 bit Windows");
+      case char_uint:
+      case char_ulong:
+        return dense_uint_x;
+#else
       case char_uint:
         return dense_uint_x;
       case char_ulong:
         return dense_ulong_x;
+#endif
       case char_ulonglong:
         return dense_ulonglong_x;
       case char_c64:
@@ -207,20 +250,34 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return sparse_byte_cm;
       case char_short:
         return sparse_short_cm;
+#if _WIN64
+      static_assert(sizeof(int) == sizeof(long), "Expected sizeof(int) = sizeof(long) on 64 bit Windows");
+      case char_int:
+      case char_long:
+        return sparse_int_cm;
+#else
       case char_int:
         return sparse_int_cm;
       case char_long:
         return sparse_long_cm;
+#endif
       case char_longlong:
         return sparse_longlong_cm;
       case char_ubyte:
         return sparse_ubyte_cm;
       case char_ushort:
         return sparse_ushort_cm;
+#if _WIN64
+      static_assert(sizeof(unsigned int) == sizeof(unsigned long), "Expected sizeof(unsigned int) = sizeof(unsigned long) on 64 bit Windows");
+      case char_uint:
+      case char_ulong:
+        return sparse_uint_cm;
+#else
       case char_uint:
         return sparse_uint_cm;
       case char_ulong:
         return sparse_ulong_cm;
+#endif
       case char_ulonglong:
         return sparse_ulonglong_cm;
       case char_c64:
@@ -245,20 +302,34 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return sparse_byte_rm;
       case char_short:
         return sparse_short_rm;
+#if _WIN64
+      static_assert(sizeof(int) == sizeof(long), "Expected sizeof(int) = sizeof(long) on 64 bit Windows");
+      case char_int:
+      case char_long:
+        return sparse_int_rm;
+#else
       case char_int:
         return sparse_int_rm;
       case char_long:
         return sparse_long_rm;
+#endif
       case char_longlong:
         return sparse_longlong_rm;
       case char_ubyte:
         return sparse_ubyte_rm;
       case char_ushort:
         return sparse_ushort_rm;
+#if _WIN64
+      static_assert(sizeof(unsigned int) == sizeof(unsigned long), "Expected sizeof(unsigned int) = sizeof(unsigned long) on 64 bit Windows");
+      case char_uint:
+      case char_ulong:
+        return sparse_uint_rm;
+#else
       case char_uint:
         return sparse_uint_rm;
       case char_ulong:
         return sparse_ulong_rm;
+#endif
       case char_ulonglong:
         return sparse_ulonglong_rm;
       case char_c64:
