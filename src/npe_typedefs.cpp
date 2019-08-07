@@ -160,14 +160,13 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
       static_assert(sizeof(unsigned int) == sizeof(unsigned long), "Expected sizeof(unsigned int) = sizeof(unsigned long) on 64 bit Windows");
       case char_uint:
       case char_ulong:
-        return dense_uint_rm
+        return dense_uint_rm;
 #else
       case char_uint:
         return dense_uint_rm;
       case char_ulong:
         return dense_ulong_rm;
 #endif
-
       case char_ulonglong:
         return dense_ulonglong_rm;
       case char_c64:
