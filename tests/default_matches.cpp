@@ -30,14 +30,14 @@ npe_default_arg(e, npe_matches(d))
 npe_default_arg(f, npe_matches(e))
 npe_begin_code()
 
-d(0, 0) = 2.0;
+d(0, 0) = 2;
 
 if (e.rows() != 0 || e.cols() != 0) {
-  e(0, 0) = 2.0;
+  e(0, 0) = 2;
 }
 
 if (f.rows() != 0 || f.cols() != 0) {
-  f(0, 0) = 2.0;
+  f(0, 0) = 2;
 }
 
 return std::make_tuple(npe::move(d), npe::move(e), npe::move(f));
@@ -55,14 +55,14 @@ npe_default_arg(e, npe_matches(d))
 npe_default_arg(f, npe_matches(e))
 npe_begin_code()
 
-d(0, 0) = 2.0;
+d(0, 0) = 2;
 
 if (e.rows() != 0 || e.cols() != 0) {
-  e(0, 0) = 2.0;
+  e(0, 0) = 2;
 }
 
 if (f.rows() != 0 || f.cols() != 0) {
-  f(0, 0) = 2.0;
+  f(0, 0) = 2;
 }
 if (c.rows() != 0 || c.cols() != 0) {
   return std::make_tuple(npe::move(a), npe::move(b), npe::move(c));
