@@ -246,6 +246,28 @@ enum Alignment {
 const std::string type_to_str(char type_char);
 const std::string storage_order_to_str(StorageOrder so);
 int get_type_id(bool is_sparse, char typechar, StorageOrder so);
+constexpr char transform_typechar(char t) {
+#ifdef _WIN64
+    static_assert(sizeof(int) == sizeof(long), "Expected sizeof(int) = sizeof(long) on 64 bit Windows");
+    static_assert(sizeof(unsigned int) == sizeof(unsigned long), "Expected sizeof(unsigned int) = sizeof(unsigned long) on 64 bit Windows");
+    if (t == char_uint || t == char_ulong) {
+        return char_uint;
+    }
+    if (t == char_int || t == char_long) {
+        return char_int;
+    }
+#else
+    static_assert(sizeof(long) == sizeof(long long), "Expected sizeof(long) = sizeof(long long)");
+    static_assert(sizeof(unsigned long) == sizeof(unsigned long long), "Expected sizeof(unsigned long) = sizeof(unsigned long long)");
+    if (t == char_ulonglong || t == char_ulong) {
+        return char_ulong;
+    }
+    if (t == char_long || t == char_longlong) {
+        return char_long;
+    }
+#endif
+    return t;
+}
 
 } // namespace detail
 } // namespace npe
