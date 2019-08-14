@@ -5,6 +5,21 @@
 
 #include <npe_sparse_array.h>
 
+// Check that we're compiling on a 64 bit platform
+#if _WIN32 || _WIN64
+#if _WIN64
+static_assert(sizeof(int) == sizeof(long), "Expected sizeof(int) = sizeof(long) on 64 bit Windows");
+static_assert(sizeof(unsigned int) == sizeof(unsigned long), "Expected sizeof(unsigned int) = sizeof(unsigned long) on 64 bit Windows");
+#else
+static_assert(sizeof(int) == sizeof(long), "NumpyEigen Does not support 32-bit platforms");
+static_assert(sizeof(unsigned int) == sizeof(unsigned long), "NumpyEigen Does not support 32-bit platforms");
+#endif
+#else
+static_assert(sizeof(long) == sizeof(long long), "NumpyEigen Does not support 32-bit platforms");
+static_assert(sizeof(unsigned long) == sizeof(unsigned long long), "NumpyEigen Does not support 32-bit platforms");
+#endif
+
+
 namespace npe {
 namespace detail {
 

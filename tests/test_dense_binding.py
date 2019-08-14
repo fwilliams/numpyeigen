@@ -213,16 +213,14 @@ class TestDenseBindings(unittest.TestCase):
             npe_test.intlong(along, blong)
             npe_test.intlong(aint, blong)
 
-            with self.assertRaises(ValueError):
-                npe_test.longlonglong(alonglong, bint)
-                npe_test.longlonglong(alonglong, blong)
-                npe_test.longlonglong(along, blonglong)
-                npe_test.longlonglong(aint, blonglong)
-                npe_test.longlonglong(along, bint)
-                npe_test.longlonglong(aint, bint)
-                npe_test.longlonglong(along, blong)
-                npe_test.longlonglong(aint, blong)
-
+            npe_test.longlonglong(alonglong, bint)
+            npe_test.longlonglong(alonglong, blong)
+            npe_test.longlonglong(along, blonglong)
+            npe_test.longlonglong(aint, blonglong)
+            npe_test.longlonglong(along, bint)
+            npe_test.longlonglong(aint, bint)
+            npe_test.longlonglong(along, blong)
+            npe_test.longlonglong(aint, blong)
             npe_test.longlonglong(alonglong, blonglong)
 
 if __name__ == '__main__':
