@@ -370,3 +370,117 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
     }
   }
 }
+
+#if __cplusplus < 201402L
+const int npe::detail::transform_typeid(int t) {
+#ifdef _WIN64
+    static_assert(sizeof(int) == sizeof(long), "Expected sizeof(int) = sizeof(long) on 64 bit Windows");
+    static_assert(sizeof(unsigned int) == sizeof(unsigned long), "Expected sizeof(unsigned int) = sizeof(unsigned long) on 64 bit Windows");
+    switch(t){
+    case npe::detail::dense_int_rm:
+    case npe::detail::dense_long_rm:
+        return npe::detail::dense_int_rm;
+    case npe::detail::dense_int_cm:
+    case npe::detail::dense_long_cm:
+        return npe::detail::dense_int_cm;
+    case npe::detail::dense_int_x:
+    case npe::detail::dense_long_x:
+        return npe::detail::dense_int_x;
+
+    case npe::detail::dense_uint_rm:
+    case npe::detail::dense_ulong_rm:
+        return npe::detail::dense_uint_rm;
+    case npe::detail::dense_uint_cm:
+    case npe::detail::dense_ulong_cm:
+        return npe::detail::dense_uint_cm;
+    case npe::detail::dense_uint_x:
+    case npe::detail::dense_ulong_x:
+        return npe::detail::dense_uint_x;
+
+
+
+    case npe::detail::sparse_int_rm:
+    case npe::detail::sparse_long_rm:
+        return npe::detail::sparse_int_rm;
+    case npe::detail::sparse_int_cm:
+    case npe::detail::sparse_long_cm:
+        return npe::detail::sparse_int_cm;
+
+    case npe::detail::sparse_uint_rm:
+    case npe::detail::sparse_ulong_rm:
+        return npe::detail::sparse_uint_rm;
+    case npe::detail::sparse_uint_cm:
+    case npe::detail::sparse_ulong_cm:
+        return npe::detail::sparse_uint_cm;
+    default:
+        return t;
+    }
+#else
+    static_assert(sizeof(long) == sizeof(long long), "Expected sizeof(long) = sizeof(long long)");
+    static_assert(sizeof(unsigned long) == sizeof(unsigned long long), "Expected sizeof(unsigned long) = sizeof(unsigned long long)");
+    switch(t) {
+    case npe::detail::dense_long_rm:
+    case npe::detail::dense_longlong_rm:
+        return npe::detail::dense_long_rm;
+    case npe::detail::dense_long_cm:
+    case npe::detail::dense_longlong_cm:
+        return npe::detail::dense_long_cm;
+    case npe::detail::dense_long_x:
+    case npe::detail::dense_longlong_x:
+        return npe::detail::dense_long_x;
+
+    case npe::detail::dense_ulong_rm:
+    case npe::detail::dense_ulonglong_rm:
+        return npe::detail::dense_ulong_rm;
+    case npe::detail::dense_ulong_cm:
+    case npe::detail::dense_ulonglong_cm:
+        return npe::detail::dense_ulong_cm;
+    case npe::detail::dense_ulong_x:
+    case npe::detail::dense_ulonglong_x:
+        return npe::detail::dense_ulong_x;
+
+
+
+    case npe::detail::sparse_long_rm:
+    case npe::detail::sparse_longlong_rm:
+        return npe::detail::sparse_long_rm;
+    case npe::detail::sparse_long_cm:
+    case npe::detail::sparse_longlong_cm:
+        return npe::detail::sparse_long_cm;
+
+    case npe::detail::sparse_ulong_rm:
+    case npe::detail::sparse_ulonglong_rm:
+        return npe::detail::sparse_ulong_rm;
+    case npe::detail::sparse_ulong_cm:
+    case npe::detail::sparse_ulonglong_cm:
+        return npe::detail::sparse_ulong_cm;
+    default:
+        return t;
+    }
+#endif
+}
+
+const char npe::detail::transform_typechar(char t) {
+
+#ifdef _WIN64
+    static_assert(sizeof(int) == sizeof(long), "Expected sizeof(int) = sizeof(long) on 64 bit Windows");
+    static_assert(sizeof(unsigned int) == sizeof(unsigned long), "Expected sizeof(unsigned int) = sizeof(unsigned long) on 64 bit Windows");
+    if (t == npe::detail::char_uint || t == npe::detail::char_ulong) {
+        return npe::detail::char_uint;
+    }
+    if (t == npe::detail::char_int || t == npe::detail::char_long) {
+        return npe::detail::char_int;
+    }
+#else
+    static_assert(sizeof(long) == sizeof(long long), "Expected sizeof(long) = sizeof(long long)");
+    static_assert(sizeof(unsigned long) == sizeof(unsigned long long), "Expected sizeof(unsigned long) = sizeof(unsigned long long)");
+    if (t == npe::detail::char_ulonglong || t == npe::detail::char_ulong) {
+        return npe::detail::char_ulong;
+    }
+    if (t == npe::detail::char_long || t == npe::detail::char_longlong) {
+        return npe::detail::char_long;
+    }
+#endif
+    return t;
+}
+#endif

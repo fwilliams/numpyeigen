@@ -261,7 +261,13 @@ enum Alignment {
 const std::string type_to_str(char type_char);
 const std::string storage_order_to_str(StorageOrder so);
 int get_type_id(bool is_sparse, char typechar, StorageOrder so);
+
+//FIXME: Use __cplusplus
+#if __cplusplus < 201402L
+const char transform_typechar(char t);
+#else
 constexpr char transform_typechar(char t) {
+
 #ifdef _WIN64
     static_assert(sizeof(int) == sizeof(long), "Expected sizeof(int) = sizeof(long) on 64 bit Windows");
     static_assert(sizeof(unsigned int) == sizeof(unsigned long), "Expected sizeof(unsigned int) = sizeof(unsigned long) on 64 bit Windows");
@@ -283,6 +289,11 @@ constexpr char transform_typechar(char t) {
 #endif
     return t;
 }
+#endif
+
+#if __cplusplus < 201402L
+const int transform_typeid(int t);
+#else
 constexpr int transform_typeid(int t) {
 #ifdef _WIN64
     static_assert(sizeof(int) == sizeof(long), "Expected sizeof(int) = sizeof(long) on 64 bit Windows");
@@ -370,6 +381,7 @@ constexpr int transform_typeid(int t) {
     }
 #endif
 }
+#endif
 
 } // namespace detail
 } // namespace npe
