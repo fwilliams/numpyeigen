@@ -268,6 +268,93 @@ constexpr char transform_typechar(char t) {
 #endif
     return t;
 }
+constexpr int transform_typeid(int t) {
+#ifdef _WIN64
+    static_assert(sizeof(int) == sizeof(long), "Expected sizeof(int) = sizeof(long) on 64 bit Windows");
+    static_assert(sizeof(unsigned int) == sizeof(unsigned long), "Expected sizeof(unsigned int) = sizeof(unsigned long) on 64 bit Windows");
+    switch(t){
+    case dense_int_rm:
+    case dense_long_rm:
+        return dense_int_rm;
+    case dense_int_cm:
+    case dense_long_cm:
+        return dense_int_cm;
+    case dense_int_x:
+    case dense_long_x:
+        return dense_int_x;
+
+    case dense_uint_rm:
+    case dense_ulong_rm:
+        return dense_uint_rm;
+    case dense_uint_cm:
+    case dense_ulong_cm:
+        return dense_uint_cm;
+    case dense_uint_x:
+    case dense_ulong_x:
+        return dense_uint_x;
+
+
+
+    case sparse_int_rm:
+    case sparse_long_rm:
+        return sparse_int_rm;
+    case sparse_int_cm:
+    case sparse_long_cm:
+        return sparse_int_cm;
+
+    case sparse_uint_rm:
+    case sparse_ulong_rm:
+        return sparse_uint_rm;
+    case sparse_uint_cm:
+    case sparse_ulong_cm:
+        return sparse_uint_cm;
+    default:
+        return t;
+    }
+#else
+    static_assert(sizeof(long) == sizeof(long long), "Expected sizeof(long) = sizeof(long long)");
+    static_assert(sizeof(unsigned long) == sizeof(unsigned long long), "Expected sizeof(unsigned long) = sizeof(unsigned long long)");
+    switch(t) {
+    case dense_long_rm:
+    case dense_longlong_rm:
+        return dense_long_rm;
+    case dense_long_cm:
+    case dense_longlong_cm:
+        return dense_long_cm;
+    case dense_long_x:
+    case dense_longlong_x:
+        return dense_long_x;
+
+    case dense_ulong_rm:
+    case dense_ulonglong_rm:
+        return dense_ulong_rm;
+    case dense_ulong_cm:
+    case dense_ulonglong_cm:
+        return dense_ulong_cm;
+    case dense_ulong_x:
+    case dense_ulonglong_x:
+        return dense_ulong_x;
+
+
+
+    case sparse_long_rm:
+    case sparse_longlong_rm:
+        return sparse_long_rm;
+    case sparse_long_cm:
+    case sparse_longlong_cm:
+        return sparse_long_cm;
+
+    case sparse_ulong_rm:
+    case sparse_ulonglong_rm:
+        return sparse_ulong_rm;
+    case sparse_ulong_cm:
+    case sparse_ulonglong_cm:
+        return sparse_ulong_cm;
+    default:
+        return t;
+    }
+#endif
+}
 
 } // namespace detail
 } // namespace npe

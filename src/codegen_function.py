@@ -1012,8 +1012,8 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
                         break
                     repr_var = fun.argument_groups[group_id].arguments[0]
                     typename = combo[group_id][0] + combo[group_id][1]
-                    out_str += type_id_var(
-                        repr_var.name) + " == " + PRIVATE_NAMESPACE + "::" + TYPE_ID_ENUM + "::" + typename
+                    out_str += type_id_var(repr_var.name) + " == " + PRIVATE_NAMESPACE + "::transform_typeid(" + \
+                               PRIVATE_NAMESPACE + "::" + TYPE_ID_ENUM + "::" + typename + ")"
                     next_token = " && " if group_id < len(combo) - 1 else ")"
                     out_str += next_token
 
