@@ -146,11 +146,13 @@ class TestDenseBindings(unittest.TestCase):
         self.assertTrue(np.array_equal(c, np.ones((10, 10), dtype=np.bool)))
 
     def test_long_and_int(self):
-        along = np.ones((10, 10), dtype="long")
+        if sys.version_info[0] >= 3:
+            along = np.ones((10, 10), dtype="long")
         aint = np.ones((10, 10), dtype="int32")
         alonglong = np.ones((10, 10), dtype="longlong")
 
-        blong = np.ones((10, 10), dtype="long")
+        if sys.version_info[0] >= 3:
+            blong = np.ones((10, 10), dtype="long")
         bint = np.ones((10, 10), dtype="int32")
         blonglong = np.ones((10, 10), dtype="longlong")
 
@@ -160,68 +162,77 @@ class TestDenseBindings(unittest.TestCase):
 
         if platform.system() != 'Windows':
             npe_test.intlonglong(alonglong, bint)
-            npe_test.intlonglong(along, bint)
+            if sys.version_info[0] >= 3:
+                npe_test.intlonglong(along, bint)
+                npe_test.intlonglong(alonglong, blong)
+                npe_test.intlonglong(along, blong)
+                npe_test.intlonglong(along, blonglong)
+                npe_test.intlonglong(aint, blong)
             npe_test.intlonglong(aint, bint)
-            npe_test.intlonglong(alonglong, blong)
-            npe_test.intlonglong(along, blong)
-            npe_test.intlonglong(aint, blong)
             npe_test.intlonglong(alonglong, blonglong)
-            npe_test.intlonglong(along, blonglong)
             npe_test.intlonglong(aint, blonglong)
 
+            if sys.version_info[0] >= 3:
+                npe_test.intlong(along, bint)
+                npe_test.intlong(alonglong, blong)
+                npe_test.intlong(along, blong)
+                npe_test.intlong(aint, blong)
+                npe_test.intlong(along, blonglong)
             npe_test.intlong(alonglong, bint)
-            npe_test.intlong(along, bint)
             npe_test.intlong(aint, bint)
-            npe_test.intlong(alonglong, blong)
-            npe_test.intlong(along, blong)
-            npe_test.intlong(aint, blong)
             npe_test.intlong(alonglong, blonglong)
-            npe_test.intlong(along, blonglong)
             npe_test.intlong(aint, blonglong)
 
             with self.assertRaises(ValueError):
+                if sys.version_info[0] >= 3:
+                    npe_test.longlonglong(along, bint)
+                    npe_test.longlonglong(aint, blong)
                 npe_test.longlonglong(alonglong, bint)
-                npe_test.longlonglong(along, bint)
                 npe_test.longlonglong(aint, bint)
-                npe_test.longlonglong(aint, blong)
                 npe_test.longlonglong(aint, blonglong)
 
+            if sys.version_info[0] >= 3:
+                npe_test.longlonglong(alonglong, blong)
+                npe_test.longlonglong(along, blong)
+                npe_test.longlonglong(along, blonglong)
             npe_test.longlonglong(alonglong, blonglong)
-            npe_test.longlonglong(alonglong, blong)
-            npe_test.longlonglong(along, blong)
-            npe_test.longlonglong(along, blonglong)
         else:
+            if sys.version_info[0] >= 3:
+                npe_test.intlonglong(along, bint)
+                npe_test.intlonglong(alonglong, blong)
+                npe_test.intlonglong(along, blong)
+                npe_test.intlonglong(along, blonglong)
+                npe_test.intlonglong(aint, blong)
             npe_test.intlonglong(alonglong, bint)
-            npe_test.intlonglong(along, bint)
             npe_test.intlonglong(aint, bint)
-            npe_test.intlonglong(alonglong, blong)
-            npe_test.intlonglong(along, blong)
-            npe_test.intlonglong(aint, blong)
             npe_test.intlonglong(alonglong, blonglong)
-            npe_test.intlonglong(along, blonglong)
             npe_test.intlonglong(aint, blonglong)
 
             with self.assertRaises(ValueError):
+                if sys.version_info[0] >= 3:
+                    npe_test.intlong(alonglong, blong)
+                    npe_test.intlong(along, blonglong)
                 npe_test.intlong(alonglong, bint)
-                npe_test.intlong(alonglong, blong)
                 npe_test.intlong(alonglong, blonglong)
-                npe_test.intlong(along, blonglong)
                 npe_test.intlong(aint, blonglong)
 
-            npe_test.intlong(along, bint)
+            if sys.version_info[0] >= 3:
+                npe_test.intlong(along, bint)
+                npe_test.intlong(along, blong)
+                npe_test.intlong(aint, blong)
             npe_test.intlong(aint, bint)
-            npe_test.intlong(along, blong)
-            npe_test.intlong(aint, blong)
 
+            if sys.version_info[0] >= 3:
+                npe_test.longlonglong(alonglong, blong)
+                npe_test.longlonglong(along, blonglong)
+                npe_test.longlonglong(along, bint)
+                npe_test.longlonglong(along, blong)
+                npe_test.longlonglong(aint, blong)
             npe_test.longlonglong(alonglong, bint)
-            npe_test.longlonglong(alonglong, blong)
-            npe_test.longlonglong(along, blonglong)
             npe_test.longlonglong(aint, blonglong)
-            npe_test.longlonglong(along, bint)
             npe_test.longlonglong(aint, bint)
-            npe_test.longlonglong(along, blong)
-            npe_test.longlonglong(aint, blong)
             npe_test.longlonglong(alonglong, blonglong)
+
 
 if __name__ == '__main__':
     unittest.main()
