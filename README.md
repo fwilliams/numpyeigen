@@ -100,8 +100,6 @@ NumpyEigen exposes several configuration options via CMake:
 
 ## Building and Running Tests
 
-Don't forget to `git clone --recursive`!!!
-
 Building the tests should be as easy as:
 ```
 mkdir build
