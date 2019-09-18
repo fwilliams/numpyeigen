@@ -30,12 +30,12 @@ class TestSparseMatrixWrapper(unittest.TestCase):
         ret = npe_test.sparse_matrix_add(a, b)
         self.assertEqual(ret.data[0], 2)
 
-    # def test_dont_blow_up_memory(self):
-    #     a = sp.diags([np.ones(1000000)], [0], format="csr")
-    #     b = sp.diags([np.ones(1000000)], [0], format="csr")
-    #     for i in range(10):
-    #         ret = npe_test.sparse_matrix_add(a, b)
-    #         self.assertEqual(ret.data[0], 2)
+    def test_dont_blow_up_memory(self):
+        a = sp.diags([np.ones(1000000)], [0], format="csr")
+        b = sp.diags([np.ones(1000000)], [0], format="csr")
+        for i in range(10):
+            ret = npe_test.sparse_matrix_add(a, b)
+            self.assertEqual(ret.data[0], 2)
 
     def test_pass_thru(self):
         a = sp.csr_matrix(np.eye(100))
@@ -67,75 +67,75 @@ class TestSparseMatrixWrapper(unittest.TestCase):
             self.assertEqual(bdata.shape, (100,))
             self.assertEqual(bdata[0], 2.0)
 
-    # def test_timing_for_copy_vs_no_copy(self):
-    #     mat_size = 10000000
-    #     num_iters = 10
+    def test_timing_for_copy_vs_no_copy(self):
+        mat_size = 10000000
+        num_iters = 10
 
-    #     times_nocopy = []
-    #     a = sp.diags([np.ones(mat_size)], [0], format="csr")
-    #     for i in range(num_iters):
-    #         start_time = time.time()
-    #         npe_test.mutate_sparse_matrix(a)
-    #         end_time = time.time()
-    #         times_nocopy.append(end_time-start_time)
+        times_nocopy = []
+        a = sp.diags([np.ones(mat_size)], [0], format="csr")
+        for i in range(num_iters):
+            start_time = time.time()
+            npe_test.mutate_sparse_matrix(a)
+            end_time = time.time()
+            times_nocopy.append(end_time-start_time)
 
-    #     times_copy = []
-    #     for i in range(num_iters):
-    #         start_time = time.time()
-    #         npe_help.sparse_mutate_copy(a)
-    #         end_time = time.time()
-    #         times_copy.append(end_time-start_time)
+        times_copy = []
+        for i in range(num_iters):
+            start_time = time.time()
+            npe_help.sparse_mutate_copy(a)
+            end_time = time.time()
+            times_copy.append(end_time-start_time)
 
-    #     median_nocopy = np.median(times_nocopy)
-    #     median_copy = np.median(times_copy)
+        median_nocopy = np.median(times_nocopy)
+        median_copy = np.median(times_copy)
 
-    #     print("test_timing_for_copy_vs_no_copy")
-    #     print("COPY:")
-    #     print("  mean:", np.mean(times_copy))
-    #     print("  std:", np.std(times_copy))
-    #     print("  med:", np.median(times_copy))
+        print("test_timing_for_copy_vs_no_copy")
+        print("COPY:")
+        print("  mean:", np.mean(times_copy))
+        print("  std:", np.std(times_copy))
+        print("  med:", np.median(times_copy))
 
-    #     print("NOCOPY npe:")
-    #     print("  mean:", np.mean(times_nocopy))
-    #     print("  std:", np.std(times_nocopy))
-    #     print("  med:", np.median(times_nocopy))
+        print("NOCOPY npe:")
+        print("  mean:", np.mean(times_nocopy))
+        print("  std:", np.std(times_nocopy))
+        print("  med:", np.median(times_nocopy))
 
-    #     self.assertLess(median_nocopy*1e-3, median_copy)
+        self.assertLess(median_nocopy*1e-3, median_copy)
 
-    # def test_return_does_not_copy(self):
-    #     mat_size = 10000000
-    #     num_iters = 10
+    def test_return_does_not_copy(self):
+        mat_size = 10000000
+        num_iters = 10
 
-    #     times_nocopy = []
-    #     a = sp.diags([np.ones(mat_size)], [0], format="csr")
-    #     for i in range(num_iters):
-    #         start_time = time.time()
-    #         npe_test.mutate_sparse_matrix(a)
-    #         end_time = time.time()
-    #         times_nocopy.append(end_time-start_time)
+        times_nocopy = []
+        a = sp.diags([np.ones(mat_size)], [0], format="csr")
+        for i in range(num_iters):
+            start_time = time.time()
+            npe_test.mutate_sparse_matrix(a)
+            end_time = time.time()
+            times_nocopy.append(end_time-start_time)
 
-    #     times_copy = []
-    #     for i in range(num_iters):
-    #         start_time = time.time()
-    #         npe_help.return_sparse_copy(mat_size)
-    #         end_time = time.time()
-    #         times_copy.append(end_time-start_time)
+        times_copy = []
+        for i in range(num_iters):
+            start_time = time.time()
+            npe_help.return_sparse_copy(mat_size)
+            end_time = time.time()
+            times_copy.append(end_time-start_time)
 
-    #     median_nocopy = np.median(times_nocopy)
-    #     median_copy = np.median(times_copy)
+        median_nocopy = np.median(times_nocopy)
+        median_copy = np.median(times_copy)
 
-    #     print("test_return_does_not_copy")
-    #     print("COPY:")
-    #     print("  mean:", np.mean(times_copy))
-    #     print("  std:", np.std(times_copy))
-    #     print("  med:", np.median(times_copy))
+        print("test_return_does_not_copy")
+        print("COPY:")
+        print("  mean:", np.mean(times_copy))
+        print("  std:", np.std(times_copy))
+        print("  med:", np.median(times_copy))
 
-    #     print("NOCOPY pybind22:")
-    #     print("  mean:", np.mean(times_nocopy))
-    #     print("  std:", np.std(times_nocopy))
-    #     print("  med:", np.median(times_nocopy))
+        print("NOCOPY pybind22:")
+        print("  mean:", np.mean(times_nocopy))
+        print("  std:", np.std(times_nocopy))
+        print("  med:", np.median(times_nocopy))
 
-    #     self.assertLess(median_nocopy*1e3, median_copy)
+        self.assertLess(median_nocopy*1e3, median_copy)
 
     def test_sparse_like(self):
         a = np.eye(100)
