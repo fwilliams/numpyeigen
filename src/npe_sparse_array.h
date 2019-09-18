@@ -124,6 +124,7 @@ public:
     // TODO: Check if attribute lookup succeeded
     try {
       std::string fmt = pybind11::getattr(src, "getformat")().cast<std::string>();
+      src.attr("sort_indices")();
       pybind11::getattr(src, "data").cast<pybind11::array>();
       pybind11::getattr(src, "indices").cast<pybind11::array>();
       pybind11::getattr(src, "indptr").cast<pybind11::array>();
