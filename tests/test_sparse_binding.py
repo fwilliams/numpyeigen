@@ -17,6 +17,13 @@ class TestSparseMatrixWrapper(unittest.TestCase):
         b = npe_help.sparse_return(a)
         self.assertTrue(a is b)
 
+    def test_sparse_matrix_sorting(self):
+        a = sp.random(200, 200)
+        b = a.dot(a)
+        self.assertFalse(b.has_sorted_indices)
+        c = npe_help.sparse_return(b)
+        self.assertTrue(b is c)
+
     def test_sparse_matrix_binding(self):
         a = sp.csr_matrix(np.eye(100))
         b = sp.csr_matrix(np.eye(100))
