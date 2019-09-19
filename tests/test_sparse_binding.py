@@ -19,7 +19,7 @@ class TestSparseMatrixWrapper(unittest.TestCase):
 
     def test_sparse_matrix_sorting(self):
         a = sp.random(200, 200)
-        b = a @ a
+        b = a.dot(a)
         self.assertFalse(b.has_sorted_indices)
         c = npe_help.sparse_return(b)
         self.assertTrue(b is c)
