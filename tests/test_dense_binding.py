@@ -9,6 +9,8 @@ import numpy as np
 import numpyeigen_test as npe_test
 import numpyeigen_helpers as npe_helpers
 import platform
+import scipy.sparse as sp
+
 
 class TestDenseBindings(unittest.TestCase):
 
@@ -232,6 +234,50 @@ class TestDenseBindings(unittest.TestCase):
             npe_test.longlonglong(aint, blonglong)
             npe_test.longlonglong(aint, bint)
             npe_test.longlonglong(alonglong, blonglong)
+
+    def test_dense_like(self):
+        a = sp.diags([np.ones(100)], [0], format="csr")
+        b1 = np.eye(100, dtype=np.float64)
+        b2 = np.eye(100, dtype=np.float32)
+        c1 = np.eye(100, dtype=np.float64)
+        c2 = np.eye(100, dtype=np.float32)
+
+        ret = npe_test.dense_like_1(a, b1)
+        val = (ret - b1)
+        self.assertEqual(np.linalg.norm(val), 0.0)
+
+        ret = npe_test.dense_like_2(a, b1, c1)
+        val = (ret - b1)
+        self.assertEqual(np.linalg.norm(val), 0.0)
+        val = (ret - c1)
+        self.assertEqual(np.linalg.norm(val), 0.0)
+
+        ret = npe_test.dense_like_3(a, b1, c1)
+        val = (ret - b1)
+        self.assertEqual(np.linalg.norm(val), 0.0)
+        val = (ret - c1)
+        self.assertEqual(np.linalg.norm(val), 0.0)
+
+        ret = npe_test.dense_like_4(b1, b1, c1)
+        val = (ret - b1)
+        self.assertEqual(np.linalg.norm(val), 0.0)
+        val = (ret - c1)
+        self.assertEqual(np.linalg.norm(val), 0.0)
+
+        with self.assertRaises(ValueError):
+            npe_test.dense_like_1(a, b2)
+        with self.assertRaises(ValueError):
+            npe_test.dense_like_2(a, b1, c2)
+        with self.assertRaises(ValueError):
+            npe_test.dense_like_2(a, b2, c1)
+        with self.assertRaises(ValueError):
+            npe_test.dense_like_2(a, b2, c2)
+        with self.assertRaises(ValueError):
+            npe_test.dense_like_3(a, b1, c2)
+        with self.assertRaises(ValueError):
+            npe_test.dense_like_3(a, b2, c1)
+        with self.assertRaises(ValueError):
+            npe_test.dense_like_3(a, b2, c2)
 
 
 if __name__ == '__main__':

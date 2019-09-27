@@ -121,8 +121,10 @@ public:
     }
 
     // TODO: attribute lookups are kind of slow and I would like to avoid them so lets cache the results
-    // TODO: Check if attribute lookup succeeded
     try {
+      if (!pybind11::hasattr(src, "getformat") || !pybind11::hasattr(src, "data") || !pybind11::hasattr(src, "indices") || !pybind11::hasattr(src, "indptr")) {
+        return false;
+      }
       std::string fmt = pybind11::getattr(src, "getformat")().cast<std::string>();
       src.attr("sort_indices")();
       pybind11::getattr(src, "data").cast<pybind11::array>();

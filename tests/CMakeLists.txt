@@ -20,7 +20,8 @@ npe_add_module(numpyeigen_test
   sparse_like.cpp
   bool_arg.cpp
   function_1d.cpp
-  long_and_int.cpp)
+  long_and_int.cpp
+  dense_like.cpp)
 
 # A vanilla pybind11 module used to write functions to compare against pyeigen
 execute_process(COMMAND python -c "import numpy as np;import sys;sys.stdout.write(np.get_include())"

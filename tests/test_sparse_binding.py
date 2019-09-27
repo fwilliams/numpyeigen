@@ -160,13 +160,25 @@ class TestSparseMatrixWrapper(unittest.TestCase):
         val = (ret - c1).todense()
         self.assertEqual(np.linalg.norm(val), 0.0)
 
+        ret = npe_test.sparse_like_4(b1, b1, c1)
+        val = (ret - b1).todense()
+        self.assertEqual(np.linalg.norm(val), 0.0)
+        val = (ret - c1).todense()
+        self.assertEqual(np.linalg.norm(val), 0.0)
+
         with self.assertRaises(ValueError):
             npe_test.sparse_like_1(a, b2)
+        with self.assertRaises(ValueError):
             npe_test.sparse_like_2(a, b1, c2)
+        with self.assertRaises(ValueError):
             npe_test.sparse_like_2(a, b2, c1)
+        with self.assertRaises(ValueError):
             npe_test.sparse_like_2(a, b2, c2)
+        with self.assertRaises(ValueError):
             npe_test.sparse_like_3(a, b1, c2)
+        with self.assertRaises(ValueError):
             npe_test.sparse_like_3(a, b2, c1)
+        with self.assertRaises(ValueError):
             npe_test.sparse_like_3(a, b2, c2)
 
 

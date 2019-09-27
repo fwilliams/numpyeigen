@@ -112,9 +112,10 @@ namespace npe {
   npe::detail::__NPE_GET_FIRST(__VA_ARGS__) name;
 #define npe_begin_code()
 #define npe_end_code() }
-#define npe_matches(x) dense_f32
+#define npe_matches(x) dense_float
 #define npe_doc(docstr)
-
-#endif // __NPE_FOR_REAL__
+#define npe_sparse_like(x) sparse_float
+#define npe_dense_like(x) dense_float
+#endif // ifndef __NPE_FOR_REAL__
 
 #endif // NPE_H

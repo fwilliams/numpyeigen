@@ -63,6 +63,7 @@ FUNCTION_TOKEN = "npe_function"
 DOC_TOKEN = "npe_doc"
 COMMENT_TOKEN = "//"
 SPARSE_MATCHES_TOKEN = "npe_sparse_like"
+DENSE_MATCHES_TOKEN = "npe_dense_like"
 
 LOG_DEBUG = 3
 LOG_INFO = 1
@@ -334,6 +335,7 @@ class NpeArgument(object):
         self.name = name
         self.is_matches = is_matches
         self.scalar_matches_only = False
+        self.dense_scalar_matches = False  # If scalar_matches_only is set, determines whether this is from dense_like
         self.name_or_type = name_or_type
         self.line_number = line_number
         self.is_sparse = False
@@ -500,12 +502,20 @@ class NpeFunction(object):
         else:
             assert len(var_types) == 1
 
-            if var_types[0].startswith(MATCHES_TOKEN) or var_types[0].startswith(SPARSE_MATCHES_TOKEN):
+            sparse_or_dense_like = var_types[0].startswith(SPARSE_MATCHES_TOKEN) or \
+                                   var_types[0].startswith(DENSE_MATCHES_TOKEN)
+            if var_types[0].startswith(MATCHES_TOKEN) or sparse_or_dense_like:
                 var_meta.is_matches = True
-                var_meta.scalar_matches_only = var_types[0].startswith(SPARSE_MATCHES_TOKEN)
+                var_meta.scalar_matches_only = sparse_or_dense_like
 
                 # If the type was enforcing a match on another type, then handle that case
-                matches_token = SPARSE_MATCHES_TOKEN if var_meta.scalar_matches_only else MATCHES_TOKEN
+                matches_token = MATCHES_TOKEN
+                if var_types[0].startswith(SPARSE_MATCHES_TOKEN):
+                    matches_token = SPARSE_MATCHES_TOKEN
+                    var_meta.dense_scalar_matches = False
+                elif var_types[0].startswith(DENSE_MATCHES_TOKEN):
+                    matches_token = DENSE_MATCHES_TOKEN
+                    var_meta.dense_scalar_matches = True
                 matches_name = _parse_matches_statement(var_types[0], line_number_=line_number,
                                                         matches_token_=matches_token)
 
@@ -696,9 +706,14 @@ class NpeFunction(object):
                     self._argument_name_to_group[arg.name] = group_idx
                     self._input_type_groups[group_idx].arguments = [arg]
                     arg.group = group_idx
-                    self._input_type_groups[group_idx].types = \
-                        [t.replace("dense_", "sparse_") for t in self._input_type_groups[group_idx].types]
-                    arg.matches_name = matches_name.replace("%s(" % SPARSE_MATCHES_TOKEN, "")[:-1]
+                    if arg.dense_scalar_matches:
+                        self._input_type_groups[group_idx].types = \
+                            [t.replace("sparse_", "dense_") for t in self._input_type_groups[group_idx].types]
+                        arg.matches_name = matches_name.replace("%s(" % DENSE_MATCHES_TOKEN, "")[:-1]
+                    else:
+                        self._input_type_groups[group_idx].types = \
+                            [t.replace("dense_", "sparse_") for t in self._input_type_groups[group_idx].types]
+                        arg.matches_name = matches_name.replace("%s(" % SPARSE_MATCHES_TOKEN, "")[:-1]
                 arg.is_sparse = is_sparse_type(self._input_type_groups[group_idx].types[0])
                 arg.is_dense = is_dense_type(self._input_type_groups[group_idx].types[0])
 
@@ -878,10 +893,9 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
             if arg.is_matches and arg.scalar_matches_only:
                 # TODO: Better error message here
                 out_file.write("if (!%s.dtype().is(%s.dtype())) {\n" % (arg.name, arg.matches_name))
-                out_file.write("throw std::invalid_argument(\"Argument `%s` is specified with `npe_sparse_like(%s)`, "
-                               "meaning the scalar types of `%s` and `%s` should match,"
-                               " however they differ.\");\n" %
-                               (arg.name, arg.matches_name, arg.name, arg.matches_name))
+                out_file.write("throw std::invalid_argument(\"The scalar type of argument `%s` must match the "
+                               "scalar type of argument `%s` however they differ.\");\n" %
+                               (arg.name, arg.matches_name))
                 out_file.write("}\n")
 
             write_flags_getter(arg)
