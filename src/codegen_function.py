@@ -307,6 +307,7 @@ class NpeFileReader(object):
             return ""
         pos = self.file.tell()
         line = self.readline()
+        self.line_number -= 1
         self.file.seek(pos)
         return line
 
@@ -317,7 +318,7 @@ class NpeFileReader(object):
         self.close()
 
     def __next__(self):
-        self.line = self.file.readline()
+        self.line = self.readline()
         if len(self.line) == 0:
             raise StopIteration()
         else:
@@ -457,7 +458,7 @@ class NpeFunction(object):
 
         var_types = tokens[1:]
         if len(var_types) == 0:
-            raise ParseError('%s("%s") got no type arguments' % (stmt_token, var_name))
+            raise ParseError('%s("%s") at line %d got no type arguments' % (stmt_token, var_name, line_number))
 
         # We allow npe_default_arg(a, npe_matches(b))
         # in which case we want to handle this as a normal matches statement and write out the default arg later
@@ -591,8 +592,8 @@ class NpeFunction(object):
             consume_eol(line_.strip(), line_number=line_number)
 
         line = file_reader.readline()
-        if consume_call_statement(FUNCTION_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
-            self.name = _parse_npe_function_statement(line, line_number=file_reader.line_number + 1)
+        if consume_call_statement(FUNCTION_TOKEN, line, line_number=file_reader.line_number, throw=False):
+            self.name = _parse_npe_function_statement(line, line_number=file_reader.line_number)
         else:
             raise RuntimeError("This should never happen but clearly it did. "
                                "File a github issue at https://github.com/fwilliams/numpyeigen")
@@ -604,40 +605,40 @@ class NpeFunction(object):
         parsing_doc = False
         doc_lines = ""
         for line in file_reader:
-            if consume_call_statement(ARG_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
-                var_name, var_types, _ = self._parse_arg_statement(line, line_number=file_reader.line_number + 1,
+            if consume_call_statement(ARG_TOKEN, line, line_number=file_reader.line_number, throw=False):
+                var_name, var_types, _ = self._parse_arg_statement(line, line_number=file_reader.line_number,
                                                                    is_default=False)
                 log(LOG_INFO_VERBOSE,
                     TermColors.OKGREEN + "NumpyEigen Arg: " + TermColors.ENDC + var_name + " - " + str(var_types))
 
-                self._parse_doc_statement(doc_lines, line_number=file_reader.line_number + 1, skip=parsing_doc)
+                self._parse_doc_statement(doc_lines, line_number=file_reader.line_number, skip=parsing_doc)
                 parsing_doc = False
-            elif consume_call_statement(DEFAULT_ARG_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
+            elif consume_call_statement(DEFAULT_ARG_TOKEN, line, line_number=file_reader.line_number, throw=False):
                 var_name, var_types, var_value = \
-                    self._parse_arg_statement(line, line_number=file_reader.line_number + 1, is_default=True)
+                    self._parse_arg_statement(line, line_number=file_reader.line_number, is_default=True)
                 log(LOG_INFO_VERBOSE,
                     TermColors.OKGREEN + "NumpyEigen Default Arg: " + TermColors.ENDC + var_name + " - " +
                     str(var_types) + " - " + str(var_value))
 
                 # If we were parsing a multiline npe_doc, we've now reached the end so parse the whole statement
-                self._parse_doc_statement(doc_lines, line_number=file_reader.line_number + 1, skip=parsing_doc)
+                self._parse_doc_statement(doc_lines, line_number=file_reader.line_number, skip=parsing_doc)
                 parsing_doc = False
 
-            elif consume_call_statement(DOC_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
+            elif consume_call_statement(DOC_TOKEN, line, line_number=file_reader.line_number, throw=False):
                 if self._docstr != "":
                     raise ParseError(
                         "Multiple `%s` statements for one function at line %d."
-                        % (DOC_TOKEN, file_reader.line_number + 1))
+                        % (DOC_TOKEN, file_reader.line_number))
 
                 doc_lines += line
                 parsing_doc = True
 
-            elif consume_call_statement(BEGIN_CODE_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
-                _parse_begin_code_statement(line, line_number=file_reader.line_number + 1)
+            elif consume_call_statement(BEGIN_CODE_TOKEN, line, line_number=file_reader.line_number, throw=False):
+                _parse_begin_code_statement(line, line_number=file_reader.line_number)
                 found_begin_code_statement = True
 
                 # If we were parsing a multiline npe_doc, we've now reached the end so parse the whole statement
-                self._parse_doc_statement(doc_lines, line_number=file_reader.line_number + 1, skip=parsing_doc)
+                self._parse_doc_statement(doc_lines, line_number=file_reader.line_number, skip=parsing_doc)
                 break
 
             elif parsing_doc:
@@ -654,15 +655,15 @@ class NpeFunction(object):
                 continue
 
             else:
-                raise ParseError("Unexpected tokens at line %d: %s" % (file_reader.line_number + 1, line))
+                raise ParseError("Unexpected tokens at line %d: %s" % (file_reader.line_number, line))
 
         if not found_begin_code_statement:
             raise ParseError("Invalid binding file. Must does not contain a %s() statement." % BEGIN_CODE_TOKEN)
 
         reached_end_token = False
         for line in file_reader:
-            if consume_call_statement(END_CODE_TOKEN, line, line_number=file_reader.line_number + 1, throw=False):
-                _parse_end_code_statement(line, line_number=file_reader.line_number + 1)
+            if consume_call_statement(END_CODE_TOKEN, line, line_number=file_reader.line_number, throw=False):
+                _parse_end_code_statement(line, line_number=file_reader.line_number)
                 reached_end_token = True
                 break
             elif not reached_end_token:
@@ -729,8 +730,8 @@ class NpeAST(object):
         _preamble = ""
         while True:
             line = file_reader.peekline()
-
             if len(line) == 0:
+                file_reader.readline()
                 break
 
             if len(line.strip()) == 0:

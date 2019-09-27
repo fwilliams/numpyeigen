@@ -22,6 +22,8 @@ npe_doc(docstring)
 // and even one more
 npe_begin_code()
 
+auto npe_arg = [](int x) { return x + 1; };
+npe_arg(5);
 a(0, 0) = 2.0;
 
 return npe::move(a);
