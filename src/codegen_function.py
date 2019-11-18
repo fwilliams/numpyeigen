@@ -958,8 +958,10 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
 
             out_file.write("{\n")
             out_file.write("int group_matched_type_id = %s;\n" % type_id_var(first_non_nullable.name))
-            out_file.write("bool found_non_1d = (%s_shape_0 != 1 && %s_shape_1 != 1);\n" %
-                           (first_non_nullable.name, first_non_nullable.name))
+            out_file.write("bool found_non_1d = "
+                           "(%s_shape_0 != 1 && %s_shape_1 != 1 && %s_shape_0 != 0 && %s_shape_1 != 0);\n" %
+                           (first_non_nullable.name, first_non_nullable.name,
+                            first_non_nullable.name, first_non_nullable.name))
             out_file.write('std::string match_to_name = "%s";\n' % first_non_nullable.name)
             out_file.write('%s::StorageOrder match_so = %s;\n' %
                            (PRIVATE_NAMESPACE, storage_order_var(first_non_nullable.name)))
@@ -987,7 +989,10 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
                                     PRIVATE_NAMESPACE, arg.name, PRIVATE_NAMESPACE, PRIVATE_NAMESPACE) + \
                                  'throw std::invalid_argument(err_msg);\n'
                 out_str = "if (!" + arg.name + ".is_none) {\n" if arg.is_nullable else ""
-                out_str += "if (" + str(arg.name + "_shape_0") + " != 1 && " + str(arg.name + "_shape_1") + " != 1) {\n"
+                out_str += "if (" + str(arg.name + "_shape_0") + " != 1 && " + \
+                           str(arg.name + "_shape_1") + " != 1 && " + \
+                           str(arg.name + "_shape_0") + " != 0 && " + \
+                           str(arg.name + "_shape_1") + " != 0) {\n"
                 out_str += "if (!found_non_1d) {\n" + \
                            "group_matched_type_id = " + type_id_var(arg.name) + ";\n" + \
                            "found_non_1d = true;\n" + \

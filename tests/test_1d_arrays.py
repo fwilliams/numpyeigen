@@ -94,5 +94,128 @@ class Test1dArays(unittest.TestCase):
             s = np.ones(10, dtype=np.float32)
             npe_test.one_d_arg_big(v, f, p, q, r, s)
 
+    def test_passing_0d_arrays(self):
+        dim = np.random.randint(5)
+        a = np.zeros([0, dim])
+        expected = np.array([0, dim])
+        ret = npe_test.default_arg2(a)
+        self.assertTrue(np.array_equal(ret, expected))
+
+    def test_passing_0d_arrays_1(self):
+        dim = np.random.randint(5)
+        # (np.zeros([0, dim]), np.zeros([dim, 0]), np.zeros([0]), np.zeros([0, 0])):
+
+        a = np.zeros([0, dim])
+        v = np.ones([10, 10])
+        f = np.ones([10, 10], dtype=np.int)
+
+        retv, retp = npe_test.one_d_arg(v, f, a)
+        self.assertEqual(retp.shape, a.shape)
+        self.assertEqual(len(a), 0)
+        self.assertTrue(np.array_equal(retv, v))
+
+        #
+        np.zeros([dim, 0])
+        v = np.ones([10, 10])
+        f = np.ones([10, 10], dtype=np.int)
+
+        retv, retp = npe_test.one_d_arg(v, f, a)
+        self.assertEqual(retp.shape, a.shape)
+        self.assertEqual(len(a), 0)
+        self.assertTrue(np.array_equal(retv, v))
+
+        #
+        a = np.zeros([0])
+        v = np.ones([10, 10])
+        f = np.ones([10, 10], dtype=np.int)
+
+        retv, retp = npe_test.one_d_arg(v, f, a)
+        self.assertEqual(retp.shape, a.reshape([0, 0]).shape)
+        self.assertEqual(len(a), 0)
+        self.assertTrue(np.array_equal(retv, v))
+
+        #
+        a = np.zeros([0, 0])
+        v = np.ones([10, 10])
+        f = np.ones([10, 10], dtype=np.int)
+
+        retv, retp = npe_test.one_d_arg(v, f, a)
+        self.assertEqual(retp.shape, a.shape)
+        self.assertEqual(len(a), 0)
+        self.assertTrue(np.array_equal(retv, v))
+
+        #
+        a = np.zeros([])
+        v = np.ones([10, 10])
+        f = np.ones([10, 10], dtype=np.int)
+
+        retv, retp = npe_test.one_d_arg(v, f, a)
+        print(a.shape, retp.shape)
+        self.assertEqual(tuple(retp.shape), (0, 0))
+        self.assertTrue(np.array_equal(retv, v))
+
+    def test_passing_0d_arrays_2(self):
+        dim = np.random.randint(5)
+        a = np.zeros([0, dim])
+
+        for arr_test in (np.zeros([0, dim])):
+            v = arr_test.copy()
+            f = np.ones([10, 10], dtype=np.int)
+            p = arr_test.copy()
+            q = arr_test.copy()
+            r = arr_test.copy()
+            s = arr_test.copy()
+
+            retv, retp = npe_test.one_d_arg_big(v, f, p, q, r, s)
+            self.assertEqual(retp.shape, a.shape)
+            self.assertEqual(len(a), 0)
+            self.assertTrue(np.array_equal(retv, v))
+
+            with self.assertRaises(ValueError):
+                v = arr_test.astype(np.float32)  # np.ones(10, dtype=np.float32)
+                f = np.ones([10, 10], dtype=np.int)
+                p = arr_test.copy()
+                q = arr_test.copy()
+                r = arr_test.copy()
+                s = arr_test.copy()
+                npe_test.one_d_arg_big(v, f, p, q, r, s)
+
+            with self.assertRaises(ValueError):
+                v = arr_test.copy()
+                f = np.ones([10, 10], dtype=np.int)
+                p = arr_test.astype(np.float32)
+                q = arr_test.copy()
+                r = arr_test.copy()
+                s = arr_test.copy()
+                npe_test.one_d_arg_big(v, f, p, q, r, s)
+
+            with self.assertRaises(ValueError):
+                v = arr_test.copy()
+                f = np.ones([10, 10], dtype=np.int)
+                p = arr_test.copy()
+                q = arr_test.astype(np.float32)
+                r = arr_test.copy()
+                s = arr_test.copy()
+                npe_test.one_d_arg_big(v, f, p, q, r, s)
+
+            with self.assertRaises(ValueError):
+                v = arr_test.copy()
+                f = np.ones([10, 10], dtype=np.int)
+                p = arr_test.copy()
+                q = arr_test.copy()
+                r = arr_test.astype(np.float32)
+                s = arr_test.copy()
+                npe_test.one_d_arg_big(v, f, p, q, r, s)
+
+            with self.assertRaises(ValueError):
+                v = arr_test.copy()
+                f = np.ones([10, 10], dtype=np.int)
+                p = arr_test.copy()
+                q = arr_test.copy()
+                r = arr_test.copy()
+                s = arr_test.astype(np.float32)
+                npe_test.one_d_arg_big(v, f, p, q, r, s)
+
+
 if __name__ == '__main__':
     unittest.main()
