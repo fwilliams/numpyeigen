@@ -35,7 +35,7 @@ endfunction()
 
 function(numpyeigen_download_pybind11)
     numpyeigen_download_project(pybind11
-        GIT_REPOSITORY https://github.com/fwilliams/pybind11/
+        GIT_REPOSITORY https://github.com/fwilliams/pybind11.git
         GIT_TAG        numpy-hacks
     )
 endfunction()
