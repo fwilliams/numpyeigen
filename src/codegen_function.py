@@ -1,7 +1,6 @@
 from __future__ import print_function
 
 import argparse
-import copy
 import itertools
 import os
 import platform
@@ -70,7 +69,6 @@ LOG_INFO = 1
 LOG_INFO_VERBOSE = 2
 LOG_ERROR = 0
 
-
 """
 Global Variables set at runtime
 """
@@ -114,6 +112,7 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
     :param split_token: The split token for the C preprocessor to use. Don't change this unless you have a good reason.
     :return:
     """
+
     def run_cpp(input_str):
         if platform.system() == 'Windows':
             filename = "tmp.cc"
@@ -140,7 +139,7 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
         cpp_err = cpp_err.decode("utf-8")
         cpp_err = re.sub(r'(Microsoft \(R\)).+', '', cpp_err)
         cpp_err = re.sub(r'(Copyright \(C\)).+', '', cpp_err)
-        cpp_err = re.sub(r'('+filename+')', '', cpp_err)
+        cpp_err = re.sub(r'(' + filename + ')', '', cpp_err)
         cpp_err = cpp_err.strip()
 
         tmpf.close()
@@ -214,7 +213,6 @@ def is_numpy_type(type_name):
     :param type_name: The type string to check
     :return: True if typestr names a Numpy/Eigen type (e.g. dense_f64, sparse_i32)
     """
-    global NUMPY_ARRAY_TYPES
     return type_name.lower() in NUMPY_ARRAY_TYPES
 
 
@@ -332,12 +330,12 @@ class NpeFileReader(object):
 
 
 class NpeArgument(object):
-    def __init__(self, name, is_matches, name_or_type, line_number, default_value):
+    def __init__(self, name, is_matches, types, line_number, default_value):
         self.name = name
         self.is_matches = is_matches
         self.scalar_matches_only = False
         self.dense_scalar_matches = False  # If scalar_matches_only is set, determines whether this is from dense_like
-        self.name_or_type = name_or_type
+        self.types = types
         self.line_number = line_number
         self.is_sparse = False
         self.is_dense = False
@@ -348,7 +346,7 @@ class NpeArgument(object):
 
     @property
     def is_numpy_type(self):
-        return self.is_sparse or self.is_dense
+        return self.is_sparse or self.is_dense or self.is_matches
 
     @property
     def is_nullable(self):
@@ -362,6 +360,29 @@ class NpeArgumentGroup(object):
     def __init__(self, types=None, arguments=None):
         self.arguments = arguments if arguments is not None else []
         self.types = types if types is not None else []
+        self.meta_group = None  # Other group whose scalar type must match this one
+
+        # Representative argument for this group. This is the one argument that contains scalar types
+        self.rep_arg = None
+
+        # The scalar type of an argument in this group must match the scalar type in the other group
+        self.group_matches = None
+        self.dense_matches = False
+        self.sparse_matches = False
+
+        self.id = -1  # Which is my index in the list of groups
+
+        # The NpeMetaArgumentGroup for which this argument belongs to
+        self.meta_group = None
+
+    def __repr__(self):
+        return str(self.__dict__)
+
+
+class NpeMetaArgumentGroup(object):
+    def __init__(self, groups=None):
+        self.groups = groups if groups is not None else []
+        self.rep_group = None
 
     def __repr__(self):
         return str(self.__dict__)
@@ -369,14 +390,13 @@ class NpeArgumentGroup(object):
 
 class NpeFunction(object):
     def __init__(self, file_reader):
-        self.name = ""                     # The name of the function we are binding
-        self._input_type_groups = []       # Set of allowed types for each group of variables
-        self._argument_name_to_group = {}  # Dictionary mapping input variable names to type groups
-        self._argument_names = []          # List of input variable names in order
-        self._arguments = {}               # Dictionary mapping variable names to types
-        self.source_code = ""              # The source code of the binding
-        self.preamble = ""                 # The code that comes before npe_* statements
-        self._docstr = ""                  # Function documentation
+        self.name = ""  # The name of the function we are binding
+        self._argument_groups = []  # Set of allowed types for each group of variables
+        self._metagroups = []  # Groups of NpeArgumentGroups which must have matching dtypes
+        self._arguments = {}  # Dictionary mapping argument names to NpeArguments
+        self.source_code = ""  # The source code of the binding
+        self.preamble = ""  # The code that comes before npe_* statements
+        self._docstr = ""  # Function documentation
 
         self._parse(file_reader)
         self._validate()
@@ -387,8 +407,7 @@ class NpeFunction(object):
         Iterate over the arguments and their meta data in the order they were passed in
         :return: An iterator over (argument_name, argument_metadata)
         """
-        for arg_name in self._argument_names:
-            arg_meta = self._arguments[arg_name]
+        for _, arg_meta in self._arguments.items():
             yield arg_meta
 
     def argument(self, argname):
@@ -396,18 +415,17 @@ class NpeFunction(object):
 
     @property
     def array_arguments(self):
-        for arg_name in self._argument_names:
-            arg_meta = self._arguments[arg_name]
+        for _, arg_meta in self._arguments.items():
             if arg_meta.is_numpy_type:
                 yield arg_meta
 
     @property
-    def num_args(self):
-        return len(self._argument_names)
+    def num_arguments(self):
+        return len(self._arguments)
 
     @property
-    def num_type_groups(self):
-        return len(self._input_type_groups)
+    def num_argument_groups(self):
+        return len(self._argument_groups)
 
     @property
     def has_array_arguments(self):
@@ -417,133 +435,109 @@ class NpeFunction(object):
         """
         has = False
         for arg in self.arguments:
-            if is_numpy_type(arg.name_or_type[0]) or arg.is_matches:
+            if is_numpy_type(arg.types[0]) or arg.is_matches:
                 has = True
                 break
         return has
 
     @property
     def argument_groups(self):
-        return self._input_type_groups
+        return self._argument_groups
+
+    @property
+    def metagroups(self):
+        return self._metagroups
 
     @property
     def docstring(self):
         return self._docstr
 
+    @staticmethod
+    def _parse_matches_statement(line, line_number, matches_token_=MATCHES_TOKEN):
+        """
+        Parse a matches(<type>) statement, returning the the type inside the parentheses
+        :param line: The current line being parsed
+        :param line_number: The number of the line in the file being parsed
+        :return: The name of the type inside the matches statement as a string
+        """
+
+        line = consume_token(line.strip(), matches_token_, line_number=line_number, case_sensitive=False)
+        line = consume_token(line.strip(), '(', line_number=line_number).strip()
+        if not line.endswith(')'):
+            raise ParseError("Missing ')' for %s() token at line %d" % (matches_token_, line_number))
+
+        return line[:-1]
+
     def _parse_arg_statement(self, line, line_number, is_default):
-        global NUMPY_ARRAY_TYPES, MATCHES_TOKEN, ARG_TOKEN
-
-        def _parse_matches_statement(line_, line_number_, matches_token_=MATCHES_TOKEN):
-            """
-            Parse a matches(<type>) statement, returning the the type inside the parentheses
-            :param line_: The current line being parsed
-            :param line_number_: The number of the line in the file being parsed
-            :return: The name of the type inside the matches statement as a string
-            """
-
-            line_ = consume_token(line_.strip(), matches_token_, line_number=line_number_, case_sensitive=False)
-            line_ = consume_token(line_.strip(), '(', line_number=line_number_).strip()
-            if not line_.endswith(')'):
-                # TODO: Pretty error message
-                raise ParseError("Missing ')' for %s() token at line %d" % (matches_token_, line_number_))
-
-            return line_[:-1]
-
         stmt_token = DEFAULT_ARG_TOKEN if is_default else ARG_TOKEN
 
         tokens = tokenize_npe_line(stmt_token, line.strip(), line_number)
 
-        var_name = tokens[0]
-        validate_identifier_name(var_name)
+        arg_name = tokens[0]
+        validate_identifier_name(arg_name)
 
-        var_types = tokens[1:]
-        if len(var_types) == 0:
-            raise ParseError('%s("%s") at line %d got no type arguments' % (stmt_token, var_name, line_number))
+        arg_types = tokens[1:]
+        if len(arg_types) == 0:
+            raise ParseError('%s("%s") at line %d got no type arguments' % (stmt_token, arg_name, line_number))
 
         # We allow npe_default_arg(a, npe_matches(b))
         # in which case we want to handle this as a normal matches statement and write out the default arg later
-        var_value = var_types.pop() if is_default else None
-        if var_value is not None and var_value.startswith(MATCHES_TOKEN):
-            _parse_matches_statement(var_value, line_number_=line_number)
-            var_types.append(var_value)
+        arg_value = arg_types.pop() if is_default else None
+        if arg_value is not None and arg_value.startswith(MATCHES_TOKEN):
+            self._parse_matches_statement(arg_value, line_number=line_number)
+            arg_types.append(arg_value)
 
-        var_meta = NpeArgument(name=var_name,
-                               is_matches=False,
-                               name_or_type=var_types,
-                               line_number=line_number,
-                               default_value=var_value)
+        arg = NpeArgument(name=arg_name,
+                          is_matches=False,
+                          types=arg_types,
+                          line_number=line_number,
+                          default_value=arg_value)
 
-        group_id = -1
-
-        if len(var_types) == 0:
+        if len(arg_types) == 0:
             # TODO: Pretty error message
-            raise ParseError('%s("%s") got no type arguments' % (stmt_token, var_name))
-        elif len(var_types) > 1 or (len(var_types) == 1 and is_numpy_type(var_types[0])):
+            raise ParseError('No types specified for argument %s (line %d)' % (arg_name, line_number))
+        elif len(arg_types) > 1 or (len(arg_types) == 1 and is_numpy_type(arg_types[0])):
             # We're binding a scipy dense or sparse array. Check that the types are valid.
-            for type_str in var_types:
+            for type_str in arg_types:
                 if not is_numpy_type(type_str):
                     # TODO: Pretty error message
                     raise ParseError("Got invalid type, `%s` in %s() at line %d. "
-                                     "If multiple types are specified, "
-                                     "they must be one of %s" % (type_str, stmt_token, line_number, NUMPY_ARRAY_TYPES))
-
-            if var_name in self._argument_name_to_group:
-                # There was a matches() done before the group was created, fix the data structure
-                group_id = self._argument_name_to_group[var_name]
-                assert len(self._input_type_groups[group_id].types) == 0
-                self._input_type_groups[group_id].types = var_types
-                self._input_type_groups[group_id].arguments.append(var_meta)
-            else:
-                # This is the first time we're seeing this group
-                var_group = NpeArgumentGroup(types=var_types)
-                self._input_type_groups.append(var_group)
-                group_id = len(self._input_type_groups) - 1
-                self._argument_name_to_group[var_name] = group_id
-                self._input_type_groups[group_id].arguments = [var_meta]
+                                     "If multiple types are specified, they must be a valid Numpy or Scipy type. "
+                                     "i.e. one of %s" % (type_str, stmt_token, line_number, NUMPY_ARRAY_TYPES))
+                arg.is_sparse = is_sparse_type(type_str)
+                arg.is_dense = is_dense_type(type_str)
+                assert arg.is_sparse != arg.is_dense
         else:
-            assert len(var_types) == 1
-
-            sparse_or_dense_like = var_types[0].startswith(SPARSE_MATCHES_TOKEN) or \
-                                   var_types[0].startswith(DENSE_MATCHES_TOKEN)
-            if var_types[0].startswith(MATCHES_TOKEN) or sparse_or_dense_like:
-                var_meta.is_matches = True
-                var_meta.scalar_matches_only = sparse_or_dense_like
+            assert len(arg_types) == 1  # Non NumPy/SciPy arguments can only have one type
+            sparse_or_dense_like = arg_types[0].startswith(SPARSE_MATCHES_TOKEN) or \
+                                   arg_types[0].startswith(DENSE_MATCHES_TOKEN)
+            if arg_types[0].startswith(MATCHES_TOKEN) or sparse_or_dense_like:
+                arg.is_matches = True
+                arg.scalar_matches_only = sparse_or_dense_like
 
                 # If the type was enforcing a match on another type, then handle that case
                 matches_token = MATCHES_TOKEN
-                if var_types[0].startswith(SPARSE_MATCHES_TOKEN):
+                if arg_types[0].startswith(SPARSE_MATCHES_TOKEN):
                     matches_token = SPARSE_MATCHES_TOKEN
-                    var_meta.dense_scalar_matches = False
-                elif var_types[0].startswith(DENSE_MATCHES_TOKEN):
+                    arg.dense_scalar_matches = False
+                    arg.is_dense = False
+                    arg.is_sparse = True
+                elif arg_types[0].startswith(DENSE_MATCHES_TOKEN):
                     matches_token = DENSE_MATCHES_TOKEN
-                    var_meta.dense_scalar_matches = True
-                matches_name = _parse_matches_statement(var_types[0], line_number_=line_number,
-                                                        matches_token_=matches_token)
-
-                if matches_name in self._argument_name_to_group:
-                    group_id = self._argument_name_to_group[matches_name]
-                    self._argument_name_to_group[var_name] = group_id
-                    self._input_type_groups[group_id].arguments.append(var_meta)
-                else:
-                    group_id = len(self._input_type_groups) - 1
-                    self._argument_name_to_group[var_name] = group_id
-                    self._argument_name_to_group[matches_name] = group_id
-                    var_meta.matches_name = matches_name
-
-                    var_group = NpeArgumentGroup(types=[], arguments=[var_meta])
-                    self._input_type_groups.append(var_group)
+                    arg.dense_scalar_matches = True
+                    arg.is_dense = True
+                    arg.is_sparse = False
+                arg.matches_name = self._parse_matches_statement(arg_types[0], line_number=line_number,
+                                                                 matches_token_=matches_token)
             else:
                 # TODO: Check that type requested is valid? - I'm not sure if we can really do this though.
                 pass
 
-        var_meta.group = self._input_type_groups[group_id] if group_id >= 0 else None
-        self._argument_names.append(var_name)
-        self._arguments[var_name] = var_meta
+        self._arguments[arg_name] = arg
 
-        return var_name, var_types, var_value
+        return arg_name, arg_types, arg_value
 
     def _parse_doc_statement(self, line, line_number, skip):
-        global DOC_TOKEN
         if not skip:
             return
 
@@ -561,39 +555,36 @@ class NpeFunction(object):
         log(LOG_INFO_VERBOSE,
             TermColors.OKGREEN + "NumpyEigen Docstring - %s" % self._docstr)
 
+    @staticmethod
+    def _parse_npe_function_statement(line, line_number):
+        tokens = tokenize_npe_line(FUNCTION_TOKEN, line, line_number)
+        if len(tokens) > 1:
+            raise ParseError(FUNCTION_TOKEN + " got extra tokens, %s, at line %d. "
+                                              "Expected only the name of the function." %
+                             (tokens[1, :], line_number))
+        binding_name = tokens[0]
+        validate_identifier_name(binding_name)
+
+        return binding_name
+
+    @staticmethod
+    def _parse_begin_code_statement(line, line_number):
+        line = consume_token(line.strip(), BEGIN_CODE_TOKEN, line_number=line_number, case_sensitive=False)
+        line = consume_token(line.strip(), '(', line_number=line_number)
+        line = consume_token(line.strip(), ')', line_number=line_number)
+        consume_eol(line.strip(), line_number=line_number)
+
+    @staticmethod
+    def _parse_end_code_statement(line, line_number):
+        line = consume_token(line.strip(), END_CODE_TOKEN, line_number=line_number, case_sensitive=False)
+        line = consume_token(line.strip(), '(', line_number=line_number)
+        line = consume_token(line.strip(), ')', line_number=line_number)
+        consume_eol(line.strip(), line_number=line_number)
+
     def _parse(self, file_reader):
-        global ARG_TOKEN, BEGIN_CODE_TOKEN, END_CODE_TOKEN, FUNCTION_TOKEN
-
-        def _parse_npe_function_statement(line_, line_number):
-            global FUNCTION_TOKEN
-
-            tokens = tokenize_npe_line(FUNCTION_TOKEN, line_, line_number)
-            if len(tokens) > 1:
-                raise ParseError(FUNCTION_TOKEN + " got extra tokens, %s, at line %d. "
-                                                  "Expected only the name of the function." %
-                                 (tokens[1, :], line_number))
-            binding_name = tokens[0]
-            validate_identifier_name(binding_name)
-
-            return binding_name
-
-        def _parse_begin_code_statement(line_, line_number):
-            global BEGIN_CODE_TOKEN
-            line_ = consume_token(line_.strip(), BEGIN_CODE_TOKEN, line_number=line_number, case_sensitive=False)
-            line_ = consume_token(line_.strip(), '(', line_number=line_number)
-            line_ = consume_token(line_.strip(), ')', line_number=line_number)
-            consume_eol(line_.strip(), line_number=line_number)
-
-        def _parse_end_code_statement(line_, line_number):
-            global END_CODE_TOKEN
-            line_ = consume_token(line_.strip(), END_CODE_TOKEN, line_number=line_number, case_sensitive=False)
-            line_ = consume_token(line_.strip(), '(', line_number=line_number)
-            line_ = consume_token(line_.strip(), ')', line_number=line_number)
-            consume_eol(line_.strip(), line_number=line_number)
-
         line = file_reader.readline()
         if consume_call_statement(FUNCTION_TOKEN, line, line_number=file_reader.line_number, throw=False):
-            self.name = _parse_npe_function_statement(line, line_number=file_reader.line_number)
+            self.name = self._parse_npe_function_statement(line, line_number=file_reader.line_number)
         else:
             raise RuntimeError("This should never happen but clearly it did. "
                                "File a github issue at https://github.com/fwilliams/numpyeigen")
@@ -634,7 +625,7 @@ class NpeFunction(object):
                 parsing_doc = True
 
             elif consume_call_statement(BEGIN_CODE_TOKEN, line, line_number=file_reader.line_number, throw=False):
-                _parse_begin_code_statement(line, line_number=file_reader.line_number)
+                self._parse_begin_code_statement(line, line_number=file_reader.line_number)
                 found_begin_code_statement = True
 
                 # If we were parsing a multiline npe_doc, we've now reached the end so parse the whole statement
@@ -663,7 +654,7 @@ class NpeFunction(object):
         reached_end_token = False
         for line in file_reader:
             if consume_call_statement(END_CODE_TOKEN, line, line_number=file_reader.line_number, throw=False):
-                _parse_end_code_statement(line, line_number=file_reader.line_number)
+                self._parse_end_code_statement(line, line_number=file_reader.line_number)
                 reached_end_token = True
                 break
             elif not reached_end_token:
@@ -674,49 +665,166 @@ class NpeFunction(object):
 
     def _validate(self):
         for arg in self.arguments:
-            is_sparse = is_sparse_type(arg.name_or_type[0])
-            is_dense = is_dense_type(arg.name_or_type[0])
+            if arg.is_numpy_type:
+                if arg.is_matches:  # Argument type is a matches constraint of some kind
+                    # Check that the matched argument exists
+                    if arg.matches_name not in self._arguments:
+                        raise SemanticError("Argument %s is declared with npe_matches(%s) (line %d) but %s is not an "
+                                            "argument to the function." %
+                                            (arg.name, arg.matches_name, arg.line_number, arg.matches_name))
+                    # Check that the matched argument is a Numpy or Scipy type
+                    matched_arg = self._arguments[arg.matches_name]
+                    if not matched_arg.is_numpy_type:
+                        raise SemanticError("Argument %s is declared with npe_matches(%s) (line %d) but %s is not a "
+                                            "Numpy or Scipy argument argument." %
+                                            (arg.name, arg.matches_name, arg.line_number, arg.matches_name))
 
-            for type_name in arg.name_or_type:
-                if is_sparse_type(type_name) != is_sparse or is_dense_type(type_name) != is_dense:
-                    raise SemanticError("Input Variable %s (line %d) has a mix of sparse and dense types."
-                                        % (arg.name, arg.line_number))
-            if arg.name in self._argument_name_to_group:
-                arg.group = self._argument_name_to_group[arg.name]
+                    # Handle npe_matches, npe_sparse/dense_like constraints
+                    if not arg.scalar_matches_only:  # Hard matches another argument
+                        # Merge the two arguments into an argument group
+                        if matched_arg.group is None:
+                            grp = NpeArgumentGroup()
+                            self._argument_groups.append(grp)
+                            grp.id = len(self._argument_groups) - 1
+                            matched_arg.group = grp
 
-            arg.is_sparse = is_sparse
-            arg.is_dense = is_dense
+                        arg.group = matched_arg.group
+                    else:  # Dtype matches another argument
+                        # Put arguments into seperate groups, and enforce that the dtypes of these groups need to match
+                        if arg.group is None:
+                            grp = NpeArgumentGroup()
+                            self._argument_groups.append(grp)
+                            grp.id = len(self._argument_groups) - 1
+                            arg.group = grp
+                        if matched_arg.group is None:
+                            grp = NpeArgumentGroup()
+                            self._argument_groups.append(grp)
+                            grp.id = len(self._argument_groups) - 1
+                            matched_arg.group = grp
 
-        for arg in self.arguments:
-            if arg.is_matches:
-                group_idx = self._argument_name_to_group[arg.name]
-                matches_name = arg.name_or_type[0]
-                if len(self._input_type_groups[group_idx].types) == 0:
-                    # TODO: Better error message here
-                    raise SemanticError("Input Variable %s (line %d) was declared with type %s but was "
-                                        "unmatched with a numpy type." %
-                                        (arg.name, arg.line_number, matches_name))
+                        # Add constraint that dtypes of both groups need to match
+                        arg.group.group_matches = matched_arg.group
+                        arg.group.dense_matches = arg.dense_scalar_matches
+                        arg.group.sparse_matches = not arg.group.dense_matches
 
-                if arg.scalar_matches_only:
-                    self._input_type_groups[group_idx].arguments.remove(arg)
-                    if len(self._input_type_groups[group_idx].arguments) == 0:
-                        log(LOG_DEBUG, TermColors.WARNING + "Empty Argument Group" + TermColors.ENDC)
+                        # The argument which has the dense_like or sparse_like is the representative of this group
+                        assert arg.group.rep_arg is None, \
+                            "There should never be another representative argument when assigning one."
+                        arg.group.rep_arg = arg
 
-                    self._input_type_groups.append(copy.deepcopy(self._input_type_groups[group_idx]))
-                    group_idx = len(self._input_type_groups) - 1
-                    self._argument_name_to_group[arg.name] = group_idx
-                    self._input_type_groups[group_idx].arguments = [arg]
-                    arg.group = group_idx
-                    if arg.dense_scalar_matches:
-                        self._input_type_groups[group_idx].types = \
-                            [t.replace("sparse_", "dense_") for t in self._input_type_groups[group_idx].types]
-                        arg.matches_name = matches_name.replace("%s(" % DENSE_MATCHES_TOKEN, "")[:-1]
-                    else:
-                        self._input_type_groups[group_idx].types = \
-                            [t.replace("dense_", "sparse_") for t in self._input_type_groups[group_idx].types]
-                        arg.matches_name = matches_name.replace("%s(" % SPARSE_MATCHES_TOKEN, "")[:-1]
-                arg.is_sparse = is_sparse_type(self._input_type_groups[group_idx].types[0])
-                arg.is_dense = is_dense_type(self._input_type_groups[group_idx].types[0])
+                else:  # Argument type is not a matches constraint
+                    # Determine if a Numpy/Scipy argument is sparse or dense and check that the user did not
+                    # mix sparse and dense types
+                    is_sparse = is_sparse_type(arg.types[0])
+                    is_dense = is_dense_type(arg.types[0])
+                    for type_name in arg.types:
+                        if is_sparse_type(type_name) != is_sparse or is_dense_type(type_name) != is_dense:
+                            raise SemanticError(
+                                "Argument %s (line %d) is declared with a mix of sparse and dense types."
+                                % (arg.name, arg.line_number))
+
+                    # Make a new group and put the argument into it
+                    if arg.group is None:
+                        grp = NpeArgumentGroup()
+                        self._argument_groups.append(grp)
+                        grp.id = len(self._argument_groups) - 1
+                        arg.group = grp
+                    assert arg.group is not None
+                    assert len(arg.group.types) == 0
+                    assert arg.is_dense != arg.is_sparse
+                    assert arg.group.rep_arg is None, \
+                        "There should never be another representative argument when assigning one."
+                    # The argument which has the list of types is the representative of this group
+                    arg.group.rep_arg = arg
+                    arg.group.types = arg.types
+
+                # Add the argument to its group
+                arg.group.arguments.append(arg)
+
+        # Create meta groups for matching arguments
+        for grp in self._argument_groups:
+            assert grp.rep_arg is not None
+            assert grp.rep_arg.is_sparse != grp.rep_arg.is_dense
+            for arg in grp.arguments:
+                arg.is_dense = grp.rep_arg.is_dense
+                arg.is_sparse = grp.rep_arg.is_sparse
+
+            if grp.group_matches is not None:  # This group has a scalar matches constraint to another group
+                # Create a MetaGroup containing the two ArgumentGroups
+                other_grp = grp.group_matches
+
+                if other_grp.meta_group is None:
+                    other_grp.meta_group = NpeMetaArgumentGroup()
+                    other_grp.meta_group.groups.append(other_grp)
+                    self._metagroups.append(other_grp.meta_group)
+
+                other_grp.meta_group.groups.append(grp)
+                grp.meta_group = other_grp.meta_group
+            else:  # This group does not have a scalar matches constraint
+                # Create MetaGroup contining only this ArgumentGroup
+                if grp.meta_group is None:
+                    grp.meta_group = NpeMetaArgumentGroup()
+                    grp.meta_group.groups.append(grp)
+                    self._metagroups.append(grp.meta_group)
+
+            assert grp.meta_group is not None
+
+            # One group in a MetaGroup is a representative. It contains a list of types.
+            # It should be impossible for there to be more than one such group.
+            if len(grp.types) > 0:
+                assert grp.meta_group.rep_group is None, \
+                    "There can only be one representative group in a meta group. This should never happen!"
+                grp.meta_group.rep_group = grp
+
+        for smg in self._metagroups:
+            # scalar_matches cycle
+            if smg.rep_group is None:
+                cycle_args = ", ".join([grp.rep_arg.name for grp in smg.groups])
+                raise SemanticError("The types for arguments %s all reference each other forming a cycle." % cycle_args)
+
+            # Resolve types in each group
+            for grp in smg.groups:
+                if grp != smg.rep_group:
+                    assert grp.meta_group is not None
+                    assert grp.dense_matches != grp.sparse_matches
+                    if grp.dense_matches:
+                        grp.types = [t.replace("sparse_", "dense_") for t in smg.rep_group.types]
+                    elif grp.sparse_matches:
+                        grp.types = [t.replace("dense_", "sparse_") for t in smg.rep_group.types]
+
+        # Resolve types of all arguments
+        for grp in self._argument_groups:
+            assert len(grp.arguments) != 0
+
+            # Check that every argument group contains types
+            # i.e. no circular npe_matches() arguments
+            if len(grp.types) == 0:
+                cycle_args = ", ".join([arg.name for arg in grp.arguments])
+                raise SemanticError("The types for arguments %s all reference each other forming a npe_matches cycle." % cycle_args)
+
+            # Paranoid double check that all arguments in a group are uniquely sparse or uniquely dense
+            # We validate this condition already at parse time so this is an assert
+            dense_group = grp.arguments[0].is_dense
+            sparse_group = grp.arguments[0].is_sparse
+            for arg in grp.arguments:
+                # We validate this condition already at parse time so this is an assert
+                assert arg.is_dense == dense_group and arg.is_sparse == sparse_group, \
+                    "Argument group contains a mix of dense and sparse types. This should never happen!"
+                assert arg.is_dense != arg.is_sparse, "An argument is somehow dense and sparse simultaneously. " \
+                                                      "This should never happen!"
+
+        # If verbose printing is on, dump all the metadata about this function
+        if verbosity_level >= LOG_INFO_VERBOSE:
+            logstr = TermColors.OKGREEN + "NumpyEigen Function Metadata:\n" + TermColors.ENDC
+            logstr += TermColors.OKGREEN + " Arguments: " + TermColors.ENDC + "%s\n" % [a.name for a in self.arguments]
+            logstr += TermColors.OKGREEN + " Groups:\n" + TermColors.ENDC
+            for idx, grp in enumerate(self._argument_groups):
+                grpargs = [a.name for a in grp.arguments]
+                logstr += "  %d: %s\n" % (idx, str(grpargs))
+            logstr += TermColors.OKGREEN + " MetaGroups:\n" + TermColors.ENDC
+            for metagrp in self._metagroups:
+                logstr += "  %s\n" % str([g.id for g in metagrp.groups])
+            log(LOG_INFO_VERBOSE, logstr)
 
 
 class NpeAST(object):
@@ -834,7 +942,7 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
         is_sparse = PRIVATE_NAMESPACE + "::is_sparse<std::remove_reference<decltype(" + \
                     cast_arg(arg) + ")>::type>::value"
         out_str += PRIVATE_NAMESPACE + "::get_type_id(" + is_sparse + ", " + type_name + ", " + \
-            storage_order_name + ");\n"
+                   storage_order_name + ");\n"
         out_file.write(out_str)
 
     def write_function_switch_header(fun):
@@ -854,14 +962,16 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
                 out_file.write(prefix + "pybind11::array" + suffix)
                 out_file.write(arg.name)
             else:
-                assert len(arg.name_or_type) == 1
-                var_type = arg.name_or_type[0]
+                # Non Numpy/Scipy arguments only have one type
+                assert len(arg.types) == 1, "More than one type %s" % str(arg.types)
+                var_type = arg.types[0]
                 out_file.write(var_type + " ")
                 out_file.write(arg.name)
-            next_token = ", " if i < fun.num_args - 1 else ") {\n"
+            next_token = ", " if i < fun.num_arguments - 1 else ") {\n"
             out_file.write(next_token)
             i += 1
-        if fun.num_args == 0:
+
+        if fun.num_arguments == 0:
             out_file.write(") {\n")
 
         out_file.write("#ifdef __NPE_REDIRECT_IO__\n")
@@ -876,8 +986,11 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
 
         # Declare variables used to determine the type at runtime
         for arg in fun.array_arguments:
+            # A character representing the dtype of the argument
             out_file.write("const char %s = %s::transform_typechar(%s.dtype().type());\n" %
                            (type_name_var(arg.name), PRIVATE_NAMESPACE, cast_arg(arg)))
+
+            # Check that the shape of the argument has length one or 2
             out_file.write("ssize_t %s_shape_0 = 0;\n" % arg.name)
             out_file.write("ssize_t %s_shape_1 = 0;\n" % arg.name)
             out_file.write("if (%s.ndim() == 1) {\n" % cast_arg(arg))
@@ -891,14 +1004,8 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
                            " has invalid number of dimensions. Must be 1 or 2.\");\n")
             out_file.write("}\n")
 
-            if arg.is_matches and arg.scalar_matches_only:
-                # TODO: Better error message here
-                out_file.write("if (!%s.dtype().is(%s.dtype())) {\n" % (arg.name, arg.matches_name))
-                out_file.write("throw std::invalid_argument(\"The scalar type of argument `%s` must match the "
-                               "scalar type of argument `%s` however they differ.\");\n" %
-                               (arg.name, arg.matches_name))
-                out_file.write("}\n")
-
+            # Declare variables representing the storage order and an integer ID representing the combination of
+            # scalar type (dtype) and storage order of the argument
             write_flags_getter(arg)
             write_type_id_getter(arg)
 
@@ -920,27 +1027,30 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
             out_file.write('std::cout << "-------------------------------------------------------" << std::endl;\n')
 
         # Ensure the types in each group match
-        for group_id in range(fun.num_type_groups):
-            group_var_names = [vm.name for vm in fun.argument_groups[group_id].arguments]
+        first_non_nullables = []
+
+        for grp in fun.argument_groups:
+            # At least one argument must be non-nullable, find this argument and use it as a reprensentative to
+            # compare the types of all arguments in a group to
             first_non_nullable = None
-            for var_name in group_var_names:
-                arg = fun.argument(var_name)
+            for arg in grp.arguments:
                 if not arg.is_nullable:
                     first_non_nullable = arg
                     break
             assert first_non_nullable is not None, "What in the actual fuck?"
+            first_non_nullables.append(first_non_nullable)
 
-            group_types = fun.argument_groups[group_id].types
-            pretty_group_types = [NUMPY_ARRAY_TYPES_TO_CPP[gt][2] for gt in group_types]
-
+            # TODO: Pretty error message highlighting exactly which arguments mismatch
+            # Compare the type of the representative to every valid type in the group and raise an exception if there
+            # is a mismatch
             out_str = "if ("
-            for i in range(len(group_types)):
-                type_name = group_types[i]
+            for i in range(len(grp.types)):
+                type_name = grp.types[i]
                 out_str += type_name_var(first_non_nullable.name) + "!= " + \
                            PRIVATE_NAMESPACE + "::transform_typechar( " + type_char_for_numpy_type(type_name) + ")"
-                next_token = " && " if i < len(group_types) - 1 else ") {\n"
+                next_token = " && " if i < len(grp.types) - 1 else ") {\n"
                 out_str += next_token
-
+            pretty_group_types = [NUMPY_ARRAY_TYPES_TO_CPP[gt][2] for gt in grp.types]
             out_str += 'std::string err_msg = std::string("Invalid scalar type (") + ' \
                        '%s::type_to_str(%s) + ", " + %s::storage_order_to_str(%s) + ' \
                        'std::string(") for argument \'%s\'. Expected one of %s.");\n' % \
@@ -948,14 +1058,18 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
                         PRIVATE_NAMESPACE, storage_order_var(first_non_nullable.name),
                         first_non_nullable.name, pretty_group_types)
             out_str += 'throw std::invalid_argument(err_msg);\n'
-
             out_str += "}\n"
             out_file.write(out_str)
 
-            assert len(group_var_names) >= 1
-            if len(group_var_names) == 1:
+            # If there is only one argument to check, then don't generate any extra checks
+            assert len(grp.arguments) >= 1
+            if len(grp.arguments) == 1:
                 continue
 
+            # Now, check that the dtype and storage order of every argument in the group matches the type of the
+            # representative.
+            # If one of the arguments is a vector or a zero sized array, then automatically coalesce it to the right
+            # storage order
             out_file.write("{\n")
             out_file.write("int group_matched_type_id = %s;\n" % type_id_var(first_non_nullable.name))
             out_file.write("bool found_non_1d = "
@@ -967,16 +1081,15 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
                            (PRIVATE_NAMESPACE, storage_order_var(first_non_nullable.name)))
             out_file.write("char group_type_s = %s;\n" % type_name_var(first_non_nullable.name))
 
-            for i in range(len(group_var_names)):
-                arg = fun.argument(group_var_names[i])
+            for arg in grp.arguments:
                 exception_str1 = 'std::string err_msg = std::string("Invalid type (") + ' \
                                  '%s::type_to_str(%s) + ", " + %s::storage_order_to_str(%s) + ' \
                                  'std::string(") for argument \'%s\'. Expected it to match argument \'") + ' \
                                  'match_to_name + std::string("\' which is of type (") + ' \
                                  '%s::type_to_str(group_type_s) + ", " + %s::storage_order_to_str(match_so) + ' \
                                  'std::string(").");\n' \
-                                 % (PRIVATE_NAMESPACE, type_name_var(group_var_names[i]),
-                                    PRIVATE_NAMESPACE, storage_order_var(group_var_names[i]),
+                                 % (PRIVATE_NAMESPACE, type_name_var(arg.name),
+                                    PRIVATE_NAMESPACE, storage_order_var(arg.name),
                                     arg.name, PRIVATE_NAMESPACE, PRIVATE_NAMESPACE) + \
                                  'throw std::invalid_argument(err_msg);\n'
                 exception_str2 = 'std::string err_msg = std::string("Invalid type (") + ' \
@@ -985,7 +1098,7 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
                                  'match_to_name + std::string("\' which is of type (") + ' \
                                  '%s::type_to_str(group_type_s) + ", " +  %s::storage_order_to_str(match_so) + ' \
                                  'std::string(").");\n' \
-                                 % (PRIVATE_NAMESPACE, type_name_var(group_var_names[i]),
+                                 % (PRIVATE_NAMESPACE, type_name_var(arg.name),
                                     PRIVATE_NAMESPACE, arg.name, PRIVATE_NAMESPACE, PRIVATE_NAMESPACE) + \
                                  'throw std::invalid_argument(err_msg);\n'
                 out_str = "if (!" + arg.name + ".is_none) {\n" if arg.is_nullable else ""
@@ -1010,10 +1123,36 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
                 out_file.write(out_str)
             out_file.write("}\n")
 
+        # Now check that each metagroup have matching dtypes
+        for metagrp in fun.metagroups:
+            rep_arg = first_non_nullables[metagrp.rep_group.id]
+            for grp in metagrp.groups:
+                if grp == rep_arg.group:
+                    continue
+
+                arg = first_non_nullables[grp.id]
+                exception_str = 'std::string err_msg = std::string("Invalid dtype `") + ' \
+                                '%s::type_to_str(%s) + ' 'std::string("` for argument \'%s\'. ' \
+                                'Expected it to match argument ") + ' \
+                                '"\'%s\'" + std::string(" which has dtype `") + ' \
+                                '%s::type_to_str(%s) + ' \
+                                'std::string("`.");\n' \
+                                % (PRIVATE_NAMESPACE, type_name_var(arg.name), arg.name, rep_arg.name,
+                                   PRIVATE_NAMESPACE, type_name_var(rep_arg.name)) + \
+                                'throw std::invalid_argument(err_msg);\n'
+
+                out_str = "if (!" + arg.name + ".is_none) {\n" if arg.is_nullable else ""
+                out_str += "if(" + type_name_var(arg.name) + " != " + type_name_var(rep_arg.name) + ") {\n"
+                out_str += exception_str
+                out_str += "}\n"
+                out_str += "}\n" if arg.is_nullable else ""
+                out_file.write(out_str)
+
     def write_function_switch_body(fun):
+        # At this stage in execution, we're guaranteed that every argument in a group has exactly the same type
+        # and that any arguments in the same metagroup have exactly the same dtype
         expanded_type_groups = [itertools.product(group.types, STORAGE_ORDER_SUFFIXES) for group in fun.argument_groups]
         group_combos = itertools.product(*expanded_type_groups)
-
         branch_count = 0
 
         if fun.has_array_arguments:
@@ -1036,6 +1175,20 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
                                PRIVATE_NAMESPACE + "::" + TYPE_ID_ENUM + "::" + typename + ")"
                     next_token = " && " if group_id < len(combo) - 1 else ")"
                     out_str += next_token
+
+                def dtype_from_type(type_):
+                    return type_.replace("dense_", "").replace("sparse_", "")
+
+                for metagrp in fun.metagroups:
+                    rep_dtype = dtype_from_type(combo[metagrp.groups[0].id][0])
+                    for grp in metagrp.groups:
+                        grp_dtype = dtype_from_type(combo[grp.id][0])
+                        if grp_dtype != rep_dtype:
+                            skip = True
+                            break
+                    else:
+                        continue
+                    break
 
                 if skip:
                     continue
@@ -1126,11 +1279,11 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
         for arg in fun.arguments:
             if arg.is_numpy_type:
                 stride_str = ""
-                if arg.group is not None:
-                    arg_suffix = combo[arg.group][1]
-                    if arg_suffix == STORAGE_ORDER_SUFFIX_XM:
-                        stride_str = ", Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>(" + \
-                                     arg.name + "_outer_stride, " + arg.name + "_inner_stride)"
+                assert arg.group is not None
+                arg_suffix = combo[arg.group.id][1]
+                if arg_suffix == STORAGE_ORDER_SUFFIX_XM:
+                    stride_str = ", Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>(" + \
+                                 arg.name + "_outer_stride, " + arg.name + "_inner_stride)"
 
                 map_str = ""
                 if arg.is_nullable:
@@ -1142,7 +1295,7 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
 
                 if not arg.is_sparse:
                     map_str += "Map_" + arg.name + "((Scalar_" + arg.name + "*) " + cast_arg(arg) + ".data(), " + \
-                              arg.name + "_shape_0, " + arg.name + "_shape_1" + stride_str + "),"
+                               arg.name + "_shape_0, " + arg.name + "_shape_1" + stride_str + "),"
                 else:
                     map_str += arg.name + ".as_eigen<Matrix_" + arg.name + ">(),"
 
@@ -1173,7 +1326,7 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
             if arg.is_numpy_type:
                 argument_str += "%s%s %s," % (MAP_TYPE_PREFIX, arg.name, arg.name)
             else:
-                argument_str += arg.name_or_type[0] + " " + arg.name + ","
+                argument_str += arg.types[0] + " " + arg.name + ","
         argument_str = argument_str[:-1] + ") {\n"
         out_file.write(argument_str)
         out_file.write(fun.source_code)
@@ -1239,8 +1392,6 @@ def main():
     arg_parser.add_argument('--c-preprocessor-args', help='Input String', nargs='*', type=str)
 
     args = arg_parser.parse_args()
-
-    head, tail = os.path.split(args.cpp_cmd)
 
     cpp_path = args.cpp_cmd
 
