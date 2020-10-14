@@ -110,7 +110,7 @@ class Test1dArays(unittest.TestCase):
         f = np.ones([10, 10], dtype=np.int)
 
         retv, retp = npe_test.one_d_arg(v, f, a)
-        self.assertEqual(retp.shape[0], a.shape[0])
+        self.assertEqual(retp.shape, a.shape)
         self.assertEqual(len(a), 0)
         self.assertTrue(np.array_equal(retv, v))
 
@@ -120,7 +120,7 @@ class Test1dArays(unittest.TestCase):
         f = np.ones([10, 10], dtype=np.int)
 
         retv, retp = npe_test.one_d_arg(v, f, a)
-        self.assertEqual(retp.shape[0], a.shape[0])
+        self.assertEqual(retp.shape, a.shape)
         self.assertEqual(len(a), 0)
         self.assertTrue(np.array_equal(retv, v))
 
