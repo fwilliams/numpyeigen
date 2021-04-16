@@ -16,11 +16,11 @@ class TermColors:
 FUNCTION_NAME_PREFIX = "pybind_output_fun_"
 
 
-def write_module(out_file, module_name, files):
+def write_module(out_file, module_name, files, additional_funcs):
     out_file.write("#include <pybind11/pybind11.h>\n")
 
     func_names = ["pybind_output_fun_" + os.path.basename(fn).replace(".", "_") for fn in files]
-
+    func_names.extend(additional_funcs)
     for fn in func_names:
         out_file.write("void %s(pybind11::module&);\n" % fn)
 
@@ -42,10 +42,10 @@ if __name__ == "__main__":
     arg_parser.add_argument("-o", "--output", type=str, default="a.out")
     arg_parser.add_argument("-m", "--module-name", type=str, required=True)
     arg_parser.add_argument("-f", "--files", type=str, nargs="+", required=True)
+    arg_parser.add_argument("-e", "--extra-functions", type=str, nargs="*", required=True)
 
     args = arg_parser.parse_args()
-
     print(TermColors.OKGREEN + "NumpyEigen Module:" + TermColors.ENDC + args.module_name)
 
     with open(args.output, 'w+') as outfile:
-        write_module(outfile, args.module_name, args.files)
+        write_module(outfile, args.module_name, args.files, args.extra_functions)

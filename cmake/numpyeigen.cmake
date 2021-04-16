@@ -199,8 +199,9 @@ set_target_properties(npe PROPERTIES
 #
 function(npe_add_module target_name)
   set(options MODULE SHARED EXCLUDE_FROM_ALL NO_EXTRAS THIN_LTO DEBUG_TRACE)
-  set(multiValueArgs BINDING_SOURCES)
-  cmake_parse_arguments(npe_add_module "${options}" "" "${multiValueArgs}" ${ARGN})
+  set(multiValueArgsBS BINDING_SOURCES)
+  set(multiValueArgsMF EXTRA_MODULE_FUNCTIONS)
+  cmake_parse_arguments(npe_add_module "${options}" "" "${multiValueArgsBS};${multiValueArgsMF}" ${ARGN})
 
   # If you included this file, then PYTHON_EXECUTABLE should always be set
   if (NOT PYTHON_EXECUTABLE)
@@ -240,7 +241,7 @@ function(npe_add_module target_name)
   set(module_source_filename ${CMAKE_CURRENT_BINARY_DIR}/${target_name}.module.cpp)
   add_custom_command(OUTPUT ${module_source_filename}
     DEPENDS ${npe_add_module_BINDING_SOURCES} ${NPE_SRC_DIR}/codegen_function.py ${NPE_SRC_DIR}/codegen_module.py
-    COMMAND ${PYTHON_EXECUTABLE} ${NPE_SRC_DIR}/codegen_module.py -o ${module_source_filename} -m ${target_name} -f ${npe_add_module_BINDING_SOURCES}
+    COMMAND ${PYTHON_EXECUTABLE} ${NPE_SRC_DIR}/codegen_module.py -o ${module_source_filename} -m ${target_name} -e ${npe_add_module_EXTRA_MODULE_FUNCTIONS} -f ${npe_add_module_BINDING_SOURCES}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
   # Register the generated C++ code for the module as a pybind11 module so it gets compiled
