@@ -115,19 +115,16 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
     :return:
     """
     def run_cpp(input_str):
-        if platform.system() == 'Windows':
-            filename = "tmp.cc"
-            tmpf = open(filename, "w")
+        
+        filename = 'tmp' + os.urandom(16).hex() + ".cc"
+        filepath = os.path.join(tempfile.gettempdir(), filename)
+        
+        with open(filepath, 'w+') as tmpf:
             tmpf.write(input_str)
             tmpf.flush()
             tmpf.close()
-        else:
-            tmpf = tempfile.NamedTemporaryFile(mode="w+", suffix=".cc")
-            tmpf.write(input_str)
-            tmpf.flush()
-            filename = tmpf.name
 
-        cmd = [filename]
+        cmd = [filepath]
         for c in cpp_command:
             cmd.append(c)
 
@@ -143,7 +140,7 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
         cpp_err = re.sub(r'('+filename+')', '', cpp_err)
         cpp_err = cpp_err.strip()
 
-        tmpf.close()
+        os.unlink(filepath)
         return cpp_output.decode('utf-8'), cpp_err, filename
 
     cpp_str = "#define %s(arg, ...) arg %s %s(__VA_ARGS__)" % (stmt_token, split_token, stmt_token)
