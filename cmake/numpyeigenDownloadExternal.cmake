@@ -28,7 +28,7 @@ endfunction()
 function(numpyeigen_download_eigen)
     numpyeigen_download_project(eigen
 	GIT_REPOSITORY           https://gitlab.com/libeigen/eigen.git
-	GIT_TAG       3.3.7
+	GIT_TAG       3.4
     )
 endfunction()
 
