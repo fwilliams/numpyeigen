@@ -4,6 +4,13 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
+// MSVC doesn't define ssize_t
+#if defined(_MSC_VER)
+#  pragma warning(push)
+#  pragma warning(disable: 4127) // warning C4127: Conditional expression is constant
+typedef SSIZE_T ssize_t;
+#endif
+
 #include <iostream>
 #include <tuple>
 #include <pybind11/eigen.h>
