@@ -129,23 +129,23 @@ class TestDenseBindings(unittest.TestCase):
         self.assertLess(median_nocopy*1e3, median_copy)
 
     def test_bool_array(self):
-        a = np.zeros(10, dtype=np.bool)
+        a = np.zeros(10, dtype=bool)
         a[np.random.rand(10) > 0.5] = True
-        b = np.zeros(10, dtype=np.bool)
+        b = np.zeros(10, dtype=bool)
         b[np.logical_not(a)] = True
 
         c = npe_test.bool_array(a, b)
 
-        self.assertTrue(np.array_equal(c, np.ones(10, dtype=np.bool)))
+        self.assertTrue(np.array_equal(c, np.ones(10, dtype=bool)))
 
-        a = np.zeros((10, 10), dtype=np.bool)
+        a = np.zeros((10, 10), dtype=bool)
         a[np.random.rand(10, 10) > 0.5] = True
-        b = np.zeros((10, 10), dtype=np.bool)
+        b = np.zeros((10, 10), dtype=bool)
         b[np.logical_not(a)] = True
 
         c = npe_test.bool_array(a, b)
 
-        self.assertTrue(np.array_equal(c, np.ones((10, 10), dtype=np.bool)))
+        self.assertTrue(np.array_equal(c, np.ones((10, 10), dtype=bool)))
 
     def test_long_and_int(self):
         if sys.version_info[0] >= 3:

@@ -23,7 +23,7 @@ class Test1dArays(unittest.TestCase):
     def test_passing_1d_arrays_1(self):
         a = np.ones(10)
         v = np.ones([10, 10])
-        f = np.ones([10, 10], dtype=np.int)
+        f = np.ones([10, 10], dtype=np.int64)
 
         retv, retp = npe_test.one_d_arg(v, f, a)
         self.assertTrue(np.array_equal(retp, a))
@@ -31,7 +31,7 @@ class Test1dArays(unittest.TestCase):
 
         a = np.ones([10, 10])
         v = np.ones([10, 10])
-        f = np.ones([10, 10], dtype=np.int)
+        f = np.ones([10, 10], dtype=np.int64)
 
         retv, retp = npe_test.one_d_arg(v, f, a)
         self.assertTrue(np.array_equal(retp, a))
@@ -39,7 +39,7 @@ class Test1dArays(unittest.TestCase):
 
     def test_passing_1d_arrays_2(self):
         v = np.ones(10)
-        f = np.ones([10, 10], dtype=np.int)
+        f = np.ones([10, 10], dtype=np.int64)
         p = np.ones(10)
         q = np.ones(10)
         r = np.ones(10)
@@ -51,7 +51,7 @@ class Test1dArays(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             v = np.ones(10, dtype=np.float32)
-            f = np.ones([10, 10], dtype=np.int)
+            f = np.ones([10, 10], dtype=np.int64)
             p = np.ones(10)
             q = np.ones(10)
             r = np.ones(10)
@@ -60,7 +60,7 @@ class Test1dArays(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             v = np.ones(10)
-            f = np.ones([10, 10], dtype=np.int)
+            f = np.ones([10, 10], dtype=np.int64)
             p = np.ones(10, dtype=np.float32)
             q = np.ones(10)
             r = np.ones(10)
@@ -69,7 +69,7 @@ class Test1dArays(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             v = np.ones(10)
-            f = np.ones([10, 10], dtype=np.int)
+            f = np.ones([10, 10], dtype=np.int64)
             p = np.ones(10)
             q = np.ones(10, dtype=np.float32)
             r = np.ones(10)
@@ -78,7 +78,7 @@ class Test1dArays(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             v = np.ones(10)
-            f = np.ones([10, 10], dtype=np.int)
+            f = np.ones([10, 10], dtype=np.int64)
             p = np.ones(10)
             q = np.ones(10)
             r = np.ones(10, dtype=np.float32)
@@ -87,7 +87,7 @@ class Test1dArays(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             v = np.ones(10)
-            f = np.ones([10, 10], dtype=np.int)
+            f = np.ones([10, 10], dtype=np.int64)
             p = np.ones(10)
             q = np.ones(10)
             r = np.ones(10)
@@ -107,7 +107,7 @@ class Test1dArays(unittest.TestCase):
 
         a = np.zeros([0, dim])
         v = np.ones([10, 10])
-        f = np.ones([10, 10], dtype=np.int)
+        f = np.ones([10, 10], dtype=np.int64)
 
         retv, retp = npe_test.one_d_arg(v, f, a)
         self.assertEqual(retp.shape, a.shape)
@@ -117,7 +117,7 @@ class Test1dArays(unittest.TestCase):
         #
         np.zeros([dim, 0])
         v = np.ones([10, 10])
-        f = np.ones([10, 10], dtype=np.int)
+        f = np.ones([10, 10], dtype=np.int64)
 
         retv, retp = npe_test.one_d_arg(v, f, a)
         self.assertEqual(retp.shape, a.shape)
@@ -127,7 +127,7 @@ class Test1dArays(unittest.TestCase):
         #
         a = np.zeros([0])
         v = np.ones([10, 10])
-        f = np.ones([10, 10], dtype=np.int)
+        f = np.ones([10, 10], dtype=np.int64)
 
         retv, retp = npe_test.one_d_arg(v, f, a)
         self.assertEqual(retp.shape, a.reshape([0, 0]).shape)
@@ -137,7 +137,7 @@ class Test1dArays(unittest.TestCase):
         #
         a = np.zeros([0, 0])
         v = np.ones([10, 10])
-        f = np.ones([10, 10], dtype=np.int)
+        f = np.ones([10, 10], dtype=np.int64)
 
         retv, retp = npe_test.one_d_arg(v, f, a)
         self.assertEqual(retp.shape, a.shape)
@@ -147,7 +147,7 @@ class Test1dArays(unittest.TestCase):
         #
         a = np.zeros([])
         v = np.ones([10, 10])
-        f = np.ones([10, 10], dtype=np.int)
+        f = np.ones([10, 10], dtype=np.int64)
 
         retv, retp = npe_test.one_d_arg(v, f, a)
         print(a.shape, retp.shape)
@@ -160,7 +160,7 @@ class Test1dArays(unittest.TestCase):
 
         for arr_test in (np.zeros([0, dim])):
             v = arr_test.copy()
-            f = np.ones([10, 10], dtype=np.int)
+            f = np.ones([10, 10], dtype=np.int64)
             p = arr_test.copy()
             q = arr_test.copy()
             r = arr_test.copy()
@@ -173,7 +173,7 @@ class Test1dArays(unittest.TestCase):
 
             with self.assertRaises(ValueError):
                 v = arr_test.astype(np.float32)  # np.ones(10, dtype=np.float32)
-                f = np.ones([10, 10], dtype=np.int)
+                f = np.ones([10, 10], dtype=np.int64)
                 p = arr_test.copy()
                 q = arr_test.copy()
                 r = arr_test.copy()
@@ -182,7 +182,7 @@ class Test1dArays(unittest.TestCase):
 
             with self.assertRaises(ValueError):
                 v = arr_test.copy()
-                f = np.ones([10, 10], dtype=np.int)
+                f = np.ones([10, 10], dtype=np.int64)
                 p = arr_test.astype(np.float32)
                 q = arr_test.copy()
                 r = arr_test.copy()
@@ -191,7 +191,7 @@ class Test1dArays(unittest.TestCase):
 
             with self.assertRaises(ValueError):
                 v = arr_test.copy()
-                f = np.ones([10, 10], dtype=np.int)
+                f = np.ones([10, 10], dtype=np.int64)
                 p = arr_test.copy()
                 q = arr_test.astype(np.float32)
                 r = arr_test.copy()
@@ -200,7 +200,7 @@ class Test1dArays(unittest.TestCase):
 
             with self.assertRaises(ValueError):
                 v = arr_test.copy()
-                f = np.ones([10, 10], dtype=np.int)
+                f = np.ones([10, 10], dtype=np.int64)
                 p = arr_test.copy()
                 q = arr_test.copy()
                 r = arr_test.astype(np.float32)
@@ -209,7 +209,7 @@ class Test1dArays(unittest.TestCase):
 
             with self.assertRaises(ValueError):
                 v = arr_test.copy()
-                f = np.ones([10, 10], dtype=np.int)
+                f = np.ones([10, 10], dtype=np.int64)
                 p = arr_test.copy()
                 q = arr_test.copy()
                 r = arr_test.copy()
