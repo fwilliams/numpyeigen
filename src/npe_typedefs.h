@@ -64,10 +64,8 @@ enum NumpyTypeChar {
   // not many letters left ¯\_(ツ)_/¯
   char_int32 = 'i',
   char_int64 = 'l',
-  char_int128 = 'q',
   char_uint32 = 'I',
   char_uint64 = 'L',
-  char_uint128 = 'Q'
 };
 
 enum NumpyTypeNum {
@@ -101,10 +99,8 @@ enum NumpyTypeNum {
   // num_half defined to 23 above
   num_int32 = 24,
   num_int64 = 25,
-  num_int128 = 26,
   num_uint32 = 27,
   num_uint64 = 28,
-  num_uint128 = 29
 };
 
 enum TypeId {
@@ -162,28 +158,22 @@ enum TypeId {
   // Row major signed ints
   dense_int32_rm  = 99,
   dense_int64_rm  = 100,
-  dense_int128_rm = 101,
   // Column major signed ints
   dense_int32_cm  = 102,
   dense_int64_cm  = 103,
-  dense_int128_cm = 104,
   // Non contiguous signed ints
   dense_int32_x   = 105,
   dense_int64_x   = 106,
-  dense_int128_x  = 107,
 
   // Row Major unsigned ints
   dense_uint32_rm  = 108,
   dense_uint64_rm  = 109,
-  dense_uint128_rm = 110,
   // Column major unsigned ints
   dense_uint32_cm  = 111,
   dense_uint64_cm  = 112,
-  dense_uint128_cm = 113,
   // Non contiguous unsigned ints
   dense_uint32_x   = 114,
   dense_uint64_x   = 115,
-  dense_uint128_x  = 116,
 
 
   /*
@@ -217,28 +207,22 @@ enum TypeId {
   // Row Major unsigned ints
   sparse_uint32_rm  = 117,
   sparse_uint64_rm  = 118,
-  sparse_uint128_rm = 119,
   // Column major unsigned ints
   sparse_uint32_cm  = 120,
   sparse_uint64_cm  = 121,
-  sparse_uint128_cm = 122,
   // Non contiguous unsigned ints
   sparse_uint32_x   = 123,
   sparse_uint64_x   = 124,
-  sparse_uint128_x  = 125,
 
   // Row major signed ints
   sparse_int32_rm  = 126,
   sparse_int64_rm  = 127,
-  sparse_int128_rm = 128,
   // Column major signed ints
   sparse_int32_cm  = 129,
   sparse_int64_cm  = 130,
-  sparse_int128_cm = 131,
   // Non contiguous signed ints
   sparse_int32_x   = 132,
   sparse_int64_x   = 133,
-  sparse_int128_x  = 134,
 
 
   // Row Major unsigned ints

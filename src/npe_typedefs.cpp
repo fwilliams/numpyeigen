@@ -56,8 +56,6 @@ const std::string npe::detail::type_to_str(char type_char) {
     return "int32";
   case char_int64:
     return "int64";
-  case char_int128:
-    return "int128";
 
   default:
     assert(false);
@@ -98,14 +96,10 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return dense_int32_cm;
       case char_int64:
         return dense_int64_cm;
-      case char_int128:
-        return dense_int128_cm;
       case char_uint32:
         return dense_uint32_cm;
       case char_uint64:
         return dense_uint64_cm;
-      case char_uint128:
-        return dense_uint128_cm;
       default:
         cerr << "Bad Typechar '" << typechar << "'" << endl;
         return -1;
@@ -136,14 +130,10 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return dense_int32_rm;
       case char_int64:
         return dense_int64_rm;
-      case char_int128:
-        return dense_int128_rm;
       case char_uint32:
         return dense_uint32_rm;
       case char_uint64:
         return dense_uint64_rm;
-      case char_uint128:
-        return dense_uint128_rm;
       default:
         cerr << "Bad Typechar '" << typechar << "'" << endl;
         return -1;
@@ -174,14 +164,10 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return dense_int32_x;
       case char_int64:
         return dense_int64_x;
-      case char_int128:
-        return dense_int128_x;
       case char_uint32:
         return dense_uint32_x;
       case char_uint64:
         return dense_uint64_x;
-      case char_uint128:
-        return dense_uint128_x;
       default:
         cerr << "Bad Typechar '" << typechar << "'" << endl;
         return -1;
@@ -218,14 +204,10 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return sparse_int32_cm;
       case char_int64:
         return sparse_int64_cm;
-      case char_int128:
-        return sparse_int128_cm;
       case char_uint32:
         return sparse_uint32_cm;
       case char_uint64:
         return sparse_uint64_cm;
-      case char_uint128:
-        return sparse_uint128_cm;
       default:
         cerr << "Bad Typechar '" << typechar << "'" << endl;
         return -1;
@@ -256,14 +238,10 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
         return sparse_int32_rm;
       case char_int64:
         return sparse_int64_rm;
-      case char_int128:
-        return sparse_int128_rm;
       case char_uint32:
         return sparse_uint32_rm;
       case char_uint64:
         return sparse_uint64_rm;
-      case char_uint128:
-        return sparse_uint128_rm;
       default:
         cerr << "Bad Typechar '" << typechar << "'" << endl;
         return -1;
