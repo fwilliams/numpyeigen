@@ -10,6 +10,8 @@ import subprocess
 import sys
 import tempfile
 
+# Alec: It's not clear what the three values are or wether it's important that
+# they're unique
 """
 Global constants used by NumpyEigen
 """
@@ -23,11 +25,17 @@ NUMPY_ARRAY_TYPES_TO_CPP = {
     'dense_int': ('npy_int', 'int', 'int32'),
     'dense_long': ('npy_long', 'long', 'int64'),
     'dense_longlong': ('npy_longlong', 'longlong', 'int128'),
+    'dense_int32': ('npy_int32', 'int32', 'int32'),
+    'dense_int64': ('npy_int64', 'int64', 'int64'),
+    'dense_int128': ('npy_int128', 'int128', 'int128'),
     'dense_ubyte': ('npy_ubyte', 'ubyte', 'uint8'),
     'dense_ushort': ('npy_ushort', 'ushort', 'uint16'),
     'dense_uint': ('npy_int', 'uint', 'uint32'),
     'dense_ulong': ('npy_ulong', 'ulong', 'uint64'),
     'dense_ulonglong': ('npy_ulonglong', 'ulonglong', 'uint128'),
+    'dense_uint32': ('npy_uint32', 'uint32', 'uint32'),
+    'dense_uint64': ('npy_uint64', 'uint64', 'uint64'),
+    'dense_uint128': ('npy_uint128', 'uint128', 'uint128'),
     'dense_c64': ('npy_complex64', 'c64', 'complex64'),
     'dense_c128': ('npy_complex128', 'c128', 'complex128'),
     'dense_c256': ('npy_complex256', 'c256', 'complex256'),
@@ -42,11 +50,17 @@ NUMPY_ARRAY_TYPES_TO_CPP = {
     'sparse_int': ('npy_int', 'int', 'int32'),
     'sparse_long': ('npy_long', 'long', 'int64'),
     'sparse_longlong': ('npy_longlong', 'longlong', 'int128'),
+    'sparse_int32': ('npy_int32', 'int32', 'int32'),
+    'sparse_int64': ('npy_int64', 'int64', 'int64'),
+    'sparse_int128': ('npy_int128', 'int128', 'int128'),
     'sparse_ubyte': ('npy_ubyte', 'ubyte', 'uint8'),
     'sparse_ushort': ('npy_ushort', 'ushort', 'uint16'),
     'sparse_uint': ('npy_uint', 'uint', 'uint32'),
     'sparse_ulong': ('npy_ulong', 'ulong', 'uint64'),
     'sparse_ulonglong': ('npy_ulonglong', 'ulonglong', 'uint128'),
+    'sparse_uint32': ('npy_uint32', 'uint32', 'uint32'),
+    'sparse_uint64': ('npy_uint64', 'uint64', 'uint64'),
+    'sparse_uint128': ('npy_uint128', 'uint128', 'uint128'),
     'sparse_c64': ('npy_complex64', 'c64', 'complex64'),
     'sparse_c128': ('npy_complex128', 'c128', 'complex128'),
     'sparse_c256': ('npy_complex256', 'c256', 'complex256'),
