@@ -878,8 +878,8 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
 
         # Declare variables used to determine the type at runtime
         for arg in fun.array_arguments:
-            out_file.write("const char %s = %s::transform_typechar(%s.dtype().type());\n" %
-                           (type_name_var(arg.name), PRIVATE_NAMESPACE, cast_arg(arg)))
+            out_file.write("const char %s = %s.dtype().type();\n" %
+                           (type_name_var(arg.name), cast_arg(arg)))
             out_file.write("ssize_t %s_shape_0 = 0;\n" % arg.name)
             out_file.write("ssize_t %s_shape_1 = 0;\n" % arg.name)
             out_file.write("if (%s.ndim() == 1) {\n" % cast_arg(arg))
@@ -939,7 +939,7 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
             for i in range(len(group_types)):
                 type_name = group_types[i]
                 out_str += type_name_var(first_non_nullable.name) + "!= " + \
-                           PRIVATE_NAMESPACE + "::transform_typechar( " + type_char_for_numpy_type(type_name) + ")"
+                           type_char_for_numpy_type(type_name)
                 next_token = " && " if i < len(group_types) - 1 else ") {\n"
                 out_str += next_token
 
@@ -1034,8 +1034,8 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
                         break
                     repr_var = fun.argument_groups[group_id].arguments[0]
                     typename = combo[group_id][0] + combo[group_id][1]
-                    out_str += type_id_var(repr_var.name) + " == " + PRIVATE_NAMESPACE + "::transform_typeid(" + \
-                               PRIVATE_NAMESPACE + "::" + TYPE_ID_ENUM + "::" + typename + ")"
+                    out_str += type_id_var(repr_var.name) + " == " + \
+                               PRIVATE_NAMESPACE + "::" + TYPE_ID_ENUM + "::" + typename
                     next_token = " && " if group_id < len(combo) - 1 else ")"
                     out_str += next_token
 
