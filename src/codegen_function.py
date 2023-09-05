@@ -12,6 +12,10 @@ import tempfile
 
 # Alec: It's not clear what the three values are or wether it's important that
 # they're unique
+#
+# [0] populates cpp_type
+# [1] is char_* in npe_type_defs.h, as in char_int32
+# [2] is used to populate NUMPY_SCALAR_TYPES, pretty_group_types
 """
 Global constants used by NumpyEigen
 """
@@ -136,8 +140,30 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
         if platform.system() == 'Windows':
             cmd = [' '.join(cmd)]
 
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, executable=cpp_path)
+        
+        if platform.system() == 'Windows':
+            quoted_cpp_path = f'"{cpp_path}"'
+            quoted_cpp_path = quoted_cpp_path.replace("\\ ", " ")
+            
+        #p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, executable=quoted_cpp_path)
+        
+        # prepend with cpp_path
+        cmd = [quoted_cpp_path] + cmd
+        # join with spaces into a string
+        cmd = ' '.join(cmd)
+        # call subprocess.run
+        # result = subprocess.run(cmd, text=True)
+        #if result.returncode != 0:
+        #     print(f"Command failed with error code {result.returncode}")
+        #     print(f"Standard Output: {result.stdout}")
+        #     print(f"Standard Error: {result.stderr}")
+        #cpp_output = result.stdout
+        #cpp_err = result.stderr
+        p = subprocess.Popen(cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         cpp_output, cpp_err = p.communicate()
+
+
+
 
         cpp_err = cpp_err.decode("utf-8")
         cpp_err = re.sub(r'(Microsoft \(R\)).+', '', cpp_err)
@@ -789,6 +815,12 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
         else:
             raise AssertionError("This should never happen!")
 
+    def cast_arg_data(var):
+        res = cast_arg(var)
+        if var.is_sparse:
+           res += ".data()"
+        return res
+
     def type_name_var(var_name):
         return PRIVATE_ID_PREFIX + var_name + "_type_s"
 
@@ -878,8 +910,12 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
 
         # Declare variables used to determine the type at runtime
         for arg in fun.array_arguments:
-            out_file.write("const char %s = %s.dtype().type();\n" %
-                           (type_name_var(arg.name), cast_arg(arg)))
+            #out_file.write("const char %s_old = %s.dtype().type();\n" %
+            #               (type_name_var(arg.name), cast_arg(arg)))
+            out_file.write("const char %s = %s::get_type_char(%s);\n" %
+						   (type_name_var(arg.name), PRIVATE_NAMESPACE, cast_arg_data(arg)))
+            #out_file.write("printf(\"%s_old: %%c\\n\", %s_old);\n" % (type_name_var(arg.name),type_name_var(arg.name)))
+            #out_file.write("printf(\"%s: %%c\\n\", %s);\n" % (type_name_var(arg.name),type_name_var(arg.name)))
             out_file.write("ssize_t %s_shape_0 = 0;\n" % arg.name)
             out_file.write("ssize_t %s_shape_1 = 0;\n" % arg.name)
             out_file.write("if (%s.ndim() == 1) {\n" % cast_arg(arg))

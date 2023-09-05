@@ -253,3 +253,4 @@ int npe::detail::get_type_id(bool is_sparse, char typechar, npe::detail::Storage
   }
 }
 
+

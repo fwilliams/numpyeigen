@@ -5,6 +5,7 @@
 npe_function(int32int64)
 npe_arg(b, dense_int32, dense_int64)
 npe_arg(a, dense_int32, dense_int64)
+// Alec: This doc is inaccurate.
 npe_doc(R"(Add two matrices of the same type)")
 npe_begin_code()
 

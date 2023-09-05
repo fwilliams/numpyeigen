@@ -1,4 +1,4 @@
-# NumpyEigen - Fast zero-overhead bindings between NumPy and Eigen [![Build Status](https://travis-ci.com/fwilliams/numpyeigen.svg?branch=master)](https://travis-ci.com/fwilliams/numpyeigen) [![Build status](https://ci.appveyor.com/api/projects/status/hsavlpy5gm767rj5?svg=true)](https://ci.appveyor.com/project/fwilliams/numpyeigen)
+﻿# NumpyEigen - Fast zero-overhead bindings between NumPy and Eigen [![Build Status](https://travis-ci.com/fwilliams/numpyeigen.svg?branch=master)](https://travis-ci.com/fwilliams/numpyeigen) [![Build status](https://ci.appveyor.com/api/projects/status/hsavlpy5gm767rj5?svg=true)](https://ci.appveyor.com/project/fwilliams/numpyeigen)
 
 **NumpyEigen** makes it easy to transparently convert [NumPy](http://www.numpy.org/) 
 dense arrays and [SciPy](https://docs.scipy.org/doc/scipy/reference/sparse.html) sparse 
@@ -109,8 +109,20 @@ make
 make test
 ```
 
-There's an `tests/environment.yml` file which can be used to generate conda environment with a
-ll the right dependencies by running:
+### Windows ❄️
+
+Open a Visual Studio Command Prompt and run the following commands:
+
+```
+mkdir build
+cd build
+cmake ..
+cmake --build . --config Release
+ctest -C Release
+```
+
+There's an `tests/environment.yml` file which can be used to generate conda environment with 
+all the right dependencies by running:
 ```
 conda env create -f environment.yml
 ```

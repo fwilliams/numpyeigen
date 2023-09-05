@@ -5,6 +5,8 @@
 
 #include <npe_sparse_array.h>
 
+#include <pybind11/pybind11.h>
+
 // Check that we're compiling on a 64 bit platform
 #if _WIN32 || _WIN64
 #if _WIN64
@@ -33,6 +35,7 @@ struct is_sparse<npe::sparse_array> {
   static const bool value = true;
 };
 
+// Using these seems like a mistake. get_type_char is a band-aid for now, but the tests there should just be moved whereever these chars are being used.
 enum NumpyTypeChar {
   char_half  = 'e',
   char_float  = 'f',
@@ -55,7 +58,6 @@ enum NumpyTypeChar {
   char_void_ = 'V',
   char_bool = '?',
 
-  // not many letters left ¯\_(ツ)_/¯
   char_int32 = 'i',
   char_int64 = 'l',
   char_uint32 = 'I',
@@ -251,6 +253,33 @@ enum TypeId {
   // Non contiguous bools
   sparse_bool_x = 98,
 };
+
+// These ifs could probably be compile time.
+//
+// But in the end is this an elaborate way to change dtype().type() 'Q','q' -> 'L','l' ?
+//
+// Yes, but I guess the point is that these checks are what the code should be doing instead of using the chars to begin with.
+inline char get_type_char(const pybind11::array & b)
+{
+    // Don't trust .dtype().type() because it gets confused on windows.
+    if (pybind11::isinstance<pybind11::array_t<std::int32_t>>(b)) { return char_int32; }
+    if (pybind11::isinstance<pybind11::array_t<std::int64_t>>(b)) { return char_int64; }
+    if (pybind11::isinstance<pybind11::array_t<std::uint32_t>>(b)) { return char_uint32; }
+    if (pybind11::isinstance<pybind11::array_t<std::uint64_t>>(b)) { return char_uint64; }
+    // These might not be currently necessary, because .dtype().type() is working for them.
+    if (pybind11::isinstance<pybind11::array_t<std::complex<float>>>(b)) { return char_c64; }
+    if (pybind11::isinstance<pybind11::array_t<std::complex<double>>>(b)) { return char_c128; }
+    if (pybind11::isinstance<pybind11::array_t<std::complex<long double>>>(b)) { return char_c256; }
+    if (pybind11::isinstance<pybind11::array_t<float>>(b)) { return char_float; }
+    if (pybind11::isinstance<pybind11::array_t<double>>(b)) { return char_double; }
+    if (pybind11::isinstance<pybind11::array_t<std::uint8_t>>(b)) { return char_ubyte; }
+    if (pybind11::isinstance<pybind11::array_t<std::int8_t>>(b)) { return char_byte; }
+    if (pybind11::isinstance<pybind11::array_t<std::uint16_t>>(b)) { return char_ushort; }
+    if (pybind11::isinstance<pybind11::array_t<std::int16_t>>(b)) { return char_short; }
+    if (pybind11::isinstance<pybind11::array_t<bool>>(b)) { return char_bool; }
+    // Return the .dtype().type() which not be a basic numeric type.
+    return b.dtype().type();
+}
 
 enum StorageOrder {
   ColMajor = Eigen::ColMajor,
