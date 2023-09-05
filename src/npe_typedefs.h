@@ -41,15 +41,9 @@ enum NumpyTypeChar {
 
   char_byte  = 'b',
   char_short = 'h',
-  char_int = 'i',
-  char_long = 'l',
-  char_longlong = 'q',
 
   char_ubyte  = 'B',
   char_ushort = 'H',
-  char_uint = 'I',
-  char_ulong = 'L',
-  char_ulonglong = 'Q',
 
   char_c64  = 'F',
   char_c128 = 'D',
@@ -76,15 +70,9 @@ enum NumpyTypeNum {
 
   num_byte  = 1,
   num_short = 3,
-  num_int = 5,
-  num_long = 7,
-  num_longlong = 9,
 
   num_ubyte  = 2,
   num_ushort = 4,
-  num_uint = 6,
-  num_ulong = 8,
-  num_ulonglong = 10,
 
   num_c64  = 14,
   num_c128 = 15,
