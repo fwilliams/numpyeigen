@@ -141,25 +141,22 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
             cmd = [' '.join(cmd)]
 
         
+        # Is quoting/escaping really _only_ necessary on Windows, or is it the
+        # only place where a space ends up in the compiler's path?
         if platform.system() == 'Windows':
             quoted_cpp_path = f'"{cpp_path}"'
             quoted_cpp_path = quoted_cpp_path.replace("\\ ", " ")
+            # prepend with cpp_path
+            cmd = [quoted_cpp_path] + cmd
+            # join with spaces into a string
+            cmd = ' '.join(cmd)
+            # This was a mess on a local windows machine. executable= gets very
+            # confused when there's a space in the path.
+            p = subprocess.Popen(cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        else:
+            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, executable=cpp_path)
             
-        #p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, executable=quoted_cpp_path)
         
-        # prepend with cpp_path
-        cmd = [quoted_cpp_path] + cmd
-        # join with spaces into a string
-        cmd = ' '.join(cmd)
-        # call subprocess.run
-        # result = subprocess.run(cmd, text=True)
-        #if result.returncode != 0:
-        #     print(f"Command failed with error code {result.returncode}")
-        #     print(f"Standard Output: {result.stdout}")
-        #     print(f"Standard Error: {result.stderr}")
-        #cpp_output = result.stdout
-        #cpp_err = result.stderr
-        p = subprocess.Popen(cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         cpp_output, cpp_err = p.communicate()
 
 
