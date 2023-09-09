@@ -228,10 +228,13 @@ function(npe_add_module target_name)
     if (npe_add_module_DEBUG_TRACE)
       set(debug_trace_arg "--debug-trace")
     endif()
+    
+    # This doesn't seem to be necessary on github ci machines but needed it for local windows build
+    string(REPLACE " " "\\ " CMAKE_CXX_COMPILER_ESCAPED ${CMAKE_CXX_COMPILER})
 
     add_custom_command(OUTPUT ${bound_function_source_filename}
       DEPENDS ${binding_source} ${NPE_SRC_DIR}/codegen_function.py ${NPE_SRC_DIR}/codegen_module.py
-      COMMAND ${PYTHON_EXECUTABLE} ${NPE_SRC_DIR}/codegen_function.py ${binding_source} ${CMAKE_CXX_COMPILER} -o ${bound_function_source_filename} ${debug_trace_arg} --c-preprocessor-args ${C_PREPROCESSOR_CMD_FLAGS}
+      COMMAND ${PYTHON_EXECUTABLE} ${NPE_SRC_DIR}/codegen_function.py ${binding_source} ${CMAKE_CXX_COMPILER_ESCAPED} -o ${bound_function_source_filename} ${debug_trace_arg} --c-preprocessor-args ${C_PREPROCESSOR_CMD_FLAGS}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
     list(APPEND function_sources "${bound_function_source_filename}")

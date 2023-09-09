@@ -5,6 +5,9 @@ project(NumpyEigen VERSION 0.1.0)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(numpyeigen)
 
+# enable C++14
+set(CMAKE_CXX_STANDARD 14)
+
 # Configuration options
 set(NPE_PYTHON_EXECUTABLE    "" CACHE STRING "Path to the Python interpreter")
 set(NPE_PYTHON_VERSION       "" CACHE STRING "Request a specific version of Python")

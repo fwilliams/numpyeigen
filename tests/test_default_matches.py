@@ -132,8 +132,6 @@ class TestDefaultMatches(unittest.TestCase):
         a[a < 0.5] = 0.0
         b = np.random.rand(22, 21).astype(np.float32)
         b[b < 0.5] = 0.0
-        c = np.random.rand(32, 33).astype(np.float32)
-        c[c < 0.5] = 0.0
 
         a = sp.sparse.csr_matrix(a)
         b = sp.sparse.csr_matrix(b)

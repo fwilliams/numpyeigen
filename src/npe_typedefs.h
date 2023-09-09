@@ -5,6 +5,8 @@
 
 #include <npe_sparse_array.h>
 
+#include <pybind11/pybind11.h>
+
 // Check that we're compiling on a 64 bit platform
 #if _WIN32 || _WIN64
 #if _WIN64
@@ -33,6 +35,7 @@ struct is_sparse<npe::sparse_array> {
   static const bool value = true;
 };
 
+// Using these seems like a mistake. get_type_char is a band-aid for now, but the tests there should just be moved whereever these chars are being used.
 enum NumpyTypeChar {
   char_half  = 'e',
   char_float  = 'f',
@@ -41,15 +44,9 @@ enum NumpyTypeChar {
 
   char_byte  = 'b',
   char_short = 'h',
-  char_int = 'i',
-  char_long = 'l',
-  char_longlong = 'q',
 
   char_ubyte  = 'B',
   char_ushort = 'H',
-  char_uint = 'I',
-  char_ulong = 'L',
-  char_ulonglong = 'Q',
 
   char_c64  = 'F',
   char_c128 = 'D',
@@ -60,6 +57,11 @@ enum NumpyTypeChar {
   char_unicode = 'U',
   char_void_ = 'V',
   char_bool = '?',
+
+  char_int32 = 'i',
+  char_int64 = 'l',
+  char_uint32 = 'I',
+  char_uint64 = 'L',
 };
 
 enum NumpyTypeNum {
@@ -70,15 +72,9 @@ enum NumpyTypeNum {
 
   num_byte  = 1,
   num_short = 3,
-  num_int = 5,
-  num_long = 7,
-  num_longlong = 9,
 
   num_ubyte  = 2,
   num_ushort = 4,
-  num_uint = 6,
-  num_ulong = 8,
-  num_ulonglong = 10,
 
   num_c64  = 14,
   num_c128 = 15,
@@ -89,6 +85,12 @@ enum NumpyTypeNum {
   num_unicode = 19,
   num_void_ = 20,
   num_bool = 21,
+
+  // num_half defined to 23 above
+  num_int32 = 24,
+  num_int64 = 25,
+  num_uint32 = 27,
+  num_uint64 = 28,
 };
 
 enum TypeId {
@@ -112,41 +114,23 @@ enum TypeId {
   // Row major signed ints
   dense_byte_rm   = 9,
   dense_short_rm  = 10,
-  dense_int_rm  = 11,
-  dense_long_rm  = 12,
-  dense_longlong_rm = 13,
   // Column major signed ints
   dense_byte_cm   = 14,
   dense_short_cm  = 15,
-  dense_int_cm  = 16,
-  dense_long_cm  = 17,
-  dense_longlong_cm = 18,
   // Non contiguous signed ints
   dense_byte_x    = 19,
   dense_short_x   = 20,
-  dense_int_x   = 21,
-  dense_long_x   = 22,
-  dense_longlong_x  = 23,
 
 
   // Row Major unsigned ints
   dense_ubyte_rm   = 24,
   dense_ushort_rm  = 25,
-  dense_uint_rm  = 26,
-  dense_ulong_rm  = 27,
-  dense_ulonglong_rm = 28,
   // Column major unsigned ints
   dense_ubyte_cm   = 29,
   dense_ushort_cm  = 30,
-  dense_uint_cm  = 31,
-  dense_ulong_cm  = 32,
-  dense_ulonglong_cm = 33,
   // Non contiguous unsigned ints
   dense_ubyte_x    = 34,
   dense_ushort_x   = 35,
-  dense_uint_x   = 36,
-  dense_ulong_x   = 37,
-  dense_ulonglong_x  = 38,
 
   // Row Major complex floats
   dense_c64_rm  = 39,
@@ -160,6 +144,26 @@ enum TypeId {
   dense_c64_x   = 45,
   dense_c128_x  = 46,
   dense_c256_x  = 47,
+  //
+  // Row major signed ints
+  dense_int32_rm  = 99,
+  dense_int64_rm  = 100,
+  // Column major signed ints
+  dense_int32_cm  = 102,
+  dense_int64_cm  = 103,
+  // Non contiguous signed ints
+  dense_int32_x   = 105,
+  dense_int64_x   = 106,
+
+  // Row Major unsigned ints
+  dense_uint32_rm  = 108,
+  dense_uint64_rm  = 109,
+  // Column major unsigned ints
+  dense_uint32_cm  = 111,
+  dense_uint64_cm  = 112,
+  // Non contiguous unsigned ints
+  dense_uint32_x   = 114,
+  dense_uint64_x   = 115,
 
 
   /*
@@ -182,42 +186,44 @@ enum TypeId {
   // Row major signed ints
   sparse_byte_rm   = 57,
   sparse_short_rm  = 58,
-  sparse_int_rm  = 59,
-  sparse_long_rm  = 60,
-  sparse_longlong_rm = 61,
   // Column major signed ints
   sparse_byte_cm   = 62,
   sparse_short_cm  = 63,
-  sparse_int_cm  = 64,
-  sparse_long_cm  = 65,
-  sparse_longlong_cm = 66,
   // Non contiguous signed ints
   sparse_byte_x    = 67,
   sparse_short_x   = 68,
-  sparse_int_x   = 69,
-  sparse_long_x   = 70,
-  sparse_longlong_x  = 71,
+
+
+  // Row Major unsigned ints
+  sparse_uint32_rm  = 117,
+  sparse_uint64_rm  = 118,
+  // Column major unsigned ints
+  sparse_uint32_cm  = 120,
+  sparse_uint64_cm  = 121,
+  // Non contiguous unsigned ints
+  sparse_uint32_x   = 123,
+  sparse_uint64_x   = 124,
+
+  // Row major signed ints
+  sparse_int32_rm  = 126,
+  sparse_int64_rm  = 127,
+  // Column major signed ints
+  sparse_int32_cm  = 129,
+  sparse_int64_cm  = 130,
+  // Non contiguous signed ints
+  sparse_int32_x   = 132,
+  sparse_int64_x   = 133,
 
 
   // Row Major unsigned ints
   sparse_ubyte_rm   = 72,
   sparse_ushort_rm  = 73,
-  sparse_uint_rm  = 74,
-  sparse_ulong_rm  = 75,
-  sparse_ulonglong_rm = 76,
   // Column major unsigned ints
   sparse_ubyte_cm   = 77,
   sparse_ushort_cm  = 78,
-  sparse_uint_cm  = 79,
-  sparse_ulong_cm  = 80,
-  sparse_ulonglong_cm = 81,
   // Non contiguous unsigned ints
   sparse_ubyte_x    = 82,
   sparse_ushort_x   = 83,
-  sparse_uint_x   = 84,
-  sparse_ulong_x   = 85,
-  sparse_ulonglong_x  = 86,
-
 
   // Row Major complex floats
   sparse_c64_rm  = 87,
@@ -239,6 +245,7 @@ enum TypeId {
   // Non contiguous bools
   dense_bool_x = 98,
 
+  // Alec: Suspicious that hese have the same values as dense_bool_*
   // Row major bools
   sparse_bool_rm = 96,
   // Column major bools
@@ -246,6 +253,33 @@ enum TypeId {
   // Non contiguous bools
   sparse_bool_x = 98,
 };
+
+// These ifs could probably be compile time.
+//
+// But in the end is this an elaborate way to change dtype().type() 'Q','q' -> 'L','l' ?
+//
+// Yes, but I guess the point is that these checks are what the code should be doing instead of using the chars to begin with.
+inline char get_type_char(const pybind11::array & b)
+{
+    // Don't trust .dtype().type() because it gets confused on windows.
+    if (pybind11::isinstance<pybind11::array_t<std::int32_t>>(b)) { return char_int32; }
+    if (pybind11::isinstance<pybind11::array_t<std::int64_t>>(b)) { return char_int64; }
+    if (pybind11::isinstance<pybind11::array_t<std::uint32_t>>(b)) { return char_uint32; }
+    if (pybind11::isinstance<pybind11::array_t<std::uint64_t>>(b)) { return char_uint64; }
+    // These might not be currently necessary, because .dtype().type() is working for them.
+    if (pybind11::isinstance<pybind11::array_t<std::complex<float>>>(b)) { return char_c64; }
+    if (pybind11::isinstance<pybind11::array_t<std::complex<double>>>(b)) { return char_c128; }
+    if (pybind11::isinstance<pybind11::array_t<std::complex<long double>>>(b)) { return char_c256; }
+    if (pybind11::isinstance<pybind11::array_t<float>>(b)) { return char_float; }
+    if (pybind11::isinstance<pybind11::array_t<double>>(b)) { return char_double; }
+    if (pybind11::isinstance<pybind11::array_t<std::uint8_t>>(b)) { return char_ubyte; }
+    if (pybind11::isinstance<pybind11::array_t<std::int8_t>>(b)) { return char_byte; }
+    if (pybind11::isinstance<pybind11::array_t<std::uint16_t>>(b)) { return char_ushort; }
+    if (pybind11::isinstance<pybind11::array_t<std::int16_t>>(b)) { return char_short; }
+    if (pybind11::isinstance<pybind11::array_t<bool>>(b)) { return char_bool; }
+    // Return the .dtype().type() which not be a basic numeric type.
+    return b.dtype().type();
+}
 
 enum StorageOrder {
   ColMajor = Eigen::ColMajor,
@@ -261,127 +295,6 @@ enum Alignment {
 const std::string type_to_str(char type_char);
 const std::string storage_order_to_str(StorageOrder so);
 int get_type_id(bool is_sparse, char typechar, StorageOrder so);
-
-//FIXME: Use __cplusplus
-#if __cplusplus < 201402L
-const char transform_typechar(char t);
-#else
-constexpr char transform_typechar(char t) {
-
-#ifdef _WIN64
-    static_assert(sizeof(int) == sizeof(long), "Expected sizeof(int) = sizeof(long) on 64 bit Windows");
-    static_assert(sizeof(unsigned int) == sizeof(unsigned long), "Expected sizeof(unsigned int) = sizeof(unsigned long) on 64 bit Windows");
-    if (t == char_uint || t == char_ulong) {
-        return char_uint;
-    }
-    if (t == char_int || t == char_long) {
-        return char_int;
-    }
-#else
-    static_assert(sizeof(long) == sizeof(long long), "Expected sizeof(long) = sizeof(long long)");
-    static_assert(sizeof(unsigned long) == sizeof(unsigned long long), "Expected sizeof(unsigned long) = sizeof(unsigned long long)");
-    if (t == char_ulonglong || t == char_ulong) {
-        return char_ulong;
-    }
-    if (t == char_long || t == char_longlong) {
-        return char_long;
-    }
-#endif
-    return t;
-}
-#endif
-
-#if __cplusplus < 201402L
-const int transform_typeid(int t);
-#else
-constexpr int transform_typeid(int t) {
-#ifdef _WIN64
-    static_assert(sizeof(int) == sizeof(long), "Expected sizeof(int) = sizeof(long) on 64 bit Windows");
-    static_assert(sizeof(unsigned int) == sizeof(unsigned long), "Expected sizeof(unsigned int) = sizeof(unsigned long) on 64 bit Windows");
-    switch(t){
-    case dense_int_rm:
-    case dense_long_rm:
-        return dense_int_rm;
-    case dense_int_cm:
-    case dense_long_cm:
-        return dense_int_cm;
-    case dense_int_x:
-    case dense_long_x:
-        return dense_int_x;
-
-    case dense_uint_rm:
-    case dense_ulong_rm:
-        return dense_uint_rm;
-    case dense_uint_cm:
-    case dense_ulong_cm:
-        return dense_uint_cm;
-    case dense_uint_x:
-    case dense_ulong_x:
-        return dense_uint_x;
-
-
-
-    case sparse_int_rm:
-    case sparse_long_rm:
-        return sparse_int_rm;
-    case sparse_int_cm:
-    case sparse_long_cm:
-        return sparse_int_cm;
-
-    case sparse_uint_rm:
-    case sparse_ulong_rm:
-        return sparse_uint_rm;
-    case sparse_uint_cm:
-    case sparse_ulong_cm:
-        return sparse_uint_cm;
-    default:
-        return t;
-    }
-#else
-    static_assert(sizeof(long) == sizeof(long long), "Expected sizeof(long) = sizeof(long long)");
-    static_assert(sizeof(unsigned long) == sizeof(unsigned long long), "Expected sizeof(unsigned long) = sizeof(unsigned long long)");
-    switch(t) {
-    case dense_long_rm:
-    case dense_longlong_rm:
-        return dense_long_rm;
-    case dense_long_cm:
-    case dense_longlong_cm:
-        return dense_long_cm;
-    case dense_long_x:
-    case dense_longlong_x:
-        return dense_long_x;
-
-    case dense_ulong_rm:
-    case dense_ulonglong_rm:
-        return dense_ulong_rm;
-    case dense_ulong_cm:
-    case dense_ulonglong_cm:
-        return dense_ulong_cm;
-    case dense_ulong_x:
-    case dense_ulonglong_x:
-        return dense_ulong_x;
-
-
-
-    case sparse_long_rm:
-    case sparse_longlong_rm:
-        return sparse_long_rm;
-    case sparse_long_cm:
-    case sparse_longlong_cm:
-        return sparse_long_cm;
-
-    case sparse_ulong_rm:
-    case sparse_ulonglong_rm:
-        return sparse_ulong_rm;
-    case sparse_ulong_cm:
-    case sparse_ulonglong_cm:
-        return sparse_ulong_cm;
-    default:
-        return t;
-    }
-#endif
-}
-#endif
 
 } // namespace detail
 } // namespace npe

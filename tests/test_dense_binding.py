@@ -129,111 +129,39 @@ class TestDenseBindings(unittest.TestCase):
         self.assertLess(median_nocopy*1e3, median_copy)
 
     def test_bool_array(self):
-        a = np.zeros(10, dtype=np.bool)
+        a = np.zeros(10, dtype=bool)
         a[np.random.rand(10) > 0.5] = True
-        b = np.zeros(10, dtype=np.bool)
+        b = np.zeros(10, dtype=bool)
         b[np.logical_not(a)] = True
 
         c = npe_test.bool_array(a, b)
 
-        self.assertTrue(np.array_equal(c, np.ones(10, dtype=np.bool)))
+        self.assertTrue(np.array_equal(c, np.ones(10, dtype=bool)))
 
-        a = np.zeros((10, 10), dtype=np.bool)
+        a = np.zeros((10, 10), dtype=bool)
         a[np.random.rand(10, 10) > 0.5] = True
-        b = np.zeros((10, 10), dtype=np.bool)
+        b = np.zeros((10, 10), dtype=bool)
         b[np.logical_not(a)] = True
 
         c = npe_test.bool_array(a, b)
 
-        self.assertTrue(np.array_equal(c, np.ones((10, 10), dtype=np.bool)))
+        self.assertTrue(np.array_equal(c, np.ones((10, 10), dtype=bool)))
 
-    def test_long_and_int(self):
-        if sys.version_info[0] >= 3:
-            along = np.ones((10, 10), dtype="long")
-        aint = np.ones((10, 10), dtype="int32")
-        alonglong = np.ones((10, 10), dtype="longlong")
-
-        if sys.version_info[0] >= 3:
-            blong = np.ones((10, 10), dtype="long")
-        bint = np.ones((10, 10), dtype="int32")
-        blonglong = np.ones((10, 10), dtype="longlong")
-
+    def test_int64_and_int(self):
         is_64bits = sys.maxsize > 2 ** 32
         if not is_64bits:
             raise ValueError("Numpyeigen does not work on 32 bit systems yet!")
 
-        if platform.system() != 'Windows':
-            npe_test.intlonglong(alonglong, bint)
-            if sys.version_info[0] >= 3:
-                npe_test.intlonglong(along, bint)
-                npe_test.intlonglong(alonglong, blong)
-                npe_test.intlonglong(along, blong)
-                npe_test.intlonglong(along, blonglong)
-                npe_test.intlonglong(aint, blong)
-            npe_test.intlonglong(aint, bint)
-            npe_test.intlonglong(alonglong, blonglong)
-            npe_test.intlonglong(aint, blonglong)
+        aint64 = np.ones((10, 10), dtype="int64")
+        bint32 = np.ones((10, 10), dtype="int32")
+        npe_test.int64int32(aint64, bint32)
+        npe_test.int32int64(bint32, aint64)
 
-            if sys.version_info[0] >= 3:
-                npe_test.intlong(along, bint)
-                npe_test.intlong(alonglong, blong)
-                npe_test.intlong(along, blong)
-                npe_test.intlong(aint, blong)
-                npe_test.intlong(along, blonglong)
-            npe_test.intlong(alonglong, bint)
-            npe_test.intlong(aint, bint)
-            npe_test.intlong(alonglong, blonglong)
-            npe_test.intlong(aint, blonglong)
+        auint64 = np.ones((10, 10), dtype="uint64")
+        buint32 = np.ones((10, 10), dtype="uint32")
+        npe_test.uint64uint32(auint64, buint32)
+        npe_test.uint32uint64(buint32, auint64)
 
-            with self.assertRaises(ValueError):
-                if sys.version_info[0] >= 3:
-                    npe_test.longlonglong(along, bint)
-                    npe_test.longlonglong(aint, blong)
-                npe_test.longlonglong(alonglong, bint)
-                npe_test.longlonglong(aint, bint)
-                npe_test.longlonglong(aint, blonglong)
-
-            if sys.version_info[0] >= 3:
-                npe_test.longlonglong(alonglong, blong)
-                npe_test.longlonglong(along, blong)
-                npe_test.longlonglong(along, blonglong)
-            npe_test.longlonglong(alonglong, blonglong)
-        else:
-            if sys.version_info[0] >= 3:
-                npe_test.intlonglong(along, bint)
-                npe_test.intlonglong(alonglong, blong)
-                npe_test.intlonglong(along, blong)
-                npe_test.intlonglong(along, blonglong)
-                npe_test.intlonglong(aint, blong)
-            npe_test.intlonglong(alonglong, bint)
-            npe_test.intlonglong(aint, bint)
-            npe_test.intlonglong(alonglong, blonglong)
-            npe_test.intlonglong(aint, blonglong)
-
-            with self.assertRaises(ValueError):
-                if sys.version_info[0] >= 3:
-                    npe_test.intlong(alonglong, blong)
-                    npe_test.intlong(along, blonglong)
-                npe_test.intlong(alonglong, bint)
-                npe_test.intlong(alonglong, blonglong)
-                npe_test.intlong(aint, blonglong)
-
-            if sys.version_info[0] >= 3:
-                npe_test.intlong(along, bint)
-                npe_test.intlong(along, blong)
-                npe_test.intlong(aint, blong)
-            npe_test.intlong(aint, bint)
-
-            if sys.version_info[0] >= 3:
-                npe_test.longlonglong(alonglong, blong)
-                npe_test.longlonglong(along, blonglong)
-                npe_test.longlonglong(along, bint)
-                npe_test.longlonglong(along, blong)
-                npe_test.longlonglong(aint, blong)
-            npe_test.longlonglong(alonglong, bint)
-            npe_test.longlonglong(aint, blonglong)
-            npe_test.longlonglong(aint, bint)
-            npe_test.longlonglong(alonglong, blonglong)
 
     def test_dense_like(self):
         a = sp.diags([np.ones(100)], [0], format="csr")

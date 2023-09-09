@@ -39,17 +39,17 @@ else()
 endif()
 target_include_directories(numpyeigen_helpers PRIVATE ${NPE_ROOT_DIR}/src ${PYTHON_INCLUDE_DIR} ${NP_INCLUDE_DIR})
 
-add_test(NAME test_dense_bindings
-         COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_dense_binding.py)
-add_test(NAME test_sparse_bindings
-        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_sparse_binding.py)
-add_test(NAME test_npe_call_interface
-        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_npe_call_interface.py)
-add_test(NAME test_1d_arrays
-        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_1d_arrays.py)
-add_test(NAME test_docstring
-        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_docstring.py)
-add_test(NAME test_default_matches
-        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_default_matches.py)
-add_test(NAME test_slices
-        COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_slices.py)
+function (add_test_helper name)
+  add_test(NAME ${name}
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/${name}.py)
+  set_tests_properties(${name} PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}/Release\;${CMAKE_CURRENT_BINARY_DIR}")
+endfunction()
+
+add_test_helper(test_dense_binding)
+add_test_helper(test_sparse_binding)
+add_test_helper(test_npe_call_interface)
+add_test_helper(test_1d_arrays)
+add_test_helper(test_docstring)
+add_test_helper(test_default_matches)
+add_test_helper(test_slices)
+

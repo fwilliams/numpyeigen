@@ -28,8 +28,8 @@ npe_default_arg(doubleit, bool, false)
 npe_begin_code()
 
 Eigen::MatrixXi ret(1, 2);
-ret(0, 0) = a.rows();
-ret(0, 1) = a.cols();
+ret(0, 0) = (int) a.rows();
+ret(0, 1) = (int) a.cols();
 
 return npe::move(ret);
 

@@ -10,6 +10,12 @@ import subprocess
 import sys
 import tempfile
 
+# Alec: It's not clear what the three values are or wether it's important that
+# they're unique
+#
+# [0] populates cpp_type
+# [1] is char_* in npe_type_defs.h, as in char_int32
+# [2] is used to populate NUMPY_SCALAR_TYPES, pretty_group_types
 """
 Global constants used by NumpyEigen
 """
@@ -20,14 +26,14 @@ NUMPY_ARRAY_TYPES_TO_CPP = {
     'dense_longdouble': ('npy_longdouble', 'longdouble', 'float128'),
     'dense_byte': ('npy_byte', 'byte', 'int8'),
     'dense_short': ('npy_short', 'short', 'int16'),
-    'dense_int': ('npy_int', 'int', 'int32'),
-    'dense_long': ('npy_long', 'long', 'int64'),
-    'dense_longlong': ('npy_longlong', 'longlong', 'int128'),
+    'dense_int32': ('npy_int32', 'int32', 'int32'),
+    'dense_int64': ('npy_int64', 'int64', 'int64'),
+    'dense_int128': ('npy_int128', 'int128', 'int128'),
     'dense_ubyte': ('npy_ubyte', 'ubyte', 'uint8'),
     'dense_ushort': ('npy_ushort', 'ushort', 'uint16'),
-    'dense_uint': ('npy_int', 'uint', 'uint32'),
-    'dense_ulong': ('npy_ulong', 'ulong', 'uint64'),
-    'dense_ulonglong': ('npy_ulonglong', 'ulonglong', 'uint128'),
+    'dense_uint32': ('npy_uint32', 'uint32', 'uint32'),
+    'dense_uint64': ('npy_uint64', 'uint64', 'uint64'),
+    'dense_uint128': ('npy_uint128', 'uint128', 'uint128'),
     'dense_c64': ('npy_complex64', 'c64', 'complex64'),
     'dense_c128': ('npy_complex128', 'c128', 'complex128'),
     'dense_c256': ('npy_complex256', 'c256', 'complex256'),
@@ -39,14 +45,14 @@ NUMPY_ARRAY_TYPES_TO_CPP = {
     'sparse_longdouble': ('npy_longdouble', 'longdouble', 'float128'),
     'sparse_byte': ('npy_byte', 'byte', 'int8'),
     'sparse_short': ('npy_short', 'short', 'int16'),
-    'sparse_int': ('npy_int', 'int', 'int32'),
-    'sparse_long': ('npy_long', 'long', 'int64'),
-    'sparse_longlong': ('npy_longlong', 'longlong', 'int128'),
+    'sparse_int32': ('npy_int32', 'int32', 'int32'),
+    'sparse_int64': ('npy_int64', 'int64', 'int64'),
+    'sparse_int128': ('npy_int128', 'int128', 'int128'),
     'sparse_ubyte': ('npy_ubyte', 'ubyte', 'uint8'),
     'sparse_ushort': ('npy_ushort', 'ushort', 'uint16'),
-    'sparse_uint': ('npy_uint', 'uint', 'uint32'),
-    'sparse_ulong': ('npy_ulong', 'ulong', 'uint64'),
-    'sparse_ulonglong': ('npy_ulonglong', 'ulonglong', 'uint128'),
+    'sparse_uint32': ('npy_uint32', 'uint32', 'uint32'),
+    'sparse_uint64': ('npy_uint64', 'uint64', 'uint64'),
+    'sparse_uint128': ('npy_uint128', 'uint128', 'uint128'),
     'sparse_c64': ('npy_complex64', 'c64', 'complex64'),
     'sparse_c128': ('npy_complex128', 'c128', 'complex128'),
     'sparse_c256': ('npy_complex256', 'c256', 'complex256'),
@@ -134,8 +140,27 @@ def tokenize_npe_line(stmt_token, line, line_number, max_iters=64, split_token="
         if platform.system() == 'Windows':
             cmd = [' '.join(cmd)]
 
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, executable=cpp_path)
+        
+        # Is quoting/escaping really _only_ necessary on Windows, or is it the
+        # only place where a space ends up in the compiler's path?
+        if platform.system() == 'Windows':
+            quoted_cpp_path = f'"{cpp_path}"'
+            quoted_cpp_path = quoted_cpp_path.replace("\\ ", " ")
+            # prepend with cpp_path
+            cmd = [quoted_cpp_path] + cmd
+            # join with spaces into a string
+            cmd = ' '.join(cmd)
+            # This was a mess on a local windows machine. executable= gets very
+            # confused when there's a space in the path.
+            p = subprocess.Popen(cmd, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        else:
+            p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, executable=cpp_path)
+            
+        
         cpp_output, cpp_err = p.communicate()
+
+
+
 
         cpp_err = cpp_err.decode("utf-8")
         cpp_err = re.sub(r'(Microsoft \(R\)).+', '', cpp_err)
@@ -787,6 +812,12 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
         else:
             raise AssertionError("This should never happen!")
 
+    def cast_arg_data(var):
+        res = cast_arg(var)
+        if var.is_sparse:
+           res += ".data()"
+        return res
+
     def type_name_var(var_name):
         return PRIVATE_ID_PREFIX + var_name + "_type_s"
 
@@ -876,8 +907,12 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
 
         # Declare variables used to determine the type at runtime
         for arg in fun.array_arguments:
-            out_file.write("const char %s = %s::transform_typechar(%s.dtype().type());\n" %
-                           (type_name_var(arg.name), PRIVATE_NAMESPACE, cast_arg(arg)))
+            #out_file.write("const char %s_old = %s.dtype().type();\n" %
+            #               (type_name_var(arg.name), cast_arg(arg)))
+            out_file.write("const char %s = %s::get_type_char(%s);\n" %
+						   (type_name_var(arg.name), PRIVATE_NAMESPACE, cast_arg_data(arg)))
+            #out_file.write("printf(\"%s_old: %%c\\n\", %s_old);\n" % (type_name_var(arg.name),type_name_var(arg.name)))
+            #out_file.write("printf(\"%s: %%c\\n\", %s);\n" % (type_name_var(arg.name),type_name_var(arg.name)))
             out_file.write("ssize_t %s_shape_0 = 0;\n" % arg.name)
             out_file.write("ssize_t %s_shape_1 = 0;\n" % arg.name)
             out_file.write("if (%s.ndim() == 1) {\n" % cast_arg(arg))
@@ -937,7 +972,7 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
             for i in range(len(group_types)):
                 type_name = group_types[i]
                 out_str += type_name_var(first_non_nullable.name) + "!= " + \
-                           PRIVATE_NAMESPACE + "::transform_typechar( " + type_char_for_numpy_type(type_name) + ")"
+                           type_char_for_numpy_type(type_name)
                 next_token = " && " if i < len(group_types) - 1 else ") {\n"
                 out_str += next_token
 
@@ -1032,8 +1067,8 @@ def codegen_ast(ast, out_file, write_debug_prints=True):
                         break
                     repr_var = fun.argument_groups[group_id].arguments[0]
                     typename = combo[group_id][0] + combo[group_id][1]
-                    out_str += type_id_var(repr_var.name) + " == " + PRIVATE_NAMESPACE + "::transform_typeid(" + \
-                               PRIVATE_NAMESPACE + "::" + TYPE_ID_ENUM + "::" + typename + ")"
+                    out_str += type_id_var(repr_var.name) + " == " + \
+                               PRIVATE_NAMESPACE + "::" + TYPE_ID_ENUM + "::" + typename
                     next_token = " && " if group_id < len(combo) - 1 else ")"
                     out_str += next_token
 

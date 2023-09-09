@@ -16,7 +16,7 @@ npe_arg(a, dense_float, dense_double)
 npe_arg(b, npe_matches(a))
 
 // Here is another variable 'c' and two variables whose types have to match it.
-npe_arg(c, dense_int, dense_long)
+npe_arg(c, dense_int32, dense_int64)
 npe_arg(d, npe_matches(c))
 npe_arg(e, npe_matches(d))
 
