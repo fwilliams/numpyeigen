@@ -100,7 +100,7 @@ class TestSparseMatrixWrapper(unittest.TestCase):
         print("  std:", np.std(times_nocopy))
         print("  med:", np.median(times_nocopy))
 
-        self.assertLess(median_nocopy*1e-3, median_copy)
+        self.assertLess(median_nocopy*1e-2, median_copy)
 
     def test_return_does_not_copy(self):
         mat_size = 10000000
