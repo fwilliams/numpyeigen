@@ -1,4 +1,5 @@
 ﻿# NumpyEigen - Fast zero-overhead bindings between NumPy and Eigen
+![Tests Status](https://github.com/github/docs/actions/workflows/cmake.yml/badge.svg)
 
 **NumpyEigen** makes it easy to transparently convert [NumPy](http://www.numpy.org/) 
 dense arrays and [SciPy](https://docs.scipy.org/doc/scipy/reference/sparse.html) sparse 
