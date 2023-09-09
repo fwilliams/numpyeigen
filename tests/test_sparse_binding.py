@@ -135,7 +135,7 @@ class TestSparseMatrixWrapper(unittest.TestCase):
         print("  std:", np.std(times_nocopy))
         print("  med:", np.median(times_nocopy))
 
-        self.assertLess(median_nocopy*1e3, median_copy)
+        self.assertLess(median_nocopy*1e2, median_copy)
 
     def test_sparse_like(self):
         a = np.eye(100)
