@@ -1,4 +1,4 @@
-﻿# NumpyEigen - Fast zero-overhead bindings between NumPy and Eigen [![Build Status](https://travis-ci.com/fwilliams/numpyeigen.svg?branch=master)](https://travis-ci.com/fwilliams/numpyeigen) [![Build status](https://ci.appveyor.com/api/projects/status/hsavlpy5gm767rj5?svg=true)](https://ci.appveyor.com/project/fwilliams/numpyeigen)
+﻿# NumpyEigen - Fast zero-overhead bindings between NumPy and Eigen
 
 **NumpyEigen** makes it easy to transparently convert [NumPy](http://www.numpy.org/) 
 dense arrays and [SciPy](https://docs.scipy.org/doc/scipy/reference/sparse.html) sparse 
@@ -53,7 +53,7 @@ npe_function(foo)
 // wiith zero copy overhead.
 npe_arg(a, dense_double, dense_float)   // a is a numpy array with dtype either float or double
 npe_arg(b, matches(a))                  // b is a numpy array whose type has to match a
-npe_arg(c, dense_int, dense_long)       // c is a numpy array whose type is either int or long
+npe_arg(c, dense_int32, dense_int64)       // c is a numpy array whose type is either int or long
 npe_arg(d, std::string)                 // d is a string
 npe_arg(f, sparse_float, sparse_double) // f is a sparse matrix whose data is either float or double
 npe_arg(e, int)                         // e is an int
