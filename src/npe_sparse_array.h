@@ -117,6 +117,7 @@ struct type_caster<npe::sparse_array> {
 public:
   PYBIND11_TYPE_CASTER(npe::sparse_array, _("scipy.sparse.csr_matrix | scipy.sparse.csc_matrix"));
 
+  npe::sparse_array& get_value() { return value; }
   /**
    * Conversion part 1 (Python->C++): convert a PyObject into a npe::sparse_array
    * instance or return false upon failure. The second argument

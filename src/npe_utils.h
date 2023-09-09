@@ -112,7 +112,12 @@ public:
     } else {
       object sparse_module = module::import("scipy.sparse");
       object matrix_type = sparse_module.attr("csr_matrix");
-      static_cast<npe::sparse_array&>(value) = matrix_type(0);
+      object zero_mat = matrix_type(0);
+      // Francis: for some reason calling pybind11::cast<npe::sparse_array>() doesn't call
+      //          the internal type caster so call it explicitly.
+      auto caster = pybind11::detail::type_caster<npe::sparse_array>();
+      caster.load(zero_mat, true);
+      static_cast<npe::sparse_array&>(value) = caster.get_value();
       static_cast<npe::sparse_array&>(value).hack_update_flags();
       value.is_none = true;
     }
