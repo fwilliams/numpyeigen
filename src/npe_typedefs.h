@@ -277,8 +277,8 @@ inline char get_type_char(const pybind11::array & b)
     if (pybind11::isinstance<pybind11::array_t<std::uint16_t>>(b)) { return char_ushort; }
     if (pybind11::isinstance<pybind11::array_t<std::int16_t>>(b)) { return char_short; }
     if (pybind11::isinstance<pybind11::array_t<bool>>(b)) { return char_bool; }
-    // Return the .dtype().type() which not be a basic numeric type.
-    return b.dtype().type();
+    // Return the .dtype().char_() which not be a basic numeric type.
+    return b.dtype().char_();
 }
 
 enum StorageOrder {
