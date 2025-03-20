@@ -169,6 +169,7 @@ public:
 // Casts an Eigen Sparse type to scipy csr_matrix or csc_matrix.
 // If given a base, the numpy array references the src data, otherwise it'll make a copy.
 // writeable lets you turn off the writeable flag for the array.
+#if NPY_ABI_VERSION  < 0x02000000
 template <typename Type, typename = enable_if_t<is_eigen_sparse<Type>::value>>
 handle eigen_sparse_array_cast(Type* src, handle parent = none(), bool writable = true) {
   bool rowMajor = Type::Flags & Eigen::RowMajor;
@@ -194,6 +195,23 @@ handle eigen_sparse_array_cast(Type* src, handle parent = none(), bool writable 
   return matrix_type(std::make_tuple(data, indices, indptr),
                      std::make_pair(src->rows(), src->cols()), "copy"_a=false).release();
 }
+#else
+template <typename Type, typename = enable_if_t<is_eigen_sparse<Type>::value>>
+handle eigen_sparse_array_cast(Type* src, handle parent = none()) {
+  bool rowMajor = Type::Flags & Eigen::RowMajor;
+
+  array data = array(src->nonZeros(), src->valuePtr(), parent);
+  array indptr = array((rowMajor ? src->rows() : src->cols()) + 1, src->outerIndexPtr(), parent);
+  array indices = array(src->nonZeros(), src->innerIndexPtr(), parent);
+
+  object sparse_module = module::import("scipy.sparse");
+  object matrix_type = sparse_module.attr(
+      rowMajor ? "csr_matrix" : "csc_matrix");
+
+  return matrix_type(std::make_tuple(data, indices, indptr),
+                     std::make_pair(src->rows(), src->cols()), "copy"_a=false).release();
+}
+#endif
 
 template <typename Type, typename = enable_if_t<is_eigen_sparse<Type>::value>>
 handle eigen_encapsulate_sparse(Type* src) {

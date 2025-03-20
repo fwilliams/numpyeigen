@@ -81,46 +81,50 @@ public:
     template <typename T> static dtype of() {
         return pybind11::detail::npy_format_descriptor<typename std::remove_cv<T>::type>::dtype();
     }
-
+#if NPY_ABI_VERSION <  0x02000000
+#define NPE_ARRAY_DESCRIPTOR_PROXY pybind11::detail::array_descriptor_proxy
+#else
+#define NPE_ARRAY_DESCRIPTOR_PROXY pybind11::detail::array_descriptor2_proxy
+#endif
     /// Size of the data type in bytes.
     ssize_t itemsize() const {
-        return pybind11::detail::array_descriptor_proxy(m_ptr)->elsize;
+        return NPE_ARRAY_DESCRIPTOR_PROXY(m_ptr)->elsize;
     }
 
     /// Returns true for structured data types.
     bool has_fields() const {
-        return pybind11::detail::array_descriptor_proxy(m_ptr)->names != nullptr;
+        return NPE_ARRAY_DESCRIPTOR_PROXY(m_ptr)->names != nullptr;
     }
 
     /// Single-character type code.
     char kind() const {
-        return pybind11::detail::array_descriptor_proxy(m_ptr)->kind;
+        return NPE_ARRAY_DESCRIPTOR_PROXY(m_ptr)->kind;
     }
 
     /// Return the NumPy array type char
     char type() const {
-        return pybind11::detail::array_descriptor_proxy(m_ptr)->type;
+        return NPE_ARRAY_DESCRIPTOR_PROXY(m_ptr)->type;
     }
 
     char byteorder() const {
-        return pybind11::detail::array_descriptor_proxy(m_ptr)->byteorder;
+        return NPE_ARRAY_DESCRIPTOR_PROXY(m_ptr)->byteorder;
     }
 
     /// Return the NumPy array descr flags
     int flags() const {
-        return pybind11::detail::array_descriptor_proxy(m_ptr)->flags;
+        return NPE_ARRAY_DESCRIPTOR_PROXY(m_ptr)->flags;
     }
 
     int type_num() const {
-      return pybind11::detail::array_descriptor_proxy(m_ptr)->type_num;
+      return NPE_ARRAY_DESCRIPTOR_PROXY(m_ptr)->type_num;
     }
 
     int elsize() const {
-      return pybind11::detail::array_descriptor_proxy(m_ptr)->elsize;
+      return NPE_ARRAY_DESCRIPTOR_PROXY(m_ptr)->elsize;
     }
 
     int alignment() const {
-      return pybind11::detail::array_descriptor_proxy(m_ptr)->alignment;
+      return NPE_ARRAY_DESCRIPTOR_PROXY(m_ptr)->alignment;
     }
 private:
     static pybind11::object _dtype_from_pep3118() {
