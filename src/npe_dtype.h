@@ -82,7 +82,7 @@ public:
         return pybind11::detail::npy_format_descriptor<typename std::remove_cv<T>::type>::dtype();
     }
 #if NPY_ABI_VERSION <  0x02000000
-#define NPE_ARRAY_DESCRIPTOR_PROXY pybind11::detail::array_descriptor_proxy
+#define NPE_ARRAY_DESCRIPTOR_PROXY pybind11::detail::array_descriptor1_proxy
 #else
 #define NPE_ARRAY_DESCRIPTOR_PROXY pybind11::detail::array_descriptor2_proxy
 #endif
