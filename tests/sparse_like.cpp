@@ -9,7 +9,7 @@ npe_arg(a, dense_double, dense_float)
 npe_arg(b, npe_sparse_like(a))
 npe_begin_code()
 
-npe_Matrix_b ret1 = b;
+npe_Matrix_b ret1 = a * b;
 
 return npe::move(ret1);
 npe_end_code()
