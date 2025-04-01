@@ -19,7 +19,7 @@
 #
 
 
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.10)
 
 # Utility options to enable various vectorization optimizations in Eigen
 set(NPE_EXTRA_CXX_FLAGS "")
